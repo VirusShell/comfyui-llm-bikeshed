@@ -6,7 +6,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1A: Project Scaffold
 
-- [ ] 1.1 Create project scaffold files
+- [x] 1.1 Create project scaffold files
   - **Do**:
     1. Create `version.py` with `__version__ = "0.1.0"`
     2. Create `pyproject.toml` with project metadata, `dependencies = ["pyyaml>=6.0", "requests>=2.28.0"]`, `[tool.comfy]` section, `[tool.ruff]` section with `select = ["E", "F", "W", "I"]` and `target-version = "py310"`
