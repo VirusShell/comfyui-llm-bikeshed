@@ -17,6 +17,9 @@ config.yaml
 .vscode/
 *.swp
 
+# Reference screenshots
+Screenshot-*.png
+
 # OS
 Thumbs.db
 .DS_Store
