@@ -206,9 +206,12 @@ def generate(self, provider: dict, prompt: str, system_prompt: str = "",
 
 ---
 
-## Config Loading
+## Config Loading (Merge on Load — I-7)
+
+On startup, `config.example.yaml` (shipped defaults) is deep-merged with the user's `config.yaml`. User values always win. New keys appear with defaults. Neither file is modified on disk.
 
 ```python
+import copy
 import yaml
 import os
 import logging
@@ -216,24 +219,53 @@ import logging
 logger = logging.getLogger("llm-bikeshed")
 
 _config = None
-_config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
+_pack_dir = os.path.dirname(__file__)
+_example_path = os.path.join(_pack_dir, "config.example.yaml")
+_user_path = os.path.join(_pack_dir, "config.yaml")
+
+
+def _deep_merge(base: dict, override: dict) -> dict:
+    """Deep-merge override into base. Override values win. Both dicts preserved."""
+    result = copy.deepcopy(base)
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = copy.deepcopy(value)
+    return result
+
 
 def load_config() -> dict:
+    """Load config: deep-merge example (defaults) with user config."""
     global _config
-    if os.path.exists(_config_path):
-        with open(_config_path, "r") as f:
-            _config = yaml.safe_load(f) or {}
-        logger.info(f"Config loaded from {_config_path}")
+
+    # Load shipped defaults
+    if os.path.exists(_example_path):
+        with open(_example_path, "r") as f:
+            defaults = yaml.safe_load(f) or {}
     else:
-        _config = {}
-        logger.warning(f"No config.yaml found at {_config_path}")
+        defaults = {}
+        logger.warning(f"No config.example.yaml found at {_example_path}")
+
+    # Load user overrides
+    if os.path.exists(_user_path):
+        with open(_user_path, "r") as f:
+            user = yaml.safe_load(f) or {}
+        logger.info(f"User config loaded from {_user_path}")
+    else:
+        user = {}
+        logger.info("No config.yaml found, using defaults from config.example.yaml")
+
+    _config = _deep_merge(defaults, user)
     return _config
+
 
 def get_config() -> dict:
     global _config
     if _config is None:
         load_config()
     return _config
+
 
 def get_api_key(provider: str) -> str | None:
     """Resolve API key: config.yaml -> env var -> None"""

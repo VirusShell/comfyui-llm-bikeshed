@@ -82,6 +82,7 @@ Generated: 2026-02-25
 | I-4 | Rate limiting / retry logic | Decided | No retry loop in v1. Fail immediately on error. Log failure details (backend name, URL, HTTP status, response body) at error level and raise exception. Error surfaces via ComfyUI's built-in notification. Retry can be added later if transient failures prove common in practice. |
 | I-5 | HTTP timeout defaults | Decided | 120s default, configurable per-provider in config.yaml. |
 | I-6 | `WEB_DIRECTORY` value in `__init__.py` | Decided | `"./js"`. |
+| I-7 | Config migration on node pack updates | Decided | Merge on load. `config.example.yaml` (shipped defaults) is deep-merged with user's `config.yaml` at runtime — user values always win. New keys from example appear with defaults. User-added keys preserved. Neither file is modified on disk. No migration scripts, no config versioning. |
 
 ---
 
@@ -118,4 +119,4 @@ Generated: 2026-02-25
 | 2026-03-01 | Resolved A-1 (chain pattern), A-2 (base scope), A-3 (no toggles), A-4 (merge precedence). Added A-13 (Basic/Advanced split), A-14 (separate Provider nodes). Created text_gen_processing_concept.md. |
 | 2026-03-07 | Reopened A-1, A-2, A-3, A-4 based on concept doc review feedback. Added A-15 (unload deferral), A-16 (backend scope), A-17 (cloud tabled), A-18 (keep_alive/ttl defaults). Added P-9, P-10. |
 | 2026-03-09 | Major update from fresh research phase. Resolved: P-10 (graph introspection confirmed), P-9 (toggles confirmed), P-4 (error mechanisms confirmed), API-4 (full param tables), API-7 (admin key confirmed), A-15 (use P-10 reverse-indexing), A-1 (per-provider Options with toggles), A-3 (yes toggles), A-6 (Preset Loader node for v1), A-11 (no IS_CHANGED on Provider), AA-1 (system prompts confirmed for local backends). Marked moot: A-2, A-4, P-7, S-1. Tabled: A-5, A-9, A-12, P-1. |
-| 2026-03-09 | Resolved remaining open items: S-2 (v1 scope confirmed), I-4 (no retry, fail immediately with logging), A-7 (`presets/` dir with README placeholder), A-8 (tabled, designed separately, research JoyCaption patterns later). **All items now resolved, decided, confirmed, moot, or tabled. Zero unresolved items remain.** |
+| 2026-03-09 | Resolved remaining open items: S-2 (v1 scope confirmed), I-4 (no retry, fail immediately with logging), A-7 (`presets/` dir with README placeholder), A-8 (tabled, designed separately, research JoyCaption patterns later). Added I-7 (config migration — merge on load, user values always win). **All items now resolved, decided, confirmed, moot, or tabled. Zero unresolved items remain.** |
