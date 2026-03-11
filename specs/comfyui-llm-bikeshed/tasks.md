@@ -192,7 +192,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-2, AC-5.1 through AC-5.8, FR-17_
   - _Design: Generation Nodes — Basic_
 
-- [ ] 1.17 [VERIFY] Quality checkpoint: ruff check
+- [x] 1.17 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
@@ -200,7 +200,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1G: PromptServer Endpoints (LM Studio)
 
-- [ ] 1.18 Create LM Studio model fetch helper
+- [x] 1.18 Create LM Studio model fetch helper
   - **Do**:
     1. Implement `_fetch_models_lm_studio(url, api_key, timeout)` in `server/endpoints.py`
     2. `GET {url}/v1/models`, auth header if api_key provided
