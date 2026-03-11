@@ -14,7 +14,7 @@ try:
 except ImportError:
     HAS_SERVER = False
 
-logger = logging.getLogger("comfyui_llm_bikeshed.server")
+logger = logging.getLogger("llm-bikeshed")
 
 
 def _fetch_models_lm_studio(
@@ -41,6 +41,11 @@ def _fetch_models_lm_studio(
         response.raise_for_status()
         data = response.json()
         return [model["id"] for model in data.get("data", [])]
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code in (401, 403):
+            raise  # Let caller handle auth retry
+        logger.info("LM Studio model fetch failed (%s): %s", url, e)
+        return []
     except requests.RequestException as e:
         logger.info("LM Studio model fetch failed (%s): %s", url, e)
         return []
@@ -50,26 +55,34 @@ def _fetch_models_lm_studio(
 
 
 if HAS_SERVER:
-    from config import get_api_key
+    try:
+        from config import get_api_key
+    except ImportError:
+        get_api_key = None  # type: ignore[assignment]
 
     @PromptServer.instance.routes.post("/llm-bikeshed/models/lm-studio")
     async def _endpoint_models_lm_studio(request: web.Request) -> web.Response:
         """Return available models from an LM Studio instance.
 
-        Tries without auth first; retries with configured API key on empty result.
+        Tries without auth first; retries with API key on 401/403.
         """
         data = await request.json()
         url = data.get("url", "")
         if not url:
             return web.json_response({"models": []})
 
-        models = await asyncio.to_thread(_fetch_models_lm_studio, url)
-
-        if not models:
-            api_key = get_api_key("lm_studio")
-            if api_key:
-                models = await asyncio.to_thread(
-                    _fetch_models_lm_studio, url, api_key=api_key
-                )
+        try:
+            models = await asyncio.to_thread(_fetch_models_lm_studio, url)
+        except requests.HTTPError:
+            # Auth failure — retry with configured key
+            models = []
+            if get_api_key is not None:
+                api_key = get_api_key("lm_studio")
+                if api_key:
+                    models = await asyncio.to_thread(
+                        _fetch_models_lm_studio, url, api_key=api_key
+                    )
+            if not models:
+                logger.info("LM Studio auth failed, returning empty model list")
 
         return web.json_response({"models": models})
