@@ -177,7 +177,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Commit**: `feat(generation): add _build_messages helper`
   - _Design: Generation Nodes — shared helper_
 
-- [ ] 1.16 Create Basic Generation node (LLMGenerate)
+- [x] 1.16 Create Basic Generation node (LLMGenerate)
   - **Do**:
     1. Implement `LLMGenerate` class in `nodes/generation.py`
     2. `INPUT_TYPES`: required `provider` (LLM_PROVIDER), `prompt` (STRING, multiline); optional `system_prompt` (STRING, multiline), `temperature` (FLOAT, default 0.7, 0.0-2.0), `max_tokens` (INT, default 1024), `seed` (INT, default -1)
