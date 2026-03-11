@@ -43,7 +43,7 @@ BACKEND_ALLOWLISTS: dict[str, set[str]] = {
 # exists for future backends that need renaming).
 NAME_MAPS: dict[str, dict[str, str]] = {
     "lm_studio": {},
-    "text_gen_webui": {},
+    "text_gen_webui": {"tfs_z": "tfs"},
 }
 
 
@@ -63,7 +63,7 @@ class OAICompatAdapter:
         """Send a chat completion request and return the generated text."""
         url: str = provider["url"]
         model: str = provider["model"]
-        backend: str = provider.get("backend", "lm_studio")
+        backend: str = provider["backend"]
 
         # Build messages array from prompt + optional system_prompt.
         # Messages are passed in ready-to-use format by the generation node.
