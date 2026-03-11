@@ -59,7 +59,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: AC-12.3, AC-12.4_
   - _Design: Config Module_
 
-- [ ] 1.6 Create config module (load_config, get_config, get_api_key)
+- [x] 1.6 Create config module (load_config, get_config, get_api_key)
   - **Do**:
     1. Implement `load_config()` in `config/__init__.py` — reads `config.example.yaml`, deep-merges with `config.yaml` if present, caches in module-level `_config`
     2. Implement `get_config()` — returns cached config, calls `load_config()` on first access
