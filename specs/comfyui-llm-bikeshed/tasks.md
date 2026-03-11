@@ -94,7 +94,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: NFR-2, NFR-3_
   - _Design: Adapters — base.py_
 
-- [ ] 1.9 Create OAI-compatible adapter
+- [x] 1.9 Create OAI-compatible adapter
   - **Do**:
     1. Implement `OAICompatAdapter` in `adapters/oai_compat.py`
     2. Add `BACKEND_ALLOWLISTS` dict with `lm_studio` and `text_gen_webui` param sets

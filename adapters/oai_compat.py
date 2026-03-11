@@ -1,0 +1,123 @@
+"""OpenAI-compatible adapter for LM Studio and text-generation-webui."""
+
+from __future__ import annotations
+
+import logging
+
+import requests
+
+from adapters.base import _raise_on_error
+
+logger = logging.getLogger("llm-bikeshed")
+
+# Per-backend parameter allowlists — only these are forwarded to the API.
+BACKEND_ALLOWLISTS: dict[str, set[str]] = {
+    "lm_studio": {
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "seed",
+        "stop",
+        "top_k",
+        "repeat_penalty",
+        "presence_penalty",
+        "frequency_penalty",
+    },
+    "text_gen_webui": {
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "seed",
+        "stop",
+        "top_k",
+        "min_p",
+        "repeat_penalty",
+        "presence_penalty",
+        "frequency_penalty",
+        "typical_p",
+        "tfs",
+    },
+}
+
+# Per-backend parameter name mapping (OAI names match, but structure
+# exists for future backends that need renaming).
+NAME_MAPS: dict[str, dict[str, str]] = {
+    "lm_studio": {},
+    "text_gen_webui": {},
+}
+
+
+class OAICompatAdapter:
+    """Adapter for OpenAI-compatible LLM endpoints (LM Studio, text-gen-webui)."""
+
+    BACKEND_ALLOWLISTS = BACKEND_ALLOWLISTS
+    NAME_MAPS = NAME_MAPS
+
+    def generate(
+        self,
+        provider: dict,
+        messages: list[dict],
+        options: dict,
+        skip_unload: bool = False,
+    ) -> str:
+        """Send a chat completion request and return the generated text."""
+        url: str = provider["url"]
+        model: str = provider["model"]
+        backend: str = provider.get("backend", "lm_studio")
+
+        # Build messages array from prompt + optional system_prompt.
+        # Messages are passed in ready-to-use format by the generation node.
+
+        # Filter and map options against backend allowlist.
+        allowlist = BACKEND_ALLOWLISTS.get(backend, set())
+        name_map = NAME_MAPS.get(backend, {})
+        filtered: dict = {}
+        for key, value in options.items():
+            if key in allowlist:
+                mapped_key = name_map.get(key, key)
+                filtered[mapped_key] = value
+            else:
+                logger.info(
+                    "Dropping unsupported param '%s' for backend '%s'",
+                    key,
+                    backend,
+                )
+
+        # Build request payload.
+        payload: dict = {
+            "model": model,
+            "messages": messages,
+            "stream": False,
+            **filtered,
+        }
+
+        # Handle LM Studio TTL for model memory management.
+        memory = provider.get("memory", {})
+        if backend == "lm_studio" and memory.get("ttl") is not None:
+            ttl = memory["ttl"]
+            if skip_unload:
+                # Extend TTL when more generation nodes follow in the chain.
+                ttl = max(ttl * 10, 300)
+            payload["ttl"] = ttl
+
+        # Build headers with optional auth.
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        api_key = provider.get("api_key")
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        # Send request.
+        endpoint = f"{url.rstrip('/')}/v1/chat/completions"
+        timeout = provider.get("timeout", 120)
+        response = requests.post(
+            endpoint,
+            json=payload,
+            headers=headers,
+            timeout=timeout,
+        )
+
+        _raise_on_error(response, backend, endpoint)
+
+        # Extract generated text.
+        data = response.json()
+        return data["choices"][0]["message"]["content"]
