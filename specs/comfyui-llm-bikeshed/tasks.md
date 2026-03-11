@@ -74,7 +74,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-10, AC-12.1 through AC-12.7, AC-4.2_
   - _Design: Config Module_
 
-- [ ] 1.7 [VERIFY] Quality checkpoint: ruff check
+- [x] 1.7 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
@@ -82,7 +82,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1C: Adapter Layer (OAI-Compat for LM Studio POC)
 
-- [ ] 1.8 Create adapter base protocol
+- [x] 1.8 Create adapter base protocol
   - **Do**:
     1. Define `LLMAdapter` Protocol class in `adapters/base.py`
     2. Single method: `generate(provider, messages, options, skip_unload) -> str`
