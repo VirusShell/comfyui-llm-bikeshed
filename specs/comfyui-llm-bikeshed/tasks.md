@@ -229,7 +229,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-13, AC-1.2, AC-1.9_
   - _Design: PromptServer Endpoints_
 
-- [ ] 1.20 [VERIFY] Quality checkpoint: ruff check
+- [x] 1.20 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
@@ -237,7 +237,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1H: Frontend JS
 
-- [ ] 1.21 Create model_dropdown.js frontend extension
+- [x] 1.21 Create model_dropdown.js frontend extension
   - **Do**:
     1. Create `js/model_dropdown.js`
     2. Import `app` from ComfyUI scripts
