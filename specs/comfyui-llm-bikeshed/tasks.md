@@ -109,7 +109,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-6, FR-7, FR-18_
   - _Design: Adapters — oai_compat.py_
 
-- [ ] 1.10 Create adapter registry
+- [x] 1.10 Create adapter registry
   - **Do**:
     1. In `adapters/__init__.py`, import `OAICompatAdapter`
     2. Create `_ADAPTERS` dict with `"oai_compat": OAICompatAdapter()` (singleton)
