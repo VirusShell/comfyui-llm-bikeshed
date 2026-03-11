@@ -121,7 +121,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Commit**: `feat(adapters): add adapter registry with OAI-compat singleton`
   - _Design: Adapter Registry_
 
-- [ ] 1.11 [VERIFY] Quality checkpoint: ruff check
+- [x] 1.11 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
@@ -129,7 +129,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1D: Graph Introspection
 
-- [ ] 1.12 Implement graph introspection module
+- [x] 1.12 Implement graph introspection module
   - **Do**:
     1. Implement `find_downstream_nodes(prompt, node_id, output_index)` in `graph/introspection.py`
     2. Implement `has_downstream_gen_node(prompt, node_id, meta_output_index)` — checks if any downstream node is in `GENERATION_CLASS_TYPES`
