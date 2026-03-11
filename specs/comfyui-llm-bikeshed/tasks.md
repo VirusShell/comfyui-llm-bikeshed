@@ -213,7 +213,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-13, AC-1.2_
   - _Design: PromptServer — _fetch_models_lm_studio_
 
-- [ ] 1.19 Create LM Studio PromptServer endpoint
+- [x] 1.19 Create LM Studio PromptServer endpoint
   - **Do**:
     1. Add `@PromptServer.instance.routes.post("/llm-bikeshed/models/lm-studio")` async handler
     2. Extracts `url` from request JSON
