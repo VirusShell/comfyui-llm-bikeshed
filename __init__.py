@@ -1,7 +1,7 @@
 """ComfyUI LLM Bikeshed — local LLM text generation nodes."""
 
-from nodes.providers import LLMProviderLMStudio
 from nodes.generation import LLMGenerate
+from nodes.providers import LLMProviderLMStudio
 
 # Import server module to trigger PromptServer endpoint registration
 from server import endpoints as _endpoints  # noqa: F401
