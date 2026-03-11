@@ -69,12 +69,14 @@ class LLMGenerate:
         **kwargs: object,
     ) -> tuple:
         """Run LLM generation and return (text, meta)."""
-        # Build inline options — always include temperature and max_tokens
-        options: dict = {
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "seed": seed,
-        }
+        # Build inline options — exclude sentinel values (use model defaults)
+        options: dict = {}
+        if temperature >= 0:
+            options["temperature"] = temperature
+        if max_tokens > 0:
+            options["max_tokens"] = max_tokens
+        if seed >= 0:
+            options["seed"] = seed
 
         adapter = get_adapter(provider["adapter"])
 

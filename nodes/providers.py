@@ -7,6 +7,7 @@ class LLMProviderLMStudio:
     """LM Studio provider node. Outputs LLM_PROVIDER dict with oai_compat adapter."""
 
     RETURN_TYPES = ("LLM_PROVIDER",)
+    RETURN_NAMES = ("provider",)
     FUNCTION = "build_provider"
     CATEGORY = "LLM Bikeshed/providers"
 
@@ -19,7 +20,7 @@ class LLMProviderLMStudio:
                 "ttl": ("INT", {"default": 30, "min": 0}),
             },
             "optional": {
-                "model_fallback": ("STRING", {"defaultInput": True}),
+                "model_fallback": ("STRING", {"default": "", "defaultInput": True}),
             },
         }
 
@@ -41,7 +42,7 @@ class LLMProviderLMStudio:
         provider = {
             "backend": "lm_studio",
             "adapter": "oai_compat",
-            "url": url,
+            "url": url.rstrip("/"),
             "model": resolved_model,
             "timeout": timeout,
             "api_key": api_key,

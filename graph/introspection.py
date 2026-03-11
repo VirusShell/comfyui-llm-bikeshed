@@ -15,7 +15,7 @@ def find_downstream_nodes(
     prompt: dict[str, Any],
     node_id: str,
     output_index: int,
-) -> list[str]:
+) -> list[tuple[str, str, str]]:
     """Find all nodes whose inputs connect to [node_id, output_index].
 
     Args:
@@ -24,19 +24,19 @@ def find_downstream_nodes(
         output_index: The output slot index on the source node.
 
     Returns:
-        List of node IDs that receive input from the given output.
+        List of (node_id, class_type, input_name) tuples for downstream nodes.
     """
-    downstream: list[str] = []
+    downstream: list[tuple[str, str, str]] = []
     for nid, node_info in prompt.items():
         inputs = node_info.get("inputs", {})
-        for value in inputs.values():
+        for input_name, value in inputs.items():
             if (
                 isinstance(value, list)
                 and len(value) == 2
-                and value[0] == node_id
+                and str(value[0]) == str(node_id)
                 and value[1] == output_index
             ):
-                downstream.append(nid)
+                downstream.append((nid, node_info.get("class_type", ""), input_name))
     return downstream
 
 
@@ -55,9 +55,5 @@ def has_downstream_gen_node(
     Returns:
         True if any downstream node's class_type is in GENERATION_CLASS_TYPES.
     """
-    downstream_ids = find_downstream_nodes(prompt, node_id, meta_output_index)
-    for nid in downstream_ids:
-        node_info = prompt.get(nid, {})
-        if node_info.get("class_type") in GENERATION_CLASS_TYPES:
-            return True
-    return False
+    downstream = find_downstream_nodes(prompt, node_id, meta_output_index)
+    return any(ct in GENERATION_CLASS_TYPES for _, ct, _ in downstream)
