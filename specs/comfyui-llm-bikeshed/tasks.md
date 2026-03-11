@@ -143,7 +143,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1E: LM Studio Provider Node
 
-- [ ] 1.13 Create LM Studio Provider node
+- [x] 1.13 Create LM Studio Provider node
   - **Do**:
     1. Implement `LLMProviderLMStudio` class in `nodes/providers.py`
     2. `INPUT_TYPES`: `url` (STRING, default `http://localhost:1234`), `model` (COMBO `["(refresh to load)"]`), `ttl` (INT, default 30), optional `model_fallback` (STRING, `defaultInput: True`)
