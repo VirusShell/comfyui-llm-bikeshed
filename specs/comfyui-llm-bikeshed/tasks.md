@@ -39,7 +39,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Commit**: `feat(config): add config.example.yaml with provider defaults`
   - _Requirements: AC-12.1, FR-10_
 
-- [ ] 1.4 [VERIFY] Quality checkpoint: ruff check
+- [x] 1.4 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Install ruff, run lint on project
   - **Verify**: `pip install ruff && ruff check . && echo PASS`
   - **Done when**: No lint errors
@@ -47,7 +47,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1B: Config System
 
-- [ ] 1.5 Create deep_merge utility
+- [x] 1.5 Create deep_merge utility
   - **Do**:
     1. Implement `deep_merge(base, override) -> dict` in `config/merge.py`
     2. Uses `copy.deepcopy` for immutability
