@@ -255,7 +255,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1I: Node Registration (__init__.py) — POC Vertical Slice
 
-- [ ] 1.22 Create root __init__.py with LM Studio POC registration
+- [x] 1.22 Create root __init__.py with LM Studio POC registration
   - **Do**:
     1. Import `LLMProviderLMStudio` from `nodes.providers`
     2. Import `LLMGenerate` from `nodes.generation`
