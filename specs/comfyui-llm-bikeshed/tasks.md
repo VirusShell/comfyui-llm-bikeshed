@@ -158,7 +158,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-1, AC-1.1 through AC-1.9, FR-21_
   - _Design: Provider Nodes — LM Studio_
 
-- [ ] 1.14 [VERIFY] Quality checkpoint: ruff check
+- [x] 1.14 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
@@ -166,7 +166,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1F: Basic Generation Node
 
-- [ ] 1.15 Create _build_messages helper
+- [x] 1.15 Create _build_messages helper
   - **Do**:
     1. Add `_build_messages(system_prompt, prompt) -> list[dict]` in `nodes/generation.py`
     2. System prompt added as `role: "system"` only if non-empty
