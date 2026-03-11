@@ -1,0 +1,19 @@
+# ComfyUI LLM Bikeshed — Provider Configuration
+# Copy this file to config.yaml and adjust as needed.
+# config.yaml is gitignored and will not be shared with workflows.
+
+providers:
+  ollama:
+    url: "http://localhost:11434"
+    timeout: 120
+
+  lm_studio:
+    url: "http://localhost:1234"
+    timeout: 120
+    # api_key: "your-api-key-here"
+
+  text_gen_webui:
+    url: "http://localhost:5000"
+    timeout: 120
+    # api_key: "your-api-key-here"
+    # admin_key: "your-admin-key-here"

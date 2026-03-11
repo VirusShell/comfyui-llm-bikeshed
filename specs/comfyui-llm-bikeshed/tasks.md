@@ -17,7 +17,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Commit**: `feat(scaffold): add pyproject.toml, version.py, and .gitignore`
   - _Requirements: NFR-4, NFR-8_
 
-- [ ] 1.2 [P] Create package directory structure and __init__ stubs
+- [x] 1.2 [P] Create package directory structure and __init__ stubs
   - **Do**:
     1. Create directories: `nodes/`, `adapters/`, `config/`, `graph/`, `server/`, `js/`, `presets/`, `tests/`
     2. Create `__init__.py` stubs in `nodes/`, `adapters/`, `config/`, `graph/`, `server/`, `tests/`
@@ -28,7 +28,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Commit**: `feat(scaffold): create package directories and __init__ stubs`
   - _Design: Directory Structure_
 
-- [ ] 1.3 [P] Create config.example.yaml
+- [x] 1.3 [P] Create config.example.yaml
   - **Do**:
     1. Create `config.example.yaml` with `providers:` section containing `ollama`, `lm_studio`, `text_gen_webui` entries
     2. Each entry has `url` and `timeout: 120`
