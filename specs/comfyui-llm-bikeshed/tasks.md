@@ -526,7 +526,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1O: Full Node Registration
 
-- [ ] 1.46 Update __init__.py with all 11 node registrations
+- [x] 1.46 Update __init__.py with all 11 node registrations
   - **Do**:
     1. Import all node classes: 3 providers, 2 generation, 4 options (Ollama Core/Extra, LM Studio, text-gen-webui), 2 utils
     2. Import `server` module for endpoint registration
