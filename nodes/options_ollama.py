@@ -1,5 +1,7 @@
 """Ollama Options nodes — Core (sentinel pattern) and Extra (toggle pattern)."""
 
+from __future__ import annotations
+
 from nodes.options_base import build_toggle_options
 
 
@@ -26,7 +28,7 @@ class LLMOptionsOllamaCore:
     }
 
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(cls) -> dict:  # noqa: N802
         return {
             "required": {
                 "temperature": (
@@ -63,7 +65,9 @@ class LLMOptionsOllamaCore:
             },
         }
 
-    def build_options(self, options_in: dict = None, **kwargs) -> tuple:
+    def build_options(
+        self, options_in: dict | None = None, **kwargs: object,
+    ) -> tuple[dict]:
         options = dict(options_in) if options_in else {}
         for param, sentinel in self.SENTINELS.items():
             value = kwargs.get(param)
@@ -125,8 +129,8 @@ class LLMOptionsOllamaExtra:
     ]
 
     @classmethod
-    def INPUT_TYPES(cls):
-        inputs = {"required": {}, "optional": {"options_in": ("LLM_OPTIONS",)}}
+    def INPUT_TYPES(cls) -> dict:  # noqa: N802
+        inputs: dict = {"required": {}, "optional": {"options_in": ("LLM_OPTIONS",)}}
         for name, dtype, opts in cls.PARAMS:
             inputs["optional"][f"enable_{name}"] = (
                 "BOOLEAN",
@@ -138,5 +142,7 @@ class LLMOptionsOllamaExtra:
                 inputs["optional"][name] = (dtype, opts)
         return inputs
 
-    def build_options(self, options_in: dict = None, **kwargs) -> tuple:
+    def build_options(
+        self, options_in: dict | None = None, **kwargs: object,
+    ) -> tuple[dict]:
         return build_toggle_options(self.PARAMS, kwargs, options_in)

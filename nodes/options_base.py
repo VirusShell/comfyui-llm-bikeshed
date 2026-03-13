@@ -1,9 +1,15 @@
 """Shared helpers for toggle-based options nodes."""
 
+from __future__ import annotations
+
+from typing import Any
+
 
 def build_toggle_options(
-    params: list[tuple], kwargs: dict, options_in: dict | None = None
-) -> tuple:
+    params: list[tuple[str, str, dict[str, Any]]],
+    kwargs: dict[str, Any],
+    options_in: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any]]:
     """Build an options dict from toggle-enabled parameters.
 
     Args:

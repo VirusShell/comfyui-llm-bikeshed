@@ -1,5 +1,7 @@
 """LM Studio Options node — toggle pattern for OAI-compatible parameters."""
 
+from __future__ import annotations
+
 from nodes.options_base import build_toggle_options
 
 
@@ -49,8 +51,8 @@ class LLMOptionsLMStudio:
     ]
 
     @classmethod
-    def INPUT_TYPES(cls):
-        inputs = {
+    def INPUT_TYPES(cls) -> dict:  # noqa: N802
+        inputs: dict = {
             "required": {},
             "optional": {"options_in": ("LLM_OPTIONS",)},
         }
@@ -62,5 +64,7 @@ class LLMOptionsLMStudio:
             inputs["optional"][name] = (dtype, opts)
         return inputs
 
-    def build_options(self, options_in: dict = None, **kwargs) -> tuple:
+    def build_options(
+        self, options_in: dict | None = None, **kwargs: object,
+    ) -> tuple[dict]:
         return build_toggle_options(self.PARAMS, kwargs, options_in)

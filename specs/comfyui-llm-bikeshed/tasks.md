@@ -620,7 +620,7 @@ Focus: Clean up code, add error handling, improve structure.
   - **Done when**: No lint errors
   - **Commit**: `chore(refactor): pass quality checkpoint` (if fixes needed)
 
-- [ ] 2.7 Add type hints to all public functions
+- [x] 2.7 Add type hints to all public functions
   - **Do**:
     1. Ensure all public functions in adapters, config, graph, server modules have full type annotations
     2. Add return type annotations to all FUNCTION methods on nodes

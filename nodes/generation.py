@@ -6,7 +6,7 @@ from adapters import get_adapter
 from graph.introspection import has_downstream_gen_node
 
 
-def _build_messages(system_prompt: str, prompt: str) -> list[dict]:
+def _build_messages(system_prompt: str, prompt: str) -> list[dict[str, str]]:
     """Build message list for LLM chat completion.
 
     Args:
@@ -16,7 +16,7 @@ def _build_messages(system_prompt: str, prompt: str) -> list[dict]:
     Returns:
         List of message dicts with 'role' and 'content' keys.
     """
-    messages: list[dict] = []
+    messages: list[dict[str, str]] = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": prompt})
@@ -76,7 +76,7 @@ class LLMGenerate:
         max_tokens: int = 1024,
         seed: int = -1,
         **kwargs: object,
-    ) -> tuple:
+    ) -> tuple[str, dict]:
         """Run LLM generation and return (text, meta)."""
         # Build inline options — exclude sentinel values (use model defaults)
         options: dict = {}
@@ -149,7 +149,7 @@ class LLMGenerateAdvanced:
         options: dict | None = None,
         meta: dict | None = None,
         **kwargs: object,
-    ) -> tuple:
+    ) -> tuple[str, dict]:
         """Run LLM generation with provider/options from explicit inputs or meta."""
         # Meta precedence: explicit inputs win over meta values
         resolved_provider = provider or (meta.get("provider") if meta else None)
