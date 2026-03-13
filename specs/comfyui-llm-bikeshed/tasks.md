@@ -539,7 +539,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Commit**: `feat(init): register all 11 node classes`
   - _Design: Node Registration_
 
-- [ ] 1.47 [VERIFY] Quality checkpoint: ruff check
+- [x] 1.47 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
