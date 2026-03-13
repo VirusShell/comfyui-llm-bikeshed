@@ -292,7 +292,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-5, FR-7_
   - _Design: Adapters — ollama.py_
 
-- [ ] 1.25 Register Ollama adapter in registry
+- [x] 1.25 Register Ollama adapter in registry
   - **Do**:
     1. Import `OllamaAdapter` in `adapters/__init__.py`
     2. Add `"ollama_native": OllamaAdapter()` to `_ADAPTERS` dict

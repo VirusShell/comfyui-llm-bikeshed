@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from adapters.base import LLMAdapter
 from adapters.oai_compat import OAICompatAdapter
+from adapters.ollama import OllamaAdapter
 
 _ADAPTERS: dict[str, LLMAdapter] = {
     "oai_compat": OAICompatAdapter(),
-    # "ollama_native": OllamaNativeAdapter(),  # TODO: add when implemented
+    "ollama_native": OllamaAdapter(),
 }
 
 
