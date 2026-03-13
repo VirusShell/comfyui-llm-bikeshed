@@ -584,7 +584,7 @@ Focus: Clean up code, add error handling, improve structure.
   - **Commit**: `refactor(adapters): improve error messages with backend context`
   - _Requirements: NFR-2, NFR-3_
 
-- [ ] 2.3 [VERIFY] Quality checkpoint: ruff check
+- [x] 2.3 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
