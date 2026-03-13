@@ -482,7 +482,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-4, AC-10.1 through AC-10.5_
   - _Design: Options Nodes — text-gen-webui_
 
-- [ ] 1.42 [VERIFY] Quality checkpoint: ruff check
+- [x] 1.42 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
