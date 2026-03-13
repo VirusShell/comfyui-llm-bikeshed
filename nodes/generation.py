@@ -58,6 +58,15 @@ class LLMGenerate:
     def IS_CHANGED(cls, **kwargs: object) -> float:  # noqa: N802
         return float("NaN")
 
+    @classmethod
+    def VALIDATE_INPUTS(cls, **kwargs: object) -> bool:  # noqa: N802
+        """Validate inputs before execution.
+
+        Connection values (like provider) aren't available at validation time,
+        so we return True to allow execution to proceed.
+        """
+        return True
+
     def generate(
         self,
         provider: dict,
@@ -161,7 +170,9 @@ class LLMGenerateAdvanced:
         skip_unload = has_downstream_gen_node(prompt_graph, unique_id, 1)
 
         messages = _build_messages(system_prompt, prompt)
-        text = adapter.generate(resolved_provider, messages, resolved_options, skip_unload)
+        text = adapter.generate(
+            resolved_provider, messages, resolved_options, skip_unload
+        )
 
         meta_out: dict = {"provider": resolved_provider, "options": resolved_options}
         return (text, meta_out)

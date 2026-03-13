@@ -563,7 +563,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 Focus: Clean up code, add error handling, improve structure.
 
-- [ ] 2.1 Add VALIDATE_INPUTS to generation nodes
+- [x] 2.1 Add VALIDATE_INPUTS to generation nodes
   - **Do**:
     1. Add `VALIDATE_INPUTS` classmethod to `LLMGenerate` — validate URL format in provider
     2. Update `VALIDATE_INPUTS` in `LLMGenerateAdvanced` — check that either `provider` or `meta` will be available (return True since connection values aren't available at validation time)
