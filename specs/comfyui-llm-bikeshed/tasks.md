@@ -315,7 +315,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-16, FR-19_
   - _Design: Adapters — text-gen-webui lifecycle_
 
-- [ ] 1.27 [VERIFY] Quality checkpoint: ruff check
+- [x] 1.27 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
