@@ -389,7 +389,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Commit**: `feat(server): add config reload endpoint`
   - _Requirements: FR-14, AC-12.6_
 
-- [ ] 1.34 [VERIFY] Quality checkpoint: ruff check
+- [x] 1.34 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
