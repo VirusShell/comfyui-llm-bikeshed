@@ -614,7 +614,7 @@ Focus: Clean up code, add error handling, improve structure.
   - **Commit**: `refactor(options): extract shared toggle options builder`
   - _Design: Options Nodes_
 
-- [ ] 2.6 [VERIFY] Quality checkpoint: ruff check
+- [x] 2.6 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
