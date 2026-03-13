@@ -671,7 +671,7 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Verify**: `pytest tests/test_config.py -v && echo PASS`
   - **Commit**: `test(config): add deep_merge unit tests`
 
-- [ ] 3.3 [P] Test config load and API key resolution
+- [x] 3.3 [P] Test config load and API key resolution
   - **Do**:
     1. Add tests to `tests/test_config.py`
     2. Test: load_config returns merged dict, get_api_key from config, get_api_key from env var, get_admin_key fallback chain

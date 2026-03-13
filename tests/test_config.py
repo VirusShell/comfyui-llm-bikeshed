@@ -1,5 +1,7 @@
-"""Tests for config.merge.deep_merge utility."""
+"""Tests for config module: deep_merge, load_config, get_api_key, get_admin_key."""
 
+import config as config_module
+from config import get_api_key, get_admin_key, load_config, get_config, reload_config
 from config.merge import deep_merge
 
 
@@ -95,3 +97,134 @@ class TestDeepMergeImmutability:
         result = deep_merge(base, {})
         result["a"]["x"].append(3)
         assert base["a"]["x"] == [1, 2]
+
+
+# ---------------------------------------------------------------------------
+# Config loading tests
+# ---------------------------------------------------------------------------
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _reset_config_cache() -> None:
+    """Reset module-level _config cache before each test in this module."""
+    config_module._config = None
+
+
+class TestLoadConfig:
+    """load_config merges example + user YAML files."""
+
+    def test_returns_merged_dict(self, tmp_path, monkeypatch) -> None:
+        example = tmp_path / "config.example.yaml"
+        user = tmp_path / "config.yaml"
+        example.write_text("providers:\n  ollama:\n    host: http://default\n    port: 11434\n")
+        user.write_text("providers:\n  ollama:\n    host: http://custom\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+
+        result = load_config()
+
+        assert result["providers"]["ollama"]["host"] == "http://custom"
+        assert result["providers"]["ollama"]["port"] == 11434
+
+    def test_missing_user_config_returns_defaults(self, tmp_path, monkeypatch) -> None:
+        example = tmp_path / "config.example.yaml"
+        example.write_text("providers:\n  lmstudio:\n    host: http://localhost\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+
+        result = load_config()
+
+        assert result["providers"]["lmstudio"]["host"] == "http://localhost"
+
+    def test_missing_both_files_returns_empty(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+
+        result = load_config()
+
+        assert result == {}
+
+    def test_get_config_caches_result(self, tmp_path, monkeypatch) -> None:
+        example = tmp_path / "config.example.yaml"
+        example.write_text("key: value1\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+
+        first = get_config()
+        # Overwrite file — cached result should not change
+        example.write_text("key: value2\n")
+        second = get_config()
+
+        assert first is second
+        assert first["key"] == "value1"
+
+    def test_reload_config_clears_cache(self, tmp_path, monkeypatch) -> None:
+        example = tmp_path / "config.example.yaml"
+        example.write_text("key: value1\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+
+        first = load_config()
+        example.write_text("key: value2\n")
+        second = reload_config()
+
+        assert first["key"] == "value1"
+        assert second["key"] == "value2"
+
+
+class TestGetApiKey:
+    """get_api_key: config -> env var -> None."""
+
+    def test_from_config(self, tmp_path, monkeypatch) -> None:
+        user = tmp_path / "config.yaml"
+        user.write_text("providers:\n  lmstudio:\n    api_key: cfg-key-123\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+
+        assert get_api_key("lmstudio") == "cfg-key-123"
+
+    def test_from_env_var(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.setenv("LLM_BIKESHED_OLLAMA_API_KEY", "env-key-456")
+
+        assert get_api_key("ollama") == "env-key-456"
+
+    def test_config_takes_precedence_over_env(self, tmp_path, monkeypatch) -> None:
+        user = tmp_path / "config.yaml"
+        user.write_text("providers:\n  ollama:\n    api_key: cfg-key\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.setenv("LLM_BIKESHED_OLLAMA_API_KEY", "env-key")
+
+        assert get_api_key("ollama") == "cfg-key"
+
+    def test_returns_none_when_no_key(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.delenv("LLM_BIKESHED_OLLAMA_API_KEY", raising=False)
+
+        assert get_api_key("ollama") is None
+
+
+class TestGetAdminKey:
+    """get_admin_key: admin_key -> api_key -> env var -> None."""
+
+    def test_admin_key_from_config(self, tmp_path, monkeypatch) -> None:
+        user = tmp_path / "config.yaml"
+        user.write_text("providers:\n  textgenwebui:\n    admin_key: admin-123\n    api_key: api-456\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+
+        assert get_admin_key("textgenwebui") == "admin-123"
+
+    def test_falls_back_to_api_key(self, tmp_path, monkeypatch) -> None:
+        user = tmp_path / "config.yaml"
+        user.write_text("providers:\n  textgenwebui:\n    api_key: api-456\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+
+        assert get_admin_key("textgenwebui") == "api-456"
+
+    def test_falls_back_to_env_var(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.setenv("LLM_BIKESHED_TEXTGENWEBUI_ADMIN_KEY", "env-admin-789")
+
+        assert get_admin_key("textgenwebui") == "env-admin-789"
+
+    def test_returns_none_when_no_key(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.delenv("LLM_BIKESHED_TEXTGENWEBUI_ADMIN_KEY", raising=False)
+
+        assert get_admin_key("textgenwebui") is None
