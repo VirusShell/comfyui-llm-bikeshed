@@ -640,7 +640,7 @@ Focus: Clean up code, add error handling, improve structure.
   - **Verify**: `test -f CHANGELOG.md && test -f README.md && grep -q "0.1.0" CHANGELOG.md && echo PASS`
   - **Commit**: `docs: add CHANGELOG.md and README.md for v0.1.0`
 
-- [ ] 2.9 [VERIFY] Quality checkpoint: ruff check
+- [x] 2.9 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
