@@ -116,9 +116,10 @@ def _fetch_models_text_gen_webui(
 
 if HAS_SERVER:
     try:
-        from config import get_api_key
+        from config import get_api_key, load_config
     except ImportError:
         get_api_key = None  # type: ignore[assignment]
+        load_config = None  # type: ignore[assignment]
 
     @PromptServer.instance.routes.post("/llm-bikeshed/models/lm-studio")
     async def _endpoint_models_lm_studio(request: web.Request) -> web.Response:
@@ -146,6 +147,13 @@ if HAS_SERVER:
                 logger.info("LM Studio auth failed, returning empty model list")
 
         return web.json_response({"models": models})
+
+    @PromptServer.instance.routes.post("/llm-bikeshed/reload-config")
+    async def _endpoint_reload_config(request: web.Request) -> web.Response:
+        """Reload configuration from disk."""
+        if load_config is not None:
+            await asyncio.to_thread(load_config)
+        return web.json_response({"status": "ok"})
 
     @PromptServer.instance.routes.post("/llm-bikeshed/models/ollama")
     async def _endpoint_models_ollama(request: web.Request) -> web.Response:

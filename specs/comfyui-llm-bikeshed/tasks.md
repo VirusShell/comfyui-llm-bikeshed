@@ -379,7 +379,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Commit**: `feat(server): add text-gen-webui model list endpoint`
   - _Requirements: FR-13, AC-2.2, AC-2.10_
 
-- [ ] 1.33 Add config reload endpoint
+- [x] 1.33 Add config reload endpoint
   - **Do**:
     1. Add `@PromptServer.instance.routes.post("/llm-bikeshed/reload-config")` async handler
     2. Calls `load_config()` and returns `{"status": "ok"}`
