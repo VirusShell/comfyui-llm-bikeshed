@@ -631,7 +631,7 @@ Focus: Clean up code, add error handling, improve structure.
   - **Commit**: `refactor: add comprehensive type hints`
   - _Requirements: NFR-8_
 
-- [ ] 2.8 Create CHANGELOG.md and README.md
+- [x] 2.8 Create CHANGELOG.md and README.md
   - **Do**:
     1. Create `CHANGELOG.md` with v0.1.0 section listing all features
     2. Create `README.md` with project description, installation, configuration, usage, and node descriptions
