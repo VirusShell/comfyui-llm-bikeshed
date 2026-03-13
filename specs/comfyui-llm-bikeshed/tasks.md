@@ -590,7 +590,7 @@ Focus: Clean up code, add error handling, improve structure.
   - **Done when**: No lint errors
   - **Commit**: `chore(refactor): pass quality checkpoint` (if fixes needed)
 
-- [ ] 2.4 Add logging throughout modules
+- [x] 2.4 Add logging throughout modules
   - **Do**:
     1. Add `logger = logging.getLogger("llm-bikeshed")` to all modules that need it
     2. Add info-level log for param filtering in adapters

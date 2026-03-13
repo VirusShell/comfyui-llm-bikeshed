@@ -31,7 +31,7 @@ def load_config() -> dict:
     user = _load_yaml(user_path) or {}
 
     _config = deep_merge(defaults, user)
-    logger.debug("Config loaded (example=%s, user=%s)", example_path, user_path)
+    logger.info("Config loaded (example=%s, user=%s)", example_path, user_path)
     return _config
 
 
