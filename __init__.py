@@ -29,15 +29,15 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "LLMProviderLMStudio": "LM Studio Provider",
-    "LLMProviderOllama": "Ollama Provider",
-    "LLMProviderTextGenWebUI": "text-gen-webui Provider",
+    "LLMProviderLMStudio": "LLM Provider: LM Studio",
+    "LLMProviderOllama": "LLM Provider: Ollama",
+    "LLMProviderTextGenWebUI": "LLM Provider: text-gen-webui",
     "LLMGenerate": "LLM Generate (Basic)",
     "LLMGenerateAdvanced": "LLM Generate (Advanced)",
-    "LLMOptionsOllamaCore": "Ollama Options (Core)",
-    "LLMOptionsOllamaExtra": "Ollama Options (Extra)",
-    "LLMOptionsLMStudio": "LM Studio Options",
-    "LLMOptionsTextGenWebUI": "text-gen-webui Options",
+    "LLMOptionsOllamaCore": "LLM Options: Ollama (Core)",
+    "LLMOptionsOllamaExtra": "LLM Options: Ollama (Extra)",
+    "LLMOptionsLMStudio": "LLM Options: LM Studio",
+    "LLMOptionsTextGenWebUI": "LLM Options: text-gen-webui",
     "LLMPresetLoader": "LLM Preset Loader",
     "LLMLoadTextFile": "LLM Load Text File",
 }
