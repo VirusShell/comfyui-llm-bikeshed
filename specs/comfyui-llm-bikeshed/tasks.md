@@ -367,7 +367,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Commit**: `feat(server): add Ollama model list endpoint`
   - _Requirements: FR-13, AC-3.2_
 
-- [ ] 1.32 [P] Add text-gen-webui model fetch helper and endpoint
+- [x] 1.32 [P] Add text-gen-webui model fetch helper and endpoint
   - **Do**:
     1. Add `_fetch_models_text_gen_webui(url, admin_key, timeout)` in `server/endpoints.py`
     2. `GET {url}/v1/internal/model/list`, uses admin key, extracts `model_names`
