@@ -457,7 +457,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Done when**: No lint errors
   - **Commit**: `chore(options): pass quality checkpoint` (if fixes needed)
 
-- [ ] 1.40 [P] Create LM Studio Options node
+- [x] 1.40 [P] Create LM Studio Options node
   - **Do**:
     1. Implement `LLMOptionsLMStudio` in `nodes/options_lm_studio.py`
     2. Toggle pattern, 9 params: temperature, top_p, max_tokens, seed, stop, top_k, repeat_penalty, presence_penalty, frequency_penalty
