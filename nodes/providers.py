@@ -1,6 +1,6 @@
 """Provider nodes — one class per supported LLM backend."""
 
-from config import get_api_key, get_config
+from config import get_admin_key, get_api_key, get_config
 
 
 class LLMProviderLMStudio:
@@ -100,6 +100,58 @@ class LLMProviderOllama:
             "admin_key": None,
             "memory": {
                 "keep_alive": keep_alive,
+                "ttl": None,
+            },
+        }
+        return (provider,)
+
+
+class LLMProviderTextGenWebUI:
+    """text-gen-webui provider node. Outputs LLM_PROVIDER dict with oai_compat adapter."""
+
+    RETURN_TYPES = ("LLM_PROVIDER",)
+    RETURN_NAMES = ("provider",)
+    FUNCTION = "build_provider"
+    CATEGORY = "LLM Bikeshed/providers"
+
+    @classmethod
+    def INPUT_TYPES(cls) -> dict:
+        return {
+            "required": {
+                "url": ("STRING", {"default": "http://localhost:5000"}),
+                "model": (["(refresh to load)"],),
+            },
+            "optional": {
+                "model_fallback": ("STRING", {"default": "", "defaultInput": True}),
+            },
+        }
+
+    def build_provider(
+        self,
+        url: str,
+        model: str,
+        model_fallback: str = "",
+    ) -> tuple[dict]:
+        """Build LLM_PROVIDER dict for text-gen-webui backend."""
+        fallback = model_fallback.strip() if model_fallback else ""
+        resolved_model = fallback if fallback else model
+
+        cfg = get_config()
+        provider_cfg = cfg.get("providers", {}).get("text_gen_webui", {})
+        timeout = provider_cfg.get("timeout", 120)
+        api_key = get_api_key("text_gen_webui")
+        admin_key = get_admin_key("text_gen_webui")
+
+        provider = {
+            "backend": "text_gen_webui",
+            "adapter": "oai_compat",
+            "url": url.rstrip("/"),
+            "model": resolved_model,
+            "timeout": timeout,
+            "api_key": api_key,
+            "admin_key": admin_key,
+            "memory": {
+                "keep_alive": None,
                 "ttl": None,
             },
         }

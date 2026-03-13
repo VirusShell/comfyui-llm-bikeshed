@@ -334,7 +334,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-1, AC-3.1 through AC-3.7_
   - _Design: Provider Nodes — Ollama_
 
-- [ ] 1.29 Add text-gen-webui Provider node
+- [x] 1.29 Add text-gen-webui Provider node
   - **Do**:
     1. Add `LLMProviderTextGenWebUI` class to `nodes/providers.py`
     2. `INPUT_TYPES`: `url` (default `http://localhost:5000`), `model` (COMBO), optional `model_fallback`
