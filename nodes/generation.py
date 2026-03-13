@@ -92,3 +92,76 @@ class LLMGenerate:
 
         meta: dict = {"provider": provider, "options": options}
         return (text, meta)
+
+
+class LLMGenerateAdvanced:
+    """Advanced Generation node — modular, accepts options/meta connections."""
+
+    CATEGORY = "LLM Bikeshed/generation"
+    RETURN_TYPES = ("STRING", "LLM_META")
+    RETURN_NAMES = ("text", "meta")
+    FUNCTION = "generate"
+    OUTPUT_NODE = False
+
+    @classmethod
+    def INPUT_TYPES(cls) -> dict:  # noqa: N802
+        return {
+            "required": {
+                "prompt": ("STRING", {"multiline": True, "defaultInput": True}),
+            },
+            "optional": {
+                "provider": ("LLM_PROVIDER",),
+                "system_prompt": (
+                    "STRING",
+                    {"multiline": True, "default": "", "defaultInput": True},
+                ),
+                "options": ("LLM_OPTIONS",),
+                "meta": ("LLM_META",),
+            },
+            "hidden": {
+                "prompt": "PROMPT",
+                "unique_id": "UNIQUE_ID",
+            },
+        }
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs: object) -> float:  # noqa: N802
+        return float("NaN")
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, **kwargs: object) -> bool:  # noqa: N802
+        return True
+
+    def generate(
+        self,
+        prompt: str,
+        provider: dict | None = None,
+        system_prompt: str = "",
+        options: dict | None = None,
+        meta: dict | None = None,
+        **kwargs: object,
+    ) -> tuple:
+        """Run LLM generation with provider/options from explicit inputs or meta."""
+        # Meta precedence: explicit inputs win over meta values
+        resolved_provider = provider or (meta.get("provider") if meta else None)
+        if resolved_provider is None:
+            raise ValueError(
+                "No provider configured. Connect a Provider node or a meta input."
+            )
+
+        resolved_options = options or (meta.get("options") if meta else None) or {}
+
+        adapter = get_adapter(resolved_provider["adapter"])
+
+        # Hidden inputs come through kwargs (name collision with required 'prompt')
+        prompt_graph = kwargs.get("prompt", {})
+        unique_id = kwargs.get("unique_id")
+
+        # Check if downstream gen node exists (meta output is index 1)
+        skip_unload = has_downstream_gen_node(prompt_graph, unique_id, 1)
+
+        messages = _build_messages(system_prompt, prompt)
+        text = adapter.generate(resolved_provider, messages, resolved_options, skip_unload)
+
+        meta_out: dict = {"provider": resolved_provider, "options": resolved_options}
+        return (text, meta_out)

@@ -397,7 +397,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1L: Advanced Generation Node
 
-- [ ] 1.35 Create Advanced Generation node (LLMGenerateAdvanced)
+- [x] 1.35 Create Advanced Generation node (LLMGenerateAdvanced)
   - **Do**:
     1. Implement `LLMGenerateAdvanced` class in `nodes/generation.py`
     2. `INPUT_TYPES`: required `prompt` (STRING, multiline, `defaultInput: True`); optional `provider` (LLM_PROVIDER), `system_prompt` (STRING, multiline, `defaultInput: True`), `options` (LLM_OPTIONS), `meta` (LLM_META)
