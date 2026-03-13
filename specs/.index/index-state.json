@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-03-10T09:13:36Z",
+  "updated": "2026-03-13T05:36:25Z",
   "directories": [
     {
       "path": "./specs",
@@ -12,8 +12,9 @@
     {
       "name": "comfyui-llm-bikeshed",
       "path": "./specs/comfyui-llm-bikeshed",
-      "phase": "requirements",
-      "awaitingApproval": true
+      "phase": "execution",
+      "taskIndex": 22,
+      "totalTasks": 80
     }
   ]
 }
