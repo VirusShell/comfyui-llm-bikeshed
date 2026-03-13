@@ -436,7 +436,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-4, AC-8.1 through AC-8.4_
   - _Design: Options Nodes — Ollama Core_
 
-- [ ] 1.38 Create Ollama Extra Options node
+- [x] 1.38 Create Ollama Extra Options node
   - **Do**:
     1. Implement `LLMOptionsOllamaExtra` in `nodes/options_ollama.py`
     2. Toggle pattern with `PARAMS` list (10 params)
