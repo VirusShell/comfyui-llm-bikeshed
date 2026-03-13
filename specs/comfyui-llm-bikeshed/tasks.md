@@ -302,7 +302,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Commit**: `feat(adapters): register Ollama adapter`
   - _Design: Adapter Registry_
 
-- [ ] 1.26 Add text-gen-webui lifecycle methods to OAI adapter
+- [x] 1.26 Add text-gen-webui lifecycle methods to OAI adapter
   - **Do**:
     1. Add `_ensure_model_loaded(provider, model)` to `OAICompatAdapter` — checks `GET /v1/internal/model/info`, loads via `POST /v1/internal/model/load` if needed
     2. Add `_unload_model(provider)` — `POST /v1/internal/model/unload`, swallows exceptions with warning log

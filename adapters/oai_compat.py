@@ -83,6 +83,10 @@ class OAICompatAdapter:
                     backend,
                 )
 
+        # text-gen-webui: ensure model is loaded before generation.
+        if backend == "text_gen_webui":
+            self._ensure_model_loaded(provider, model)
+
         # Build request payload.
         payload: dict = {
             "model": model,
@@ -120,4 +124,58 @@ class OAICompatAdapter:
 
         # Extract generated text.
         data = response.json()
-        return data["choices"][0]["message"]["content"]
+        text = data["choices"][0]["message"]["content"]
+
+        # text-gen-webui: unload model if last in chain.
+        if backend == "text_gen_webui" and not skip_unload:
+            self._unload_model(provider)
+
+        return text
+
+    def _admin_headers(self, provider: dict) -> dict[str, str]:
+        """Build headers with admin key (falls back to api_key)."""
+        key = provider.get("admin_key") or provider.get("api_key")
+        if key:
+            return {"Authorization": f"Bearer {key}"}
+        return {}
+
+    def _ensure_model_loaded(self, provider: dict, model: str) -> None:
+        """Check if correct model is loaded, load if needed."""
+        url = provider["url"]
+        headers = self._admin_headers(provider)
+        timeout = provider.get("timeout", 120)
+
+        # Check currently loaded model.
+        try:
+            info_resp = requests.get(
+                f"{url}/v1/internal/model/info",
+                headers=headers,
+                timeout=timeout,
+            )
+            current = info_resp.json().get("model_name", "")
+            if current == model:
+                return  # Already loaded
+        except requests.RequestException:
+            pass  # Proceed to load attempt
+
+        logger.info("Loading model '%s' on text-gen-webui...", model)
+        load_resp = requests.post(
+            f"{url}/v1/internal/model/load",
+            json={"model_name": model},
+            headers=headers,
+            timeout=timeout,
+        )
+        _raise_on_error(load_resp, "text_gen_webui", url)
+
+    def _unload_model(self, provider: dict) -> None:
+        """Unload current model from text-gen-webui."""
+        url = provider["url"]
+        headers = self._admin_headers(provider)
+        try:
+            requests.post(
+                f"{url}/v1/internal/model/unload",
+                headers=headers,
+                timeout=30,
+            )
+        except requests.RequestException as e:
+            logger.warning("Failed to unload model: %s", e)
