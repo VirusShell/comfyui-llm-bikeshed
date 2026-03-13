@@ -278,7 +278,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1J: Remaining Providers
 
-- [ ] 1.24 Add Ollama Native adapter
+- [x] 1.24 Add Ollama Native adapter
   - **Do**:
     1. Implement `OllamaAdapter` in `adapters/ollama.py`
     2. `ALLOWED_OPTIONS` set with all Ollama `options` field params
