@@ -9,11 +9,25 @@ dependencies = [
     "requests>=2.28.0",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "ruff>=0.4.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.comfy]
 PublisherId = ""
 DisplayName = "LLM Bikeshed"
 Icon = ""
 
 [tool.ruff]
-select = ["E", "F", "W", "I"]
 target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.4.0",
+]

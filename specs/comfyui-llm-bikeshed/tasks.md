@@ -652,7 +652,7 @@ Focus: Clean up code, add error handling, improve structure.
 
 Focus: Add unit tests with mocked HTTP for internal logic.
 
-- [ ] 3.1 Set up pytest and test infrastructure
+- [x] 3.1 Set up pytest and test infrastructure
   - **Do**:
     1. Add `[project.optional-dependencies] dev = ["pytest>=7.0", "ruff>=0.4.0"]` to `pyproject.toml`
     2. Add `[tool.pytest.ini_options]` with `testpaths = ["tests"]`
