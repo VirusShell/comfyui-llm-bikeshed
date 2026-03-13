@@ -504,7 +504,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-12, AC-11.1 through AC-11.5_
   - _Design: Utility Nodes — Preset Loader_
 
-- [ ] 1.44 [P] Create Load Text File node
+- [x] 1.44 [P] Create Load Text File node
   - **Do**:
     1. Implement `LLMLoadTextFile` in `nodes/utils.py`
     2. `INPUT_TYPES`: COMBO listing `.txt` files from ComfyUI input directory
