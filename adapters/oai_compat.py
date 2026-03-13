@@ -6,7 +6,7 @@ import logging
 
 import requests
 
-from adapters.base import _raise_on_error
+from adapters.base import _raise_on_error, _safe_post
 
 logger = logging.getLogger("llm-bikeshed")
 
@@ -113,8 +113,9 @@ class OAICompatAdapter:
         # Send request.
         endpoint = f"{url.rstrip('/')}/v1/chat/completions"
         timeout = provider.get("timeout", 120)
-        response = requests.post(
+        response = _safe_post(
             endpoint,
+            backend,
             json=payload,
             headers=headers,
             timeout=timeout,
@@ -159,13 +160,15 @@ class OAICompatAdapter:
             pass  # Proceed to load attempt
 
         logger.info("Loading model '%s' on text-gen-webui...", model)
-        load_resp = requests.post(
-            f"{url}/v1/internal/model/load",
+        load_url = f"{url}/v1/internal/model/load"
+        load_resp = _safe_post(
+            load_url,
+            "text_gen_webui",
             json={"model_name": model},
             headers=headers,
             timeout=timeout,
         )
-        _raise_on_error(load_resp, "text_gen_webui", url)
+        _raise_on_error(load_resp, "text_gen_webui", load_url)
 
     def _unload_model(self, provider: dict) -> None:
         """Unload current model from text-gen-webui."""
@@ -176,6 +179,14 @@ class OAICompatAdapter:
                 f"{url}/v1/internal/model/unload",
                 headers=headers,
                 timeout=30,
+            )
+        except requests.ConnectionError:
+            logger.warning(
+                "text_gen_webui is offline at %s — skipping unload", url
+            )
+        except requests.Timeout:
+            logger.warning(
+                "text_gen_webui unload timed out at %s", url
             )
         except requests.RequestException as e:
             logger.warning("Failed to unload model: %s", e)

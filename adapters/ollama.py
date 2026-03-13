@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import logging
 
-import requests
-
-from adapters.base import _raise_on_error
+from adapters.base import _raise_on_error, _safe_post
 
 logger = logging.getLogger("llm-bikeshed")
 
@@ -83,8 +81,8 @@ class OllamaAdapter:
 
         # Send request.
         endpoint = f"{url.rstrip('/')}/api/chat"
-        response = requests.post(
-            endpoint, json=payload, timeout=timeout
+        response = _safe_post(
+            endpoint, "Ollama", json=payload, timeout=timeout
         )
 
         _raise_on_error(response, "Ollama", endpoint)

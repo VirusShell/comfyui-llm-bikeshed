@@ -573,7 +573,7 @@ Focus: Clean up code, add error handling, improve structure.
   - **Commit**: `refactor(generation): add VALIDATE_INPUTS for pre-execution checks`
   - _Requirements: FR-15_
 
-- [ ] 2.2 Add structured error messages to adapters
+- [x] 2.2 Add structured error messages to adapters
   - **Do**:
     1. Ensure `_raise_on_error` includes backend name, URL, HTTP status, and response body (truncated to 500 chars)
     2. Add timeout handling — catch `requests.Timeout` and re-raise with descriptive message including backend name and URL
