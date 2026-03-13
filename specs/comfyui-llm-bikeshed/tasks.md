@@ -545,7 +545,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Done when**: No lint errors
   - **Commit**: `chore: pass full registration quality checkpoint` (if fixes needed)
 
-- [ ] 1.48 POC Checkpoint
+- [x] 1.48 POC Checkpoint
   - **Do**:
     1. Verify all 11 node classes importable (without ComfyUI runtime)
     2. Verify config system works (load, merge, API key resolution)
