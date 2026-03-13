@@ -321,7 +321,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - **Done when**: No lint errors
   - **Commit**: `chore(adapters): pass quality checkpoint` (if fixes needed)
 
-- [ ] 1.28 Add Ollama Provider node
+- [x] 1.28 Add Ollama Provider node
   - **Do**:
     1. Add `LLMProviderOllama` class to `nodes/providers.py`
     2. `INPUT_TYPES`: `url` (default `http://localhost:11434`), `model` (COMBO), `keep_alive` (STRING, default `"30s"`), optional `model_fallback`
