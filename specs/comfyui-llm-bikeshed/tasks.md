@@ -662,7 +662,7 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Verify**: `pip install pytest && pytest --collect-only && echo PASS`
   - **Commit**: `test(setup): configure pytest and create test fixtures`
 
-- [ ] 3.2 [P] Test config deep_merge
+- [x] 3.2 [P] Test config deep_merge
   - **Do**:
     1. Create `tests/test_config.py`
     2. Test: nested merge, override wins, disjoint keys preserved, empty override, empty base
