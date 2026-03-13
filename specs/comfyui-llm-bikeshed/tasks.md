@@ -470,7 +470,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-4, AC-9.1 through AC-9.5_
   - _Design: Options Nodes — LM Studio_
 
-- [ ] 1.41 [P] Create text-gen-webui Options node
+- [x] 1.41 [P] Create text-gen-webui Options node
   - **Do**:
     1. Implement `LLMOptionsTextGenWebUI` in `nodes/options_text_gen_webui.py`
     2. Toggle pattern, 12 params: temperature, top_p, max_tokens, seed, stop, top_k, min_p, repeat_penalty, presence_penalty, frequency_penalty, typical_p, tfs
