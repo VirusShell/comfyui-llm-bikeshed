@@ -355,7 +355,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1K: Remaining PromptServer Endpoints
 
-- [ ] 1.31 [P] Add Ollama model fetch helper and endpoint
+- [x] 1.31 [P] Add Ollama model fetch helper and endpoint
   - **Do**:
     1. Add `_fetch_models_ollama(url, timeout)` in `server/endpoints.py`
     2. `GET {url}/api/tags`, extracts `models[].name`

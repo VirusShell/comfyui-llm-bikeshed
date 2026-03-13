@@ -54,6 +54,29 @@ def _fetch_models_lm_studio(
         return []
 
 
+def _fetch_models_ollama(url: str, timeout: int = 10) -> list[str]:
+    """Fetch available model names from an Ollama instance.
+
+    Args:
+        url: Base URL of the Ollama server (e.g. "http://localhost:11434").
+        timeout: Request timeout in seconds.
+
+    Returns:
+        List of model name strings, or empty list on any error.
+    """
+    try:
+        response = requests.get(f"{url}/api/tags", timeout=timeout)
+        response.raise_for_status()
+        data = response.json()
+        return [model["name"] for model in data.get("models", [])]
+    except requests.RequestException as e:
+        logger.info("Ollama model fetch failed (%s): %s", url, e)
+        return []
+    except (KeyError, TypeError, ValueError) as e:
+        logger.info("Ollama model response parse error: %s", e)
+        return []
+
+
 if HAS_SERVER:
     try:
         from config import get_api_key
@@ -85,4 +108,15 @@ if HAS_SERVER:
             if not models:
                 logger.info("LM Studio auth failed, returning empty model list")
 
+        return web.json_response({"models": models})
+
+    @PromptServer.instance.routes.post("/llm-bikeshed/models/ollama")
+    async def _endpoint_models_ollama(request: web.Request) -> web.Response:
+        """Return available models from an Ollama instance."""
+        data = await request.json()
+        url = data.get("url", "")
+        if not url:
+            return web.json_response({"models": []})
+
+        models = await asyncio.to_thread(_fetch_models_ollama, url)
         return web.json_response({"models": models})
