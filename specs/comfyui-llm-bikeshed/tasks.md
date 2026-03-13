@@ -422,7 +422,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1M: Options Nodes
 
-- [ ] 1.37 Create Ollama Core Options node
+- [x] 1.37 Create Ollama Core Options node
   - **Do**:
     1. Implement `LLMOptionsOllamaCore` in `nodes/options_ollama.py`
     2. Sentinel-value pattern with `SENTINELS` class dict
