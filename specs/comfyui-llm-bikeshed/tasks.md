@@ -518,7 +518,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-20, AC-14.1 through AC-14.5_
   - _Design: Utility Nodes — Load Text File_
 
-- [ ] 1.45 [VERIFY] Quality checkpoint: ruff check
+- [x] 1.45 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
