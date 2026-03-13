@@ -451,7 +451,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
   - _Requirements: FR-4, AC-8.5 through AC-8.9_
   - _Design: Options Nodes — Ollama Extra_
 
-- [ ] 1.39 [VERIFY] Quality checkpoint: ruff check
+- [x] 1.39 [VERIFY] Quality checkpoint: ruff check
   - **Do**: Run lint on project
   - **Verify**: `ruff check . && echo PASS`
   - **Done when**: No lint errors
