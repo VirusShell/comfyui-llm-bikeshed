@@ -1,5 +1,7 @@
 """LM Studio Options node — toggle pattern for OAI-compatible parameters."""
 
+from nodes.options_base import build_toggle_options
+
 
 class LLMOptionsLMStudio:
     """LM Studio generation parameters using toggle pattern.
@@ -61,8 +63,4 @@ class LLMOptionsLMStudio:
         return inputs
 
     def build_options(self, options_in: dict = None, **kwargs) -> tuple:
-        options = dict(options_in) if options_in else {}
-        for name, _, _ in self.PARAMS:
-            if kwargs.get(f"enable_{name}", False):
-                options[name] = kwargs[name]
-        return (options,)
+        return build_toggle_options(self.PARAMS, kwargs, options_in)

@@ -1,5 +1,7 @@
 """Ollama Options nodes — Core (sentinel pattern) and Extra (toggle pattern)."""
 
+from nodes.options_base import build_toggle_options
+
 
 class LLMOptionsOllamaCore:
     """Core Ollama generation parameters using sentinel-value pattern.
@@ -27,12 +29,33 @@ class LLMOptionsOllamaCore:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "temperature": ("FLOAT", {"default": -1.0, "min": -1.0, "max": 2.0, "step": 0.05}),
-                "top_k": ("INT", {"default": -1, "min": -1, "max": 500}),
-                "top_p": ("FLOAT", {"default": -1.0, "min": -1.0, "max": 1.0, "step": 0.05}),
-                "seed": ("INT", {"default": -1, "min": -1, "max": 2**31 - 1}),
-                "num_predict": ("INT", {"default": -1, "min": -1, "max": 128000}),
-                "num_ctx": ("INT", {"default": -1, "min": -1, "max": 131072}),
+                "temperature": (
+                    "FLOAT",
+                    {"default": -1.0, "min": -1.0,
+                     "max": 2.0, "step": 0.05},
+                ),
+                "top_k": (
+                    "INT",
+                    {"default": -1, "min": -1, "max": 500},
+                ),
+                "top_p": (
+                    "FLOAT",
+                    {"default": -1.0, "min": -1.0,
+                     "max": 1.0, "step": 0.05},
+                ),
+                "seed": (
+                    "INT",
+                    {"default": -1, "min": -1,
+                     "max": 2**31 - 1},
+                ),
+                "num_predict": (
+                    "INT",
+                    {"default": -1, "min": -1, "max": 128000},
+                ),
+                "num_ctx": (
+                    "INT",
+                    {"default": -1, "min": -1, "max": 131072},
+                ),
                 "stop": ("STRING", {"default": ""}),
             },
             "optional": {
@@ -64,15 +87,41 @@ class LLMOptionsOllamaExtra:
 
     PARAMS = [
         ("mirostat", "INT", {"default": 0}),
-        ("mirostat_eta", "FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
-        ("mirostat_tau", "FLOAT", {"default": 5.0, "min": 0.0, "max": 20.0, "step": 0.1}),
-        ("repeat_penalty", "FLOAT", {"default": 1.1, "min": 0.0, "max": 5.0, "step": 0.05}),
-        ("repeat_last_n", "INT", {"default": 64, "min": 0, "max": 2048}),
-        ("frequency_penalty", "FLOAT", {"default": 0.0, "min": -2.0, "max": 2.0, "step": 0.05}),
-        ("presence_penalty", "FLOAT", {"default": 0.0, "min": -2.0, "max": 2.0, "step": 0.05}),
-        ("tfs_z", "FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05}),
-        ("typical_p", "FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05}),
-        ("min_p", "FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.05}),
+        ("mirostat_eta", "FLOAT", {
+            "default": 0.1, "min": 0.0,
+            "max": 1.0, "step": 0.01,
+        }),
+        ("mirostat_tau", "FLOAT", {
+            "default": 5.0, "min": 0.0,
+            "max": 20.0, "step": 0.1,
+        }),
+        ("repeat_penalty", "FLOAT", {
+            "default": 1.1, "min": 0.0,
+            "max": 5.0, "step": 0.05,
+        }),
+        ("repeat_last_n", "INT", {
+            "default": 64, "min": 0, "max": 2048,
+        }),
+        ("frequency_penalty", "FLOAT", {
+            "default": 0.0, "min": -2.0,
+            "max": 2.0, "step": 0.05,
+        }),
+        ("presence_penalty", "FLOAT", {
+            "default": 0.0, "min": -2.0,
+            "max": 2.0, "step": 0.05,
+        }),
+        ("tfs_z", "FLOAT", {
+            "default": 1.0, "min": 0.0,
+            "max": 2.0, "step": 0.05,
+        }),
+        ("typical_p", "FLOAT", {
+            "default": 1.0, "min": 0.0,
+            "max": 1.0, "step": 0.05,
+        }),
+        ("min_p", "FLOAT", {
+            "default": 0.0, "min": 0.0,
+            "max": 1.0, "step": 0.05,
+        }),
     ]
 
     @classmethod
@@ -90,8 +139,4 @@ class LLMOptionsOllamaExtra:
         return inputs
 
     def build_options(self, options_in: dict = None, **kwargs) -> tuple:
-        options = dict(options_in) if options_in else {}
-        for name, _, _ in self.PARAMS:
-            if kwargs.get(f"enable_{name}", False):
-                options[name] = kwargs[name]
-        return (options,)
+        return build_toggle_options(self.PARAMS, kwargs, options_in)

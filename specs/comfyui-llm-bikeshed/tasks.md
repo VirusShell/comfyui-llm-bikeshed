@@ -603,7 +603,7 @@ Focus: Clean up code, add error handling, improve structure.
   - **Commit**: `refactor: add consistent logging across modules`
   - _Requirements: NFR-9_
 
-- [ ] 2.5 Extract toggle-based options builder to shared helper
+- [x] 2.5 Extract toggle-based options builder to shared helper
   - **Do**:
     1. Create a reusable `build_toggle_options(params, kwargs, options_in)` function in `nodes/options_base.py`
     2. Refactor `LLMOptionsOllamaExtra`, `LLMOptionsLMStudio`, `LLMOptionsTextGenWebUI` to use it
