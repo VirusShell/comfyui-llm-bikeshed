@@ -490,7 +490,7 @@ Focus: Vertical slice — LM Studio end-to-end first, then layer in remaining ba
 
 ### 1N: Utility Nodes
 
-- [ ] 1.43 [P] Create Preset Loader node
+- [x] 1.43 [P] Create Preset Loader node
   - **Do**:
     1. Implement `LLMPresetLoader` in `nodes/utils.py`
     2. `INPUT_TYPES`: COMBO listing `.txt` files from `presets/` directory
