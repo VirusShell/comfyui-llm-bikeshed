@@ -762,7 +762,7 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Commit**: `test(options): add Ollama Core Options sentinel pattern tests`
   - _Requirements: AC-8.1, AC-8.2_
 
-- [ ] 3.13 [P] Test options nodes (toggle pattern)
+- [x] 3.13 [P] Test options nodes (toggle pattern)
   - **Do**:
     1. Add tests to `tests/test_options.py`
     2. Test Ollama Extra: toggle ON includes param, toggle OFF excludes, mirostat COMBO, chaining
