@@ -792,7 +792,7 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Commit**: `test(generation): add generation node unit tests`
   - _Requirements: AC-5.1, AC-6.8_
 
-- [ ] 3.16 [VERIFY] Quality checkpoint: ruff + pytest (all tests)
+- [x] 3.16 [VERIFY] Quality checkpoint: ruff + pytest (all tests)
   - **Do**: Run lint and full test suite
   - **Verify**: `ruff check . && pytest tests/ -v && echo PASS`
   - **Done when**: No lint errors, all tests pass
