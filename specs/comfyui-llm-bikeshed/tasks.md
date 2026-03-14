@@ -682,7 +682,7 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Commit**: `test(config): add config load and API key resolution tests`
   - _Requirements: AC-4.2, AC-12.3_
 
-- [ ] 3.4 [VERIFY] Quality checkpoint: ruff + pytest
+- [x] 3.4 [VERIFY] Quality checkpoint: ruff + pytest
   - **Do**: Run lint and tests
   - **Verify**: `ruff check . && pytest tests/ -v && echo PASS`
   - **Done when**: No lint errors, all tests pass
@@ -774,13 +774,13 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Commit**: `test(options): add toggle-based Options node tests`
   - _Requirements: AC-8.5, AC-9.1, AC-10.1_
 
-- [ ] 3.14 [VERIFY] Quality checkpoint: ruff + pytest
+- [x] 3.14 [VERIFY] Quality checkpoint: ruff + pytest
   - **Do**: Run lint and all tests
   - **Verify**: `ruff check . && pytest tests/ -v && echo PASS`
   - **Done when**: No lint errors, all tests pass
   - **Commit**: `chore(tests): pass quality checkpoint` (if fixes needed)
 
-- [ ] 3.15 Test generation node message building and inline options
+- [x] 3.15 Test generation node message building and inline options
   - **Do**:
     1. Create `tests/test_generation.py`
     2. Test `_build_messages`: with system prompt, without system prompt
