@@ -802,7 +802,7 @@ Focus: Add unit tests with mocked HTTP for internal logic.
 
 ## Phase 4: Quality Gates
 
-- [ ] V4 [VERIFY] Full local CI: ruff check && pytest
+- [x] V4 [VERIFY] Full local CI: ruff check && pytest
   - **Do**: Run complete local quality suite
   - **Verify**: `ruff check . && pytest tests/ -v && echo V4_PASS`
   - **Done when**: All lint and tests pass
