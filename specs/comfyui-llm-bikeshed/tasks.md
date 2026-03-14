@@ -752,7 +752,7 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Commit**: `test(graph): add graph introspection unit tests`
   - _Requirements: FR-9_
 
-- [ ] 3.12 [P] Test options nodes (sentinel pattern)
+- [x] 3.12 [P] Test options nodes (sentinel pattern)
   - **Do**:
     1. Create `tests/test_options.py`
     2. Test Ollama Core: sentinel values excluded, non-sentinel included, chaining from options_in, options_in key collision (Core wins)
