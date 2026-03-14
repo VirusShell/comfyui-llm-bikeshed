@@ -5,10 +5,10 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
+import requests
 
 from adapters.oai_compat import OAICompatAdapter
 from adapters.ollama import OllamaAdapter
-
 
 # ---------------------------------------------------------------------------
 # Ollama adapter — name mapping
@@ -756,3 +756,418 @@ class TestLMStudioPayloadStructure:
                 [{"role": "user", "content": "hi"}],
                 {},
             )
+
+
+# ---------------------------------------------------------------------------
+# OAI-compat adapter — text-gen-webui path: allowlist filtering
+# ---------------------------------------------------------------------------
+
+
+class TestTextGenWebuiAllowlistFiltering:
+    """text-gen-webui params are filtered through text_gen_webui allowlist."""
+
+    def test_text_gen_webui_allowed_params_forwarded(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """Params in text_gen_webui allowlist appear in payload."""
+        gen_payloads: list[dict] = []
+
+        def fake_post(url, **kwargs):
+            if "/v1/chat/completions" in url:
+                gen_payloads.append(kwargs.get("json", {}))
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {"temperature": 0.7, "min_p": 0.1, "tfs": 0.9, "typical_p": 0.8},
+        )
+
+        payload = gen_payloads[0]
+        assert payload["temperature"] == 0.7
+        assert payload["min_p"] == 0.1
+        assert payload["tfs"] == 0.9
+        assert payload["typical_p"] == 0.8
+
+    def test_text_gen_webui_unsupported_param_dropped(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """Params not in text_gen_webui allowlist are dropped."""
+        gen_payloads: list[dict] = []
+
+        def fake_post(url, **kwargs):
+            if "/v1/chat/completions" in url:
+                gen_payloads.append(kwargs.get("json", {}))
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {"temperature": 0.5, "bogus_param": 42},
+        )
+
+        payload = gen_payloads[0]
+        assert payload["temperature"] == 0.5
+        assert "bogus_param" not in payload
+
+    def test_text_gen_webui_has_params_not_in_lm_studio(self):
+        """text_gen_webui allowlist includes min_p, tfs, typical_p."""
+        from adapters.oai_compat import BACKEND_ALLOWLISTS
+
+        tgw = BACKEND_ALLOWLISTS["text_gen_webui"]
+        lms = BACKEND_ALLOWLISTS["lm_studio"]
+        # These are in text_gen_webui but not lm_studio
+        assert "min_p" in tgw
+        assert "min_p" not in lms
+        assert "tfs" in tgw
+        assert "tfs" not in lms
+        assert "typical_p" in tgw
+        assert "typical_p" not in lms
+
+
+# ---------------------------------------------------------------------------
+# OAI-compat adapter — text-gen-webui path: model lifecycle
+# ---------------------------------------------------------------------------
+
+
+def _model_info_response(model_name: str) -> MagicMock:
+    """Create a mock GET response for /v1/internal/model/info."""
+    resp = MagicMock()
+    resp.json.return_value = {"model_name": model_name}
+    return resp
+
+
+class TestTextGenWebuiModelLifecycle:
+    """Full lifecycle: check loaded model -> load if needed -> generate -> unload."""
+
+    def test_text_gen_webui_skips_load_when_model_already_loaded(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """If model is already loaded, no load POST is made."""
+        post_urls: list[str] = []
+
+        def fake_post(url, **kwargs):
+            post_urls.append(url)
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        # generate POST + unload POST, but no load POST
+        load_urls = [u for u in post_urls if "/v1/internal/model/load" in u]
+        gen_urls = [u for u in post_urls if "/v1/chat/completions" in u]
+        assert len(load_urls) == 0
+        assert len(gen_urls) == 1
+
+    def test_text_gen_webui_loads_model_when_different(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """If a different model is loaded, adapter sends load request."""
+        post_urls: list[str] = []
+
+        def fake_post(url, **kwargs):
+            post_urls.append(url)
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("other-model"))
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        load_urls = [u for u in post_urls if "/v1/internal/model/load" in u]
+        gen_urls = [u for u in post_urls if "/v1/chat/completions" in u]
+        assert len(load_urls) == 1
+        assert len(gen_urls) == 1
+
+    def test_text_gen_webui_loads_model_when_info_fails(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """If model info GET fails, adapter proceeds to load."""
+        post_urls: list[str] = []
+
+        def fake_post(url, **kwargs):
+            post_urls.append(url)
+            return mock_oai_response
+
+        def fake_get_fail(*args, **kwargs):
+            raise requests.ConnectionError("offline")
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", fake_get_fail)
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        load_urls = [u for u in post_urls if "/v1/internal/model/load" in u]
+        assert len(load_urls) == 1
+
+    def test_text_gen_webui_unloads_after_generation(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """After generation, model is unloaded (last in chain)."""
+        post_urls: list[str] = []
+
+        def fake_post(url, **kwargs):
+            post_urls.append(url)
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        unload_urls = [u for u in post_urls if "/v1/internal/model/unload" in u]
+        assert len(unload_urls) == 1
+
+    def test_text_gen_webui_unload_skipped_mid_chain(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """When skip_unload=True (mid-chain), unload is not called."""
+        post_urls: list[str] = []
+
+        def fake_post(url, **kwargs):
+            post_urls.append(url)
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+            skip_unload=True,
+        )
+
+        unload_urls = [u for u in post_urls if "/v1/internal/model/unload" in u]
+        assert len(unload_urls) == 0
+
+    def test_text_gen_webui_load_sends_model_name(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """Load request includes model_name in JSON body."""
+        load_payloads: list[dict] = []
+
+        def fake_post(url, **kwargs):
+            if "/v1/internal/model/load" in url:
+                load_payloads.append(kwargs.get("json", {}))
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("other-model"))
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert len(load_payloads) == 1
+        assert load_payloads[0]["model_name"] == "my-model"
+
+
+# ---------------------------------------------------------------------------
+# OAI-compat adapter — text-gen-webui path: admin key headers
+# ---------------------------------------------------------------------------
+
+
+class TestTextGenWebuiAdminHeaders:
+    """Admin key is used for internal model management endpoints."""
+
+    def test_text_gen_webui_admin_key_used_for_model_info(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """Model info GET uses admin_key, not api_key."""
+        get_headers: dict = {}
+
+        def fake_get(*args, **kwargs):
+            get_headers.update(kwargs.get("headers", {}))
+            return _model_info_response("my-model")
+
+        monkeypatch.setattr("requests.post", lambda url, **kw: mock_oai_response)
+        monkeypatch.setattr("requests.get", fake_get)
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert get_headers["Authorization"] == "Bearer test-admin-key"
+
+    def test_text_gen_webui_admin_key_used_for_load(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """Model load POST uses admin_key."""
+        load_headers: list[dict] = []
+
+        def fake_post(url, **kwargs):
+            if "/v1/internal/model/load" in url:
+                load_headers.append(kwargs.get("headers", {}))
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("other-model"))
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert len(load_headers) == 1
+        assert load_headers[0]["Authorization"] == "Bearer test-admin-key"
+
+    def test_text_gen_webui_api_key_in_generate_header(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """Generate POST uses api_key (not admin_key) for auth."""
+        gen_headers: list[dict] = []
+
+        def fake_post(url, **kwargs):
+            if "/v1/chat/completions" in url:
+                gen_headers.append(kwargs.get("headers", {}))
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert len(gen_headers) == 1
+        assert gen_headers[0]["Authorization"] == "Bearer test-api-key"
+
+    def test_text_gen_webui_fallback_to_api_key_when_no_admin_key(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """When admin_key is None, api_key is used for internal endpoints."""
+        get_headers: dict = {}
+
+        def fake_get(*args, **kwargs):
+            get_headers.update(kwargs.get("headers", {}))
+            return _model_info_response("my-model")
+
+        text_gen_webui_provider["admin_key"] = None
+        monkeypatch.setattr("requests.post", lambda url, **kw: mock_oai_response)
+        monkeypatch.setattr("requests.get", fake_get)
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert get_headers["Authorization"] == "Bearer test-api-key"
+
+
+# ---------------------------------------------------------------------------
+# OAI-compat adapter — text-gen-webui path: unload failure is non-fatal
+# ---------------------------------------------------------------------------
+
+
+class TestTextGenWebuiUnloadFailure:
+    """Unload failures are logged as warnings but do not raise."""
+
+    def test_text_gen_webui_unload_connection_error_non_fatal(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """ConnectionError during unload is caught and logged."""
+        call_count = {"n": 0}
+
+        def fake_post(url, **kwargs):
+            call_count["n"] += 1
+            if "/v1/internal/model/unload" in url:
+                raise requests.ConnectionError("refused")
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+
+        adapter = OAICompatAdapter()
+        result = adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+        assert result == "Hello from the model!"
+
+    def test_text_gen_webui_unload_timeout_non_fatal(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """Timeout during unload is caught and logged."""
+
+        def fake_post(url, **kwargs):
+            if "/v1/internal/model/unload" in url:
+                raise requests.Timeout("timed out")
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+
+        adapter = OAICompatAdapter()
+        result = adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+        assert result == "Hello from the model!"
+
+    def test_text_gen_webui_unload_generic_request_error_non_fatal(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """Generic RequestException during unload is caught and logged."""
+
+        def fake_post(url, **kwargs):
+            if "/v1/internal/model/unload" in url:
+                raise requests.RequestException("something failed")
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+
+        adapter = OAICompatAdapter()
+        result = adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+        assert result == "Hello from the model!"

@@ -708,13 +708,13 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Verify**: `pytest tests/test_adapters.py -v -k "lm_studio" && echo PASS`
   - **Commit**: `test(adapters): add OAI-compat adapter LM Studio tests`
 
-- [ ] 3.7 [VERIFY] Quality checkpoint: ruff + pytest
+- [x] 3.7 [VERIFY] Quality checkpoint: ruff + pytest
   - **Do**: Run lint and tests
   - **Verify**: `ruff check . && pytest tests/ -v && echo PASS`
   - **Done when**: No lint errors, all tests pass
   - **Commit**: `chore(tests): pass quality checkpoint` (if fixes needed)
 
-- [ ] 3.8 Test OAI-compat adapter (text-gen-webui path)
+- [x] 3.8 Test OAI-compat adapter (text-gen-webui path)
   - **Do**:
     1. Add tests to `tests/test_adapters.py`
     2. Test: text-gen-webui allowlist, model lifecycle sequence (check -> load -> generate -> unload), admin key headers, unload skipped mid-chain, unload failure non-fatal
