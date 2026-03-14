@@ -3,7 +3,7 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-03-13T09:31:13Z
+**Last updated:** 2026-03-14T06:40:43Z
 
 ## Directories (1)
 
@@ -15,7 +15,7 @@ See [index-state.json](./index-state.json) for machine-readable data.
 
 | Spec | Directory | Phase | Status |
 |------|-----------|-------|--------|
-| comfyui-llm-bikeshed | ./specs | execution | 50/80 tasks |
+| comfyui-llm-bikeshed | ./specs | execution | 72/80 tasks |
 
 ---
 
