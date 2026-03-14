@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from nodes.options_ollama import LLMOptionsOllamaCore
-
+from nodes.options_lm_studio import LLMOptionsLMStudio
+from nodes.options_ollama import LLMOptionsOllamaCore, LLMOptionsOllamaExtra
+from nodes.options_text_gen_webui import LLMOptionsTextGenWebUI
 
 # ---------------------------------------------------------------------------
 # Sentinel exclusion
@@ -59,7 +60,9 @@ class TestOllamaCoreOptionsNonSentinel:
 
     def test_non_sentinel_int_included(self) -> None:
         node = LLMOptionsOllamaCore()
-        (result,) = node.build_options(top_k=40, seed=42, num_predict=1024, num_ctx=4096)
+        (result,) = node.build_options(
+            top_k=40, seed=42, num_predict=1024, num_ctx=4096,
+        )
         assert result == {
             "top_k": 40,
             "seed": 42,
@@ -168,9 +171,6 @@ class TestOllamaCoreOptionsChaining:
 # Ollama Extra Options (toggle pattern)
 # ===========================================================================
 
-from nodes.options_ollama import LLMOptionsOllamaExtra
-
-
 class TestOllamaExtraToggle:
     """Toggle ON includes param, toggle OFF excludes it."""
 
@@ -252,9 +252,6 @@ class TestOllamaExtraToggle:
 # LM Studio Options (toggle pattern)
 # ===========================================================================
 
-from nodes.options_lm_studio import LLMOptionsLMStudio
-
-
 class TestLMStudioToggle:
     """Toggle pattern for LM Studio's 9 parameters."""
 
@@ -328,9 +325,6 @@ class TestLMStudioToggle:
 # ===========================================================================
 # Text-gen-webui Options (toggle pattern)
 # ===========================================================================
-
-from nodes.options_text_gen_webui import LLMOptionsTextGenWebUI
-
 
 class TestTextGenWebUIToggle:
     """Toggle pattern for text-gen-webui's 12 parameters."""

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from graph.introspection import (
     GENERATION_CLASS_TYPES,
     find_downstream_nodes,
