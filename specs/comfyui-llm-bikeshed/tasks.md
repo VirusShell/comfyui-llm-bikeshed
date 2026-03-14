@@ -698,7 +698,7 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Verify**: `pytest tests/test_adapters.py -v -k "ollama" && echo PASS`
   - **Commit**: `test(adapters): add Ollama adapter unit tests`
 
-- [ ] 3.6 [P] Test OAI-compat adapter (LM Studio path)
+- [x] 3.6 [P] Test OAI-compat adapter (LM Studio path)
   - **Do**:
     1. Add tests to `tests/test_adapters.py`
     2. Test: LM Studio allowlist filtering, TTL in payload, auth headers, mid-chain TTL extension
