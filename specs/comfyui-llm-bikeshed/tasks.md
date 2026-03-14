@@ -725,7 +725,7 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Commit**: `test(adapters): add OAI-compat adapter text-gen-webui lifecycle tests`
   - _Requirements: FR-16, FR-19_
 
-- [ ] 3.9 Test _raise_on_error helper
+- [x] 3.9 Test _raise_on_error helper
   - **Do**:
     1. Add tests to `tests/test_adapters.py`
     2. Test: raises on 4xx with message containing backend name, URL, status; raises on 5xx; truncates long response bodies; passes on 200

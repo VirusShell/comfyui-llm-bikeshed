@@ -2,13 +2,80 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 
 import pytest
 import requests
 
+from adapters.base import _raise_on_error
 from adapters.oai_compat import OAICompatAdapter
 from adapters.ollama import OllamaAdapter
+
+
+# ---------------------------------------------------------------------------
+# _raise_on_error helper
+# ---------------------------------------------------------------------------
+
+
+class TestRaiseOnError:
+    """Test the _raise_on_error helper from adapters.base."""
+
+    def _make_response(
+        self, status_code: int, text: str = "", ok: bool | None = None
+    ) -> MagicMock:
+        resp = MagicMock()
+        resp.status_code = status_code
+        resp.ok = ok if ok is not None else (200 <= status_code < 400)
+        resp.text = text
+        return resp
+
+    def test_4xx_raises_with_backend_name(self):
+        resp = self._make_response(404, "Not Found")
+        with pytest.raises(RuntimeError, match="Ollama"):
+            _raise_on_error(resp, "Ollama", "http://localhost:11434/api/chat")
+
+    def test_4xx_raises_with_url(self):
+        resp = self._make_response(400, "Bad Request")
+        with pytest.raises(RuntimeError, match="http://localhost:1234/v1/chat"):
+            _raise_on_error(resp, "lm_studio", "http://localhost:1234/v1/chat")
+
+    def test_4xx_raises_with_status_code(self):
+        resp = self._make_response(422, "Unprocessable")
+        with pytest.raises(RuntimeError, match="422"):
+            _raise_on_error(resp, "test", "http://example.com")
+
+    def test_5xx_raises(self):
+        resp = self._make_response(500, "Internal Server Error")
+        with pytest.raises(RuntimeError, match="500"):
+            _raise_on_error(resp, "test", "http://example.com")
+
+    def test_5xx_includes_body(self):
+        resp = self._make_response(502, "Bad Gateway")
+        with pytest.raises(RuntimeError, match="Bad Gateway"):
+            _raise_on_error(resp, "test", "http://example.com")
+
+    def test_long_body_truncated(self):
+        long_body = "x" * 1000
+        resp = self._make_response(500, long_body)
+        with pytest.raises(RuntimeError) as exc_info:
+            _raise_on_error(resp, "test", "http://example.com")
+        # Body should be truncated to 500 chars
+        msg = str(exc_info.value)
+        assert "x" * 500 in msg
+        assert "x" * 501 not in msg
+
+    def test_200_passes(self):
+        resp = self._make_response(200, "OK")
+        _raise_on_error(resp, "test", "http://example.com")  # no exception
+
+    def test_body_read_failure_handled(self):
+        """When response.text raises, fallback message is used."""
+        resp = MagicMock()
+        resp.ok = False
+        resp.status_code = 500
+        type(resp).text = PropertyMock(side_effect=Exception("read error"))
+        with pytest.raises(RuntimeError, match="could not read response body"):
+            _raise_on_error(resp, "test", "http://example.com")
 
 # ---------------------------------------------------------------------------
 # Ollama adapter — name mapping
