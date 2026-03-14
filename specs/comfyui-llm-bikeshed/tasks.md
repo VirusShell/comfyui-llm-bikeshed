@@ -688,7 +688,7 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Done when**: No lint errors, all tests pass
   - **Commit**: `chore(tests): pass quality checkpoint` (if fixes needed)
 
-- [ ] 3.5 [P] Test Ollama adapter
+- [x] 3.5 [P] Test Ollama adapter
   - **Do**:
     1. Create `tests/test_adapters.py`
     2. Test: name mapping (`max_tokens` -> `num_predict`), allowlist filtering, payload structure (`options` nested), `keep_alive` top-level, mid-chain keep_alive = "5m"
