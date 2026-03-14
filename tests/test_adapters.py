@@ -11,7 +11,6 @@ from adapters.base import _raise_on_error
 from adapters.oai_compat import OAICompatAdapter
 from adapters.ollama import OllamaAdapter
 
-
 # ---------------------------------------------------------------------------
 # _raise_on_error helper
 # ---------------------------------------------------------------------------
@@ -845,7 +844,10 @@ class TestTextGenWebuiAllowlistFiltering:
             return mock_oai_response
 
         monkeypatch.setattr("requests.post", fake_post)
-        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("my-model"),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
@@ -872,7 +874,10 @@ class TestTextGenWebuiAllowlistFiltering:
             return mock_oai_response
 
         monkeypatch.setattr("requests.post", fake_post)
-        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("my-model"),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
@@ -926,7 +931,10 @@ class TestTextGenWebuiModelLifecycle:
             return mock_oai_response
 
         monkeypatch.setattr("requests.post", fake_post)
-        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("my-model"),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
@@ -952,7 +960,10 @@ class TestTextGenWebuiModelLifecycle:
             return mock_oai_response
 
         monkeypatch.setattr("requests.post", fake_post)
-        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("other-model"))
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("other-model"),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
@@ -1003,7 +1014,10 @@ class TestTextGenWebuiModelLifecycle:
             return mock_oai_response
 
         monkeypatch.setattr("requests.post", fake_post)
-        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("my-model"),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
@@ -1026,7 +1040,10 @@ class TestTextGenWebuiModelLifecycle:
             return mock_oai_response
 
         monkeypatch.setattr("requests.post", fake_post)
-        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("my-model"),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
@@ -1051,7 +1068,10 @@ class TestTextGenWebuiModelLifecycle:
             return mock_oai_response
 
         monkeypatch.setattr("requests.post", fake_post)
-        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("other-model"))
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("other-model"),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
@@ -1106,7 +1126,10 @@ class TestTextGenWebuiAdminHeaders:
             return mock_oai_response
 
         monkeypatch.setattr("requests.post", fake_post)
-        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("other-model"))
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("other-model"),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
@@ -1130,7 +1153,10 @@ class TestTextGenWebuiAdminHeaders:
             return mock_oai_response
 
         monkeypatch.setattr("requests.post", fake_post)
-        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("my-model"),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
@@ -1187,7 +1213,10 @@ class TestTextGenWebuiUnloadFailure:
             return mock_oai_response
 
         monkeypatch.setattr("requests.post", fake_post)
-        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("my-model"),
+        )
 
         adapter = OAICompatAdapter()
         result = adapter.generate(
@@ -1208,7 +1237,10 @@ class TestTextGenWebuiUnloadFailure:
             return mock_oai_response
 
         monkeypatch.setattr("requests.post", fake_post)
-        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("my-model"),
+        )
 
         adapter = OAICompatAdapter()
         result = adapter.generate(
@@ -1229,7 +1261,10 @@ class TestTextGenWebuiUnloadFailure:
             return mock_oai_response
 
         monkeypatch.setattr("requests.post", fake_post)
-        monkeypatch.setattr("requests.get", lambda *a, **kw: _model_info_response("my-model"))
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("my-model"),
+        )
 
         adapter = OAICompatAdapter()
         result = adapter.generate(
