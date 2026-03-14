@@ -735,13 +735,13 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Commit**: `test(adapters): add _raise_on_error tests`
   - _Requirements: NFR-2_
 
-- [ ] 3.10 [VERIFY] Quality checkpoint: ruff + pytest
+- [x] 3.10 [VERIFY] Quality checkpoint: ruff + pytest
   - **Do**: Run lint and tests
   - **Verify**: `ruff check . && pytest tests/ -v && echo PASS`
   - **Done when**: No lint errors, all tests pass
   - **Commit**: `chore(tests): pass quality checkpoint` (if fixes needed)
 
-- [ ] 3.11 Test graph introspection
+- [x] 3.11 Test graph introspection
   - **Do**:
     1. Create `tests/test_graph.py`
     2. Test: find downstream nodes with connections, no downstream, multiple downstream, generation node detection, non-generation downstream
