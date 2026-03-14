@@ -1,7 +1,15 @@
 """Tests for config module: deep_merge, load_config, get_api_key, get_admin_key."""
 
+import pytest
+
 import config as config_module
-from config import get_api_key, get_admin_key, load_config, get_config, reload_config
+from config import (
+    get_admin_key,
+    get_api_key,
+    get_config,
+    load_config,
+    reload_config,
+)
 from config.merge import deep_merge
 
 
@@ -103,8 +111,6 @@ class TestDeepMergeImmutability:
 # Config loading tests
 # ---------------------------------------------------------------------------
 
-import pytest
-
 
 @pytest.fixture(autouse=True)
 def _reset_config_cache() -> None:
@@ -118,7 +124,10 @@ class TestLoadConfig:
     def test_returns_merged_dict(self, tmp_path, monkeypatch) -> None:
         example = tmp_path / "config.example.yaml"
         user = tmp_path / "config.yaml"
-        example.write_text("providers:\n  ollama:\n    host: http://default\n    port: 11434\n")
+        example.write_text(
+            "providers:\n  ollama:\n"
+            "    host: http://default\n    port: 11434\n"
+        )
         user.write_text("providers:\n  ollama:\n    host: http://custom\n")
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
 
@@ -205,7 +214,10 @@ class TestGetAdminKey:
 
     def test_admin_key_from_config(self, tmp_path, monkeypatch) -> None:
         user = tmp_path / "config.yaml"
-        user.write_text("providers:\n  textgenwebui:\n    admin_key: admin-123\n    api_key: api-456\n")
+        user.write_text(
+            "providers:\n  textgenwebui:\n"
+            "    admin_key: admin-123\n    api_key: api-456\n"
+        )
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
 
         assert get_admin_key("textgenwebui") == "admin-123"
