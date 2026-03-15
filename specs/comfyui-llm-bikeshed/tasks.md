@@ -818,13 +818,13 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Done when**: PR created, CI passing
   - **Commit**: None (PR creation, not code change)
 
-- [ ] V5 [VERIFY] CI pipeline passes
+- [x] V5 [VERIFY] CI pipeline passes
   - **Do**: Verify GitHub Actions/CI passes after push
   - **Verify**: `gh pr checks` shows all green (if CI exists)
   - **Done when**: CI pipeline passes or no CI configured
   - **Commit**: None
 
-- [ ] V6 [VERIFY] AC checklist
+- [x] V6 [VERIFY] AC checklist
   - **Do**: Programmatically verify each acceptance criterion:
     1. AC-1.x: LM Studio Provider node exists with correct widgets
     2. AC-2.x: text-gen-webui Provider node exists with correct widgets
