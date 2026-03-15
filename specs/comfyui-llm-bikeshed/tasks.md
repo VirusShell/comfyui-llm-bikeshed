@@ -808,7 +808,7 @@ Focus: Add unit tests with mocked HTTP for internal logic.
   - **Done when**: All lint and tests pass
   - **Commit**: `chore: pass local CI` (if fixes needed)
 
-- [ ] 4.1 Create PR and verify CI
+- [x] 4.1 Create PR and verify CI
   - **Do**:
     1. Verify current branch is feature branch: `git branch --show-current`
     2. If on default branch, STOP and alert user
