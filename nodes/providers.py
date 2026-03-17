@@ -1,6 +1,6 @@
 """Provider nodes — one class per supported LLM backend."""
 
-from config import get_admin_key, get_api_key, get_config
+from ..config import get_admin_key, get_api_key, get_config
 
 
 class LLMProviderLMStudio:
@@ -107,7 +107,10 @@ class LLMProviderOllama:
 
 
 class LLMProviderTextGenWebUI:
-    """text-gen-webui provider node. Outputs LLM_PROVIDER dict with oai_compat adapter."""
+    """text-gen-webui provider node.
+
+    Outputs LLM_PROVIDER dict with oai_compat adapter.
+    """
 
     RETURN_TYPES = ("LLM_PROVIDER",)
     RETURN_NAMES = ("provider",)

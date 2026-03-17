@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from adapters.base import _raise_on_error, _safe_post
+from .base import _raise_on_error, _safe_post
 
 logger = logging.getLogger("llm-bikeshed")
 

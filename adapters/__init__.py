@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from adapters.base import LLMAdapter
-from adapters.oai_compat import OAICompatAdapter
-from adapters.ollama import OllamaAdapter
+from .base import LLMAdapter
+from .oai_compat import OAICompatAdapter
+from .ollama import OllamaAdapter
 
 _ADAPTERS: dict[str, LLMAdapter] = {
     "oai_compat": OAICompatAdapter(),

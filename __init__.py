@@ -1,18 +1,18 @@
 """ComfyUI LLM Bikeshed — local LLM text generation nodes."""
 
-from nodes.generation import LLMGenerate, LLMGenerateAdvanced
-from nodes.options_lm_studio import LLMOptionsLMStudio
-from nodes.options_ollama import LLMOptionsOllamaCore, LLMOptionsOllamaExtra
-from nodes.options_text_gen_webui import LLMOptionsTextGenWebUI
-from nodes.providers import (
+from .nodes.generation import LLMGenerate, LLMGenerateAdvanced
+from .nodes.options_lm_studio import LLMOptionsLMStudio
+from .nodes.options_ollama import LLMOptionsOllamaCore, LLMOptionsOllamaExtra
+from .nodes.options_text_gen_webui import LLMOptionsTextGenWebUI
+from .nodes.providers import (
     LLMProviderLMStudio,
     LLMProviderOllama,
     LLMProviderTextGenWebUI,
 )
-from nodes.utils import LLMLoadTextFile, LLMPresetLoader
+from .nodes.utils import LLMLoadTextFile, LLMPresetLoader
 
 # Import server module to trigger PromptServer endpoint registration
-from server import endpoints as _endpoints  # noqa: F401
+from .server import endpoints as _endpoints  # noqa: F401
 
 NODE_CLASS_MAPPINGS = {
     "LLMProviderLMStudio": LLMProviderLMStudio,

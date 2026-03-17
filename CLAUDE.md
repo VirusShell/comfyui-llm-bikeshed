@@ -1,5 +1,14 @@
 # CLAUDE.md
 
+> **Lessons Learned (MANDATORY):** After any of these events, add an entry to `docs/lessons-learned.md`:
+> - A bug fix that revealed a non-obvious root cause
+> - A test passed locally but failed in ComfyUI's runtime environment
+> - A dependency, import, or packaging issue was discovered
+> - A design assumption turned out to be wrong
+> - A workaround was needed for ComfyUI behavior not covered in docs
+>
+> Each entry needs: date, severity, what happened, root cause, fix, and how to prevent it next time. If unsure whether something qualifies, add it — too many entries is better than a missing one.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview

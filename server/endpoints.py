@@ -116,7 +116,7 @@ def _fetch_models_text_gen_webui(
 
 if HAS_SERVER:
     try:
-        from config import get_api_key, load_config
+        from ..config import get_api_key, load_config
     except ImportError:
         get_api_key = None  # type: ignore[assignment]
         load_config = None  # type: ignore[assignment]

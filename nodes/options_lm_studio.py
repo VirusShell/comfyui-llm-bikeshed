@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from nodes.options_base import build_toggle_options
+from .options_base import build_toggle_options
 
 
 class LLMOptionsLMStudio:

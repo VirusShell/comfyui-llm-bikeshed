@@ -1,5 +1,9 @@
+# Claude
+.claude/
+CLAUDE.md
+
 # Ralph Specum state
-specs/.current-spec
+specs/
 **/.progress.md
 **/.ralph-state.json
 
@@ -9,8 +13,13 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.venv/
+uv.lock
 .ruff_cache/
 .pytest_cache/
+
+# Tests
+tests/
 
 # Config (user secrets)
 config.yaml
@@ -19,9 +28,15 @@ config.yaml
 .vscode/
 *.swp
 
+# Documentation
+docs/
+
 # Reference screenshots
-Screenshot-*.png
+docs/Screenshot-*.png
 
 # OS
 Thumbs.db
 .DS_Store
+
+# Misc
+*.lnk

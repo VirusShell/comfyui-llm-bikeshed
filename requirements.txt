@@ -1,0 +1,2 @@
+# Runtime dependencies (requests, pyyaml, pillow, numpy) are provided by ComfyUI core.
+# Only list additional packages here that ComfyUI doesn't ship with.
