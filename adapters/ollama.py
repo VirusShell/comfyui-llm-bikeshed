@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from .base import _raise_on_error, _safe_post
+from .base import _is_json_safe, _raise_on_error, _safe_post
 
 logger = logging.getLogger("llm-bikeshed")
 
@@ -53,6 +53,13 @@ class OllamaAdapter:
         # Map and filter options into Ollama's `options` object.
         ollama_options: dict = {}
         for key, value in options.items():
+            if not _is_json_safe(value):
+                logger.warning(
+                    "Dropping non-JSON-safe param '%s' (value=%r) for Ollama",
+                    key,
+                    value,
+                )
+                continue
             mapped_key = self.NAME_MAP.get(key, key)
             if mapped_key in self.ALLOWED_OPTIONS:
                 ollama_options[mapped_key] = value

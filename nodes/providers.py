@@ -18,17 +18,24 @@ class LLMProviderLMStudio:
                 "url": ("STRING", {"default": "http://localhost:1234"}),
                 "model": (["(refresh to load)"],),
                 "ttl": ("INT", {"default": 30, "min": 0}),
+                "context_length": ("INT", {"default": 0, "min": 0, "max": 1048576}),
             },
             "optional": {
                 "model_fallback": ("STRING", {"default": "", "defaultInput": True}),
             },
         }
 
+    @classmethod
+    def VALIDATE_INPUTS(cls, model: str = "", **kwargs: object) -> bool:  # noqa: N802
+        """Accept any model string — list is dynamically populated by JS."""
+        return True
+
     def build_provider(
         self,
         url: str,
         model: str,
         ttl: int,
+        context_length: int = 0,
         model_fallback: str = "",
     ) -> tuple[dict]:
         """Build LLM_PROVIDER dict for LM Studio backend."""
@@ -50,7 +57,60 @@ class LLMProviderLMStudio:
             "memory": {
                 "ttl": ttl,
                 "keep_alive": None,
+                "context_length": context_length if context_length > 0 else None,
             },
+        }
+        return (provider,)
+
+
+class LLMProviderOpenAI:
+    """OpenAI API provider node. Outputs LLM_PROVIDER dict with oai_compat adapter."""
+
+    RETURN_TYPES = ("LLM_PROVIDER",)
+    RETURN_NAMES = ("provider",)
+    FUNCTION = "build_provider"
+    CATEGORY = "LLM Bikeshed/providers"
+
+    @classmethod
+    def INPUT_TYPES(cls) -> dict:
+        return {
+            "required": {
+                "url": ("STRING", {"default": "https://api.openai.com"}),
+                "model": (["(refresh to load)"],),
+            },
+            "optional": {
+                "model_fallback": ("STRING", {"default": "", "defaultInput": True}),
+            },
+        }
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, model: str = "", **kwargs: object) -> bool:  # noqa: N802
+        """Accept any model string — list is dynamically populated by JS."""
+        return True
+
+    def build_provider(
+        self,
+        url: str,
+        model: str,
+        model_fallback: str = "",
+    ) -> tuple[dict]:
+        """Build LLM_PROVIDER dict for OpenAI Chat Completions."""
+        fallback = model_fallback.strip() if model_fallback else ""
+        resolved_model = fallback if fallback else model
+
+        cfg = get_config()
+        timeout = cfg.get("providers", {}).get("openai", {}).get("timeout", 120)
+        api_key = get_api_key("openai")
+
+        provider = {
+            "backend": "openai",
+            "adapter": "oai_compat",
+            "url": url.rstrip("/"),
+            "model": resolved_model,
+            "timeout": timeout,
+            "api_key": api_key,
+            "admin_key": None,
+            "memory": {},
         }
         return (provider,)
 
@@ -75,6 +135,11 @@ class LLMProviderOllama:
                 "model_fallback": ("STRING", {"default": "", "defaultInput": True}),
             },
         }
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, model: str = "", **kwargs: object) -> bool:  # noqa: N802
+        """Accept any model string — list is dynamically populated by JS."""
+        return True
 
     def build_provider(
         self,
@@ -107,7 +172,7 @@ class LLMProviderOllama:
 
 
 class LLMProviderTextGenWebUI:
-    """text-gen-webui provider node.
+    """Textgen (text-generation-webui) provider node.
 
     Outputs LLM_PROVIDER dict with oai_compat adapter.
     """
@@ -128,6 +193,11 @@ class LLMProviderTextGenWebUI:
                 "model_fallback": ("STRING", {"default": "", "defaultInput": True}),
             },
         }
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, model: str = "", **kwargs: object) -> bool:  # noqa: N802
+        """Accept any model string — list is dynamically populated by JS."""
+        return True
 
     def build_provider(
         self,

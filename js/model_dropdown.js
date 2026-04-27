@@ -5,6 +5,10 @@ const PROVIDER_CONFIG = {
     endpoint: "/llm-bikeshed/models/lm-studio",
     defaultUrl: "http://localhost:1234",
   },
+  LLMProviderOpenAI: {
+    endpoint: "/llm-bikeshed/models/openai",
+    defaultUrl: "https://api.openai.com",
+  },
   LLMProviderOllama: {
     endpoint: "/llm-bikeshed/models/ollama",
     defaultUrl: "http://localhost:11434",
@@ -44,11 +48,14 @@ async function fetchModels(endpoint, url) {
  * @param {string[]} models - New model list from the backend.
  * @param {string|null} savedValue - Previously saved model value to preserve.
  */
+const PLACEHOLDER_VALUES = new Set(["(refresh to load)", "(no models found)"]);
+
 function updateModelWidget(widget, models, savedValue) {
   const options = [...models];
 
-  // Always keep the saved value in the list so it isn't lost
-  if (savedValue && !options.includes(savedValue)) {
+  // Keep the saved value in the list so it isn't lost — but not placeholders
+  const isSavedReal = savedValue && !PLACEHOLDER_VALUES.has(savedValue);
+  if (isSavedReal && !options.includes(savedValue)) {
     options.push(savedValue);
   }
 
@@ -59,8 +66,8 @@ function updateModelWidget(widget, models, savedValue) {
 
   widget.options.values = options;
 
-  // Restore saved value if available, otherwise use first option
-  if (savedValue && options.includes(savedValue)) {
+  // Restore saved value if it's a real model, otherwise use first option
+  if (isSavedReal && options.includes(savedValue)) {
     widget.value = savedValue;
   } else if (!widget.value || !options.includes(widget.value)) {
     widget.value = options[0];

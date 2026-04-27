@@ -12,6 +12,11 @@ providers:
     timeout: 120
     # api_key: "your-api-key-here"
 
+  openai:
+    url: "https://api.openai.com"
+    timeout: 120
+    # api_key: "your-api-key-here"
+
   text_gen_webui:
     url: "http://localhost:5000"
     timeout: 120

@@ -1,4 +1,4 @@
-"""OpenAI-compatible adapter for LM Studio and text-generation-webui."""
+"""OpenAI-compatible adapter for LM Studio, Textgen, and OpenAI Chat Completions."""
 
 from __future__ import annotations
 
@@ -6,12 +6,22 @@ import logging
 
 import requests
 
-from .base import _raise_on_error, _safe_post
+from .base import _is_json_safe, _raise_on_error, _safe_post
 
 logger = logging.getLogger("llm-bikeshed")
 
 # Per-backend parameter allowlists — only these are forwarded to the API.
 BACKEND_ALLOWLISTS: dict[str, set[str]] = {
+    "openai": {
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "max_completion_tokens",
+        "seed",
+        "stop",
+        "presence_penalty",
+        "frequency_penalty",
+    },
     "lm_studio": {
         "temperature",
         "top_p",
@@ -42,13 +52,23 @@ BACKEND_ALLOWLISTS: dict[str, set[str]] = {
 # Per-backend parameter name mapping (OAI names match, but structure
 # exists for future backends that need renaming).
 NAME_MAPS: dict[str, dict[str, str]] = {
+    "openai": {},
     "lm_studio": {},
     "text_gen_webui": {"tfs_z": "tfs"},
 }
 
 
+def _dedupe_openai_token_limits(params: dict) -> None:
+    """OpenAI accepts max_tokens or max_completion_tokens; keep one if both set.
+
+    Prefer ``max_completion_tokens`` (newer API shape) and drop ``max_tokens``.
+    """
+    if "max_completion_tokens" in params and "max_tokens" in params:
+        del params["max_tokens"]
+
+
 class OAICompatAdapter:
-    """Adapter for OpenAI-compatible LLM endpoints (LM Studio, text-gen-webui)."""
+    """Adapter for OpenAI-compatible LLM endpoints (OpenAI API, LM Studio, Textgen)."""
 
     BACKEND_ALLOWLISTS = BACKEND_ALLOWLISTS
     NAME_MAPS = NAME_MAPS
@@ -73,6 +93,14 @@ class OAICompatAdapter:
         name_map = NAME_MAPS.get(backend, {})
         filtered: dict = {}
         for key, value in options.items():
+            if not _is_json_safe(value):
+                logger.warning(
+                    "Dropping non-JSON-safe param '%s' (value=%r) for backend '%s'",
+                    key,
+                    value,
+                    backend,
+                )
+                continue
             if key in allowlist:
                 mapped_key = name_map.get(key, key)
                 filtered[mapped_key] = value
@@ -83,8 +111,13 @@ class OAICompatAdapter:
                     backend,
                 )
 
-        # text-gen-webui: ensure model is loaded before generation.
-        if backend == "text_gen_webui":
+        if backend == "openai":
+            _dedupe_openai_token_limits(filtered)
+
+        # Ensure model is loaded before generation.
+        if backend == "lm_studio":
+            self._ensure_model_loaded_lm_studio(provider, model)
+        elif backend == "text_gen_webui":
             self._ensure_model_loaded(provider, model)
 
         # Build request payload.
@@ -127,11 +160,21 @@ class OAICompatAdapter:
         data = response.json()
         text = data["choices"][0]["message"]["content"]
 
-        # text-gen-webui: unload model if last in chain.
-        if backend == "text_gen_webui" and not skip_unload:
-            self._unload_model(provider)
+        # Unload model if last in chain.
+        if not skip_unload:
+            if backend == "text_gen_webui":
+                self._unload_model_text_gen_webui(provider)
+            elif backend == "lm_studio":
+                self._unload_model_lm_studio(provider, model)
 
         return text
+
+    def _auth_headers(self, provider: dict) -> dict[str, str]:
+        """Build headers with api_key."""
+        key = provider.get("api_key")
+        if key:
+            return {"Authorization": f"Bearer {key}"}
+        return {}
 
     def _admin_headers(self, provider: dict) -> dict[str, str]:
         """Build headers with admin key (falls back to api_key)."""
@@ -140,8 +183,97 @@ class OAICompatAdapter:
             return {"Authorization": f"Bearer {key}"}
         return {}
 
+    # ── LM Studio model management ──────────────────────────────────
+
+    def _ensure_model_loaded_lm_studio(
+        self, provider: dict, model: str
+    ) -> None:
+        """Check if model is loaded with correct context_length, load if needed."""
+        url = provider["url"]
+        headers = self._auth_headers(provider)
+        timeout = provider.get("timeout", 120)
+        memory = provider.get("memory", {})
+        desired_ctx = memory.get("context_length")  # None = don't care
+
+        # Check current state via /api/v1/models.
+        try:
+            resp = requests.get(
+                f"{url}/api/v1/models",
+                headers=headers,
+                timeout=timeout,
+            )
+            if resp.ok:
+                for m in resp.json().get("data", []):
+                    if m.get("id") != model:
+                        continue
+                    instances = m.get("loaded_instances", [])
+                    if not instances:
+                        break  # Model known but not loaded
+                    # Model is loaded — check context_length if we care.
+                    if desired_ctx is None:
+                        return  # Loaded, no ctx requirement
+                    inst_cfg = instances[0].get("config", {})
+                    if inst_cfg.get("context_length") == desired_ctx:
+                        return  # Loaded with correct ctx
+                    # Wrong context_length — unload and reload.
+                    logger.info(
+                        "LM Studio model '%s' loaded with ctx=%s, need %s — reloading",
+                        model,
+                        inst_cfg.get("context_length"),
+                        desired_ctx,
+                    )
+                    self._unload_model_lm_studio(provider, model)
+                    break
+        except requests.RequestException:
+            pass  # Proceed to load attempt
+
+        # Load model with optional context_length.
+        load_payload: dict = {"model": model}
+        if desired_ctx is not None:
+            load_payload["context_length"] = desired_ctx
+        load_payload["echo_load_config"] = True
+
+        logger.info(
+            "Loading model '%s' on LM Studio%s...",
+            model,
+            f" (ctx={desired_ctx})" if desired_ctx else "",
+        )
+        load_url = f"{url}/api/v1/models/load"
+        load_resp = _safe_post(
+            load_url,
+            "lm_studio",
+            json=load_payload,
+            headers=headers,
+            timeout=timeout,
+        )
+        _raise_on_error(load_resp, "lm_studio", load_url)
+
+    def _unload_model_lm_studio(self, provider: dict, model: str) -> None:
+        """Unload model from LM Studio."""
+        url = provider["url"]
+        headers = self._auth_headers(provider)
+        try:
+            requests.post(
+                f"{url}/api/v1/models/unload",
+                json={"instance_id": model},
+                headers=headers,
+                timeout=30,
+            )
+        except requests.ConnectionError:
+            logger.warning(
+                "LM Studio is offline at %s — skipping unload", url
+            )
+        except requests.Timeout:
+            logger.warning(
+                "LM Studio unload timed out at %s", url
+            )
+        except requests.RequestException as e:
+            logger.warning("Failed to unload LM Studio model: %s", e)
+
+    # ── text-gen-webui model management ──────────────────────────────
+
     def _ensure_model_loaded(self, provider: dict, model: str) -> None:
-        """Check if correct model is loaded, load if needed."""
+        """Check if correct model is loaded on text-gen-webui, load if needed."""
         url = provider["url"]
         headers = self._admin_headers(provider)
         timeout = provider.get("timeout", 120)
@@ -170,7 +302,7 @@ class OAICompatAdapter:
         )
         _raise_on_error(load_resp, "text_gen_webui", load_url)
 
-    def _unload_model(self, provider: dict) -> None:
+    def _unload_model_text_gen_webui(self, provider: dict) -> None:
         """Unload current model from text-gen-webui."""
         url = provider["url"]
         headers = self._admin_headers(provider)

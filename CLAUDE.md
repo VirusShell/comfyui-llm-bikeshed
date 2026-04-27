@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ComfyUI custom node pack that connects workflows to local LLM servers — Ollama, LM Studio, and text-generation-webui (oobabooga). Scope is strictly LLM text generation: no image/video/music/speech generation, no cloud providers in initial release.
+ComfyUI custom node pack that connects workflows to **Ollama**, **LM Studio**, **Textgen** (text-generation-webui), and optional **OpenAI** Chat Completions (keys via config/env only). Scope is strictly LLM text generation: no image/video/music/speech generation. Additional cloud APIs beyond OpenAI core chat remain out of scope until explicitly added.
 
 **Current status:** Pre-implementation (design phase). Authoritative docs:
 - `docs/text_gen_processing_concept.md` — node architecture and design decisions
@@ -50,17 +50,18 @@ Additional verified patterns in project memory: `comfyui-node-standards.md` (wid
 |---------|-----|-------------|-------|
 | Ollama | Native (`/api/chat`, `/api/tags`) | `keep_alive` per-request, default "30s" | Full access to Ollama-specific params via native adapter |
 | LM Studio | OAI-compat (`/v1/chat/completions`, `/v1/models`) | `ttl` per-request, default 30s | JIT loading + Auto-Evict complement TTL |
-| text-generation-webui | OAI-compat + internal API (`/v1/internal/model/*`) | Explicit unload via API | Requires admin key (config/env only) |
+| Textgen (text-generation-webui) | OAI-compat + internal API (`/v1/internal/model/*`) | Explicit unload via API | Requires admin key (config/env only) |
+| OpenAI API | OAI-compat (`/v1/chat/completions`, `/v1/models`) | No local VRAM lifecycle | Core sampling params only; keys config/env only |
 
-**Dropped:** vLLM and standalone llama-server — no model unload API. llama.cpp the engine is still supported indirectly through LM Studio and text-gen-webui.
+**Dropped:** vLLM and standalone llama-server — no model unload API. llama.cpp the engine is still supported indirectly through LM Studio and Textgen.
 
-**Cloud providers (A-17):** Tabled for initial release. Can be added later without breaking the local-focused architecture.
+**Other cloud providers (A-17):** Beyond OpenAI core chat, tabled until explicitly scoped.
 
 ### Adapter Pattern
 
 Two adapters cover all supported backends:
 - **Ollama Native** — `POST {url}/api/chat`
-- **OpenAI-Compatible** — `POST {url}/v1/chat/completions` (LM Studio, text-gen-webui)
+- **OpenAI-Compatible** — `POST {url}/v1/chat/completions` (OpenAI API, LM Studio, Textgen)
 
 All API calls use `requests` (synchronous HTTP). No provider SDKs (`openai`, `anthropic`, `google-genai`). PromptServer endpoints for model lists use `asyncio.to_thread()` to avoid blocking ComfyUI's event loop.
 
@@ -117,5 +118,5 @@ Many design decisions are unresolved. Before making assumptions, check `docs/res
 - Image Describe nodes (same generation pattern with `IMAGE` input)
 - Chat nodes (conversation history — scope TBD per A-5)
 - Structured Output nodes (needs per-provider research per A-12)
-- Cloud providers (OpenAI, Anthropic, Gemini, OpenRouter, etc.)
+- Additional cloud providers beyond OpenAI core chat (Anthropic, Gemini, OpenRouter, etc.)
 - User-created preset management

@@ -1,14 +1,14 @@
-"""Textgen (text-generation-webui) Options node — toggle pattern for 12 generation parameters."""
+"""OpenAI Options node — toggle pattern for core Chat Completions parameters."""
 
 from __future__ import annotations
 
 from .options_base import build_toggle_options
 
 
-class LLMOptionsTextGenWebUI:
-    """Text-gen-webui generation parameters using toggle pattern.
+class LLMOptionsOpenAI:
+    """OpenAI API generation parameters using toggle pattern.
 
-    Each parameter has an ``enable_{name}`` boolean toggle.  Only toggled-on
+    Each parameter has an ``enable_{name}`` boolean toggle. Only toggled-on
     parameters are included in the output dict.
     """
 
@@ -27,37 +27,21 @@ class LLMOptionsTextGenWebUI:
             "max": 1.0, "step": 0.05,
         }),
         ("max_tokens", "INT", {
-            "default": 512, "min": 1, "max": 128000,
+            "default": 1024, "min": 1, "max": 128000,
+        }),
+        ("max_completion_tokens", "INT", {
+            "default": 1024, "min": 1, "max": 128000,
         }),
         ("seed", "INT", {
-            "default": 0, "min": 0, "max": 2**31 - 1,
+            "default": -1, "min": -1, "max": 2**31 - 1,
         }),
         ("stop_string", "STRING", {"default": ""}),
-        ("top_k", "INT", {
-            "default": 40, "min": 0, "max": 500,
-        }),
-        ("min_p", "FLOAT", {
-            "default": 0.0, "min": 0.0,
-            "max": 1.0, "step": 0.05,
-        }),
-        ("repeat_penalty", "FLOAT", {
-            "default": 1.1, "min": 0.0,
-            "max": 5.0, "step": 0.05,
-        }),
         ("presence_penalty", "FLOAT", {
             "default": 0.0, "min": -2.0,
             "max": 2.0, "step": 0.05,
         }),
         ("frequency_penalty", "FLOAT", {
             "default": 0.0, "min": -2.0,
-            "max": 2.0, "step": 0.05,
-        }),
-        ("typical_p", "FLOAT", {
-            "default": 1.0, "min": 0.0,
-            "max": 1.0, "step": 0.05,
-        }),
-        ("tfs", "FLOAT", {
-            "default": 1.0, "min": 0.0,
             "max": 2.0, "step": 0.05,
         }),
     ]

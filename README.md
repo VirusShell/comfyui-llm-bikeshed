@@ -1,12 +1,12 @@
 # ComfyUI LLM Bikeshed
 
-ComfyUI custom nodes for local LLM text generation. Connect your workflows to **Ollama**, **LM Studio**, and **text-generation-webui** with VRAM-aware model memory management.
+ComfyUI custom nodes for local LLM text generation. Connect your workflows to **Ollama**, **LM Studio**, **Textgen** (text-generation-webui), and **OpenAI** Chat Completions (keys via config/env only). Local backends use VRAM-aware model memory management.
 
 ## Features
 
-- **3 Provider nodes** — one per backend, with dynamic model dropdowns
+- **4 Provider nodes** — local backends plus OpenAI-compatible API (OpenAI cloud or compatible proxies)
 - **2 Generation nodes** — Basic (compact, inline params) and Advanced (modular, connection-driven)
-- **4 Options nodes** — per-backend inference parameter control
+- **5 Options nodes** — per-backend inference parameter control (including OpenAI core sampling params)
 - **2 Utility nodes** — Preset Loader and Load Text File
 - **VRAM-aware** — short TTL/keep_alive defaults free GPU memory for Stable Diffusion after LLM generation
 - **Secure** — API keys from config file or environment variables, never in workflow JSON
@@ -19,7 +19,8 @@ ComfyUI custom nodes for local LLM text generation. Connect your workflows to **
 - At least one local LLM backend running:
   - [Ollama](https://ollama.ai/) (default: `http://localhost:11434`)
   - [LM Studio](https://lmstudio.ai/) (default: `http://localhost:1234`)
-  - [text-generation-webui](https://github.com/oobabooga/text-generation-webui) (default: `http://localhost:5000`)
+  - [Textgen / text-generation-webui](https://github.com/oobabooga/text-generation-webui) (default: `http://localhost:5000`)
+  - Optional: **OpenAI** (`https://api.openai.com`) — set `providers.openai.api_key` or `LLM_BIKESHED_OPENAI_API_KEY`; keys never stored in workflows
 
 ## Installation
 
@@ -62,6 +63,11 @@ ComfyUI custom nodes for local LLM text generation. Connect your workflows to **
        timeout: 120
        # api_key: "your-api-key-here"
 
+     openai:
+       url: "https://api.openai.com"
+       timeout: 120
+       # api_key: "your-api-key-here"
+
      text_gen_webui:
        url: "http://localhost:5000"
        timeout: 120
@@ -99,7 +105,8 @@ Configure a backend connection. Each outputs an `LLM_PROVIDER` type.
 |------|---------|-------------|
 | **LLM Provider: LM Studio** | LM Studio | `url`, `model` dropdown, `ttl` (seconds, default 30) |
 | **LLM Provider: Ollama** | Ollama | `url`, `model` dropdown, `keep_alive` (string, default "30s") |
-| **LLM Provider: text-gen-webui** | text-generation-webui | `url`, `model` dropdown |
+| **LLM Provider: OpenAI** | OpenAI Chat Completions | `url` (default `https://api.openai.com`), `model` dropdown — API key from config/env only |
+| **LLM Provider: Textgen** | text-generation-webui | `url`, `model` dropdown — optional `api_key` / `admin_key` from config/env |
 
 All Provider nodes have:
 - Dynamic model dropdown (queries running backend, refresh button)
@@ -127,7 +134,8 @@ Configure inference parameters. All output `LLM_OPTIONS` type.
 | **LLM Options: Ollama (Core)** | Ollama | temperature, top_k, top_p, seed, num_predict, num_ctx, stop | Sentinel values (-1 = model default) |
 | **LLM Options: Ollama (Extra)** | Ollama | mirostat, mirostat_eta, mirostat_tau, repeat_penalty, repeat_last_n, frequency_penalty, presence_penalty, tfs_z, typical_p, min_p | Boolean toggles (ON/OFF) |
 | **LLM Options: LM Studio** | LM Studio | temperature, top_p, max_tokens, seed, stop, top_k, repeat_penalty, presence_penalty, frequency_penalty | Boolean toggles (ON/OFF) |
-| **LLM Options: text-gen-webui** | text-gen-webui | temperature, top_p, max_tokens, seed, stop, top_k, min_p, repeat_penalty, presence_penalty, frequency_penalty, typical_p, tfs | Boolean toggles (ON/OFF) |
+| **LLM Options: OpenAI** | OpenAI API | Core Chat Completions: temperature, top_p, max_tokens, max_completion_tokens, seed, stop, presence_penalty, frequency_penalty | Boolean toggles (ON/OFF) |
+| **LLM Options: Textgen** | text-generation-webui | temperature, top_p, max_tokens, seed, stop, top_k, min_p, repeat_penalty, presence_penalty, frequency_penalty, typical_p, tfs | Boolean toggles (ON/OFF) |
 
 - Ollama Extra chains into Ollama Core via `options_in` input.
 - Options nodes are always optional — disconnect them and the model uses its own defaults.
@@ -168,9 +176,9 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 
 ## Architecture
 
-- **Adapter pattern**: Two adapters handle all three backends
+- **Adapter pattern**: Two adapters handle all backends
   - Ollama Native — `POST {url}/api/chat`
-  - OpenAI-Compatible — `POST {url}/v1/chat/completions` (LM Studio, text-gen-webui)
+  - OpenAI-Compatible — `POST {url}/v1/chat/completions` (OpenAI API, LM Studio, Textgen); OpenAI uses the same endpoint with no local load/unload lifecycle
 - **Synchronous HTTP** via `requests` (ComfyUI nodes run synchronously)
 - **Config merge-on-load**: `config.example.yaml` defaults deep-merged with user's `config.yaml`
 - **Frontend JS** for dynamic model dropdowns via PromptServer endpoints
@@ -180,7 +188,7 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 - Image/vision describe nodes
 - Chat/conversation history nodes
 - Structured output (JSON schema enforcement)
-- Cloud providers (OpenAI, Anthropic, Gemini, etc.)
+- Full OpenAI API surface (tools, streaming, JSON mode, etc.) — only core chat sampling params in v0; additional cloud providers (Anthropic, Gemini, etc.)
 - Streaming output
 - vLLM and standalone llama-server backends
 

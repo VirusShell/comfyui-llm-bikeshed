@@ -1,11 +1,61 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir:*)",
+      "Edit(D:/ai/comfyui-llm-bikeshed/**)",
+      "Write(D:/ai/comfyui-llm-bikeshed/**)",
+      "Read(D:/ai/comfyui-llm-bikeshed/**)",
+      "Glob(D:/ai/comfyui-llm-bikeshed/**)",
+      "Grep(D:/ai/comfyui-llm-bikeshed/**)",
+      "Bash(git status *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(git rev-parse *)",
+      "Bash(git rev-list *)",
+      "Bash(python *)",
+      "Bash(uv *)",
+      "Bash(ruff *)",
+      "Bash(pytest *)",
+      "Bash(jq *)",
+      "Bash(grep *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(dir *)",
+      "Bash(find *)",
+      "Bash(echo *)",
+      "Bash(mv *)",
+      "Bash(cp *)",
+      "Bash(mkdir *)",
+      "Bash(sed *)",
+      "Bash(wc *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(sort *)",
+      "Bash(test *)",
+      "Bash(cd D:/ai/wildcard-companion *)",
+      "Bash(cd D:\\ai\\wildcard-companion *)"
+    ],
+    "ask": [
+      "Agent",
+      "WebFetch",
       "WebSearch",
-      "WebFetch(domain:docs.comfy.org)",
-      "WebFetch(domain:github.com)",
-      "Skill(ralph-specum:new)"
+      "Bash(curl *)",
+      "Bash(gh *)",
+      "Bash(git push *)",
+      "Bash(rm *)",
+      "Bash(cd *)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(sudo *)",
+      "Bash(curl * | sh)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | sh)",
+      "Bash(git push --force *)",
+      "Bash(git reset --hard *)"
     ]
   }
 }

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **OpenAI API** — `LLM Provider: OpenAI` and `LLM Options: OpenAI` for non-streaming Chat Completions (`POST /v1/chat/completions`) with core sampling allowlist; model list via `GET /v1/models`; API key from `config.yaml` / `LLM_BIKESHED_OPENAI_API_KEY` only.
+
+### Changed
+
+- **Display names:** text-gen-webui provider/options nodes show as **Textgen** in the UI (Python class names unchanged).
+
+### Fixed
+
+- Textgen model dropdown auth retry now uses `get_admin_key("text_gen_webui")` so configured `admin_key` applies.
+
 ## [0.1.0] - 2026-03-13
 
 ### Added

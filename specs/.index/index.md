@@ -3,19 +3,20 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-03-14T08:58:11Z
+**Last updated:** 2026-03-16T00:58:19Z
 
 ## Directories (1)
 
 | Directory | Specs | Default |
 |-----------|-------|---------|
-| ./specs | 1 | Yes |
+| ./specs | 2 | Yes |
 
-## All Specs (1)
+## All Specs (2)
 
 | Spec | Directory | Phase | Status |
 |------|-----------|-------|--------|
-| comfyui-llm-bikeshed | ./specs | execution | 74/80 tasks |
+| comfyui-import-smoke-test | ./specs | research | awaiting approval |
+| comfyui-llm-bikeshed | ./specs | completed | done |
 
 ---
 

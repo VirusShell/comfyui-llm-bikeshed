@@ -54,6 +54,38 @@ def _fetch_models_lm_studio(
         return []
 
 
+def _fetch_models_openai(
+    url: str, api_key: str | None = None, timeout: int = 10
+) -> list[str]:
+    """Fetch available model IDs from an OpenAI-compatible /v1/models endpoint.
+
+    Same response shape as LM Studio (``data[].id``). Used for ``api.openai.com``
+    and compatible proxies that expose ``GET /v1/models``.
+    """
+    headers: dict[str, str] = {}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    try:
+        response = requests.get(
+            f"{url.rstrip('/')}/v1/models", headers=headers, timeout=timeout
+        )
+        response.raise_for_status()
+        data = response.json()
+        return [model["id"] for model in data.get("data", [])]
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code in (401, 403):
+            raise
+        logger.info("OpenAI model fetch failed (%s): %s", url, e)
+        return []
+    except requests.RequestException as e:
+        logger.info("OpenAI model fetch failed (%s): %s", url, e)
+        return []
+    except (KeyError, TypeError, ValueError) as e:
+        logger.info("OpenAI model response parse error: %s", e)
+        return []
+
+
 def _fetch_models_ollama(url: str, timeout: int = 10) -> list[str]:
     """Fetch available model names from an Ollama instance.
 
@@ -116,8 +148,9 @@ def _fetch_models_text_gen_webui(
 
 if HAS_SERVER:
     try:
-        from ..config import get_api_key, load_config
+        from ..config import get_admin_key, get_api_key, load_config
     except ImportError:
+        get_admin_key = None  # type: ignore[assignment]
         get_api_key = None  # type: ignore[assignment]
         load_config = None  # type: ignore[assignment]
 
@@ -145,6 +178,32 @@ if HAS_SERVER:
                     )
             if not models:
                 logger.info("LM Studio auth failed, returning empty model list")
+
+        return web.json_response({"models": models})
+
+    @PromptServer.instance.routes.post("/llm-bikeshed/models/openai")
+    async def _endpoint_models_openai(request: web.Request) -> web.Response:
+        """Return available models from OpenAI (or compatible) ``GET /v1/models``.
+
+        Tries without auth first; retries with API key on 401/403.
+        """
+        data = await request.json()
+        url = data.get("url", "")
+        if not url:
+            return web.json_response({"models": []})
+
+        try:
+            models = await asyncio.to_thread(_fetch_models_openai, url)
+        except requests.HTTPError:
+            models = []
+            if get_api_key is not None:
+                api_key = get_api_key("openai")
+                if api_key:
+                    models = await asyncio.to_thread(
+                        _fetch_models_openai, url, api_key=api_key
+                    )
+            if not models:
+                logger.info("OpenAI auth failed, returning empty model list")
 
         return web.json_response({"models": models})
 
@@ -184,8 +243,8 @@ if HAS_SERVER:
         except requests.HTTPError:
             # Auth failure — retry with configured admin key
             models = []
-            if get_api_key is not None:
-                admin_key = get_api_key("text_gen_webui_admin")
+            if get_admin_key is not None:
+                admin_key = get_admin_key("text_gen_webui")
                 if admin_key:
                     models = await asyncio.to_thread(
                         _fetch_models_text_gen_webui,

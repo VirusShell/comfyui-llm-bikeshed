@@ -32,7 +32,7 @@ class LLMOptionsLMStudio:
         ("seed", "INT", {
             "default": -1, "min": -1, "max": 2**31 - 1,
         }),
-        ("stop", "STRING", {"default": ""}),
+        ("stop_string", "STRING", {"default": ""}),
         ("top_k", "INT", {
             "default": 40, "min": 0, "max": 500,
         }),
@@ -54,7 +54,7 @@ class LLMOptionsLMStudio:
     def INPUT_TYPES(cls) -> dict:  # noqa: N802
         inputs: dict = {
             "required": {},
-            "optional": {"options_in": ("LLM_OPTIONS",)},
+            "optional": {},
         }
         for name, dtype, opts in cls.PARAMS:
             inputs["optional"][f"enable_{name}"] = (
@@ -64,7 +64,5 @@ class LLMOptionsLMStudio:
             inputs["optional"][name] = (dtype, opts)
         return inputs
 
-    def build_options(
-        self, options_in: dict | None = None, **kwargs: object,
-    ) -> tuple[dict]:
-        return build_toggle_options(self.PARAMS, kwargs, options_in)
+    def build_options(self, **kwargs: object) -> tuple[dict]:
+        return build_toggle_options(self.PARAMS, kwargs)

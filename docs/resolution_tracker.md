@@ -40,7 +40,9 @@ Generated: 2026-02-25
 | A-19 | text-gen-webui model loading before generation | Decided | Adapter must handle full lifecycle: check model status → load if needed → generate → unload (last node only). Load/unload use admin key if configured. FR-19. |
 | A-20 | Model selection priority (COMBO vs STRING fallback) | Decided | STRING `model_fallback` overrides COMBO dropdown. COMBO is convenience (auto-populated), STRING is override (offline fallback, connections). FR-21. |
 | A-21 | Load Text File utility node | Decided | Separate from Preset Loader. Reads `.txt` files from ComfyUI `input/` folder (configurable). Ships with pack so users don't need external node packs for text loading. FR-20. |
-| A-18 | keep_alive / ttl defaults and user configurability | Decided | User-assignable on Provider nodes. Ollama: `keep_alive`, default "30s". LM Studio: `ttl`, default 30s (note: LM Studio's app default is 60 min, but our short default prioritizes VRAM reclamation). text-gen-webui: explicit unload, see A-15. |
+| A-18 | keep_alive / ttl defaults and user configurability | Decided | User-assignable on Provider nodes. Ollama: `keep_alive`, default "30s". LM Studio: `ttl`, default 30 min (note: LM Studio's app default is 60 min, but our shorter default prioritizes VRAM reclamation). text-gen-webui: explicit unload, see A-15. |
+| A-22 | LM Studio explicit model load with context_length | Decided | Provider node has `context_length` INT widget (0 = use model default). Adapter calls `GET /api/v1/models` to check if model loaded with correct ctx, `POST /api/v1/models/load` with `context_length` if needed, `POST /api/v1/models/unload` with model name as `instance_id` when last in chain. Mirrors text-gen-webui lifecycle pattern. JIT bug (#1463) means explicit load is required for reliable ctx settings. |
+| A-23 | OpenAI API — Chat Completions core slice | Decided | Separate Provider (`backend: openai`) and Options nodes. Non-streaming `POST /v1/chat/completions` with core sampling allowlist (`temperature`, `top_p`, `max_tokens`, `max_completion_tokens`, `stop`, `seed`, penalties). If both token limits are set, `max_completion_tokens` wins. No local model load/unload or LM-only `ttl`. Model list via `GET /v1/models` (same shape as OAI). API keys only from `config.yaml` / env (`LLM_BIKESHED_OPENAI_API_KEY`), never workflow JSON. Tools, streaming, JSON mode, multimodal — deferred (see README out-of-scope). |
 
 ---
 
@@ -72,6 +74,7 @@ Generated: 2026-02-25
 | API-5 | Anthropic structured output format | Tabled | Cloud providers deferred (A-17). |
 | API-6 | text-gen-webui internal model management endpoints | Confirmed | load/unload/list/info endpoints confirmed. Gated behind `--admin-key` (or `--api-key` if no admin key set). |
 | API-7 | text-gen-webui admin key handling | Confirmed | Supports separate `--admin-key` from `--api-key`. If admin-key not set, api-key is used for admin ops. Config should support both: `api_key` for generation, `admin_key` for model management. If only one configured, use it for both. |
+| API-8 | OpenAI Chat Completions — provider slice | Confirmed | Same HTTP surface as LM Studio OAI path for chat (`/v1/chat/completions`) and models (`/v1/models`). Backend id `openai` skips Textgen/LM-only lifecycle APIs. Parameter surface intentionally smaller than full OpenAI API (see A-23). |
 
 ---
 

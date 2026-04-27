@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .options_base import build_toggle_options
+from .options_base import PARAM_NAME_MAP, build_toggle_options
 
 
 class LLMOptionsOllamaCore:
@@ -24,7 +24,7 @@ class LLMOptionsOllamaCore:
         "seed": -1,
         "num_predict": -1,
         "num_ctx": -1,
-        "stop": "",
+        "stop_string": "",
     }
 
     @classmethod
@@ -58,7 +58,7 @@ class LLMOptionsOllamaCore:
                     "INT",
                     {"default": -1, "min": -1, "max": 131072},
                 ),
-                "stop": ("STRING", {"default": ""}),
+                "stop_string": ("STRING", {"default": ""}),
             },
             "optional": {
                 "options_in": ("LLM_OPTIONS",),
@@ -72,7 +72,8 @@ class LLMOptionsOllamaCore:
         for param, sentinel in self.SENTINELS.items():
             value = kwargs.get(param)
             if value is not None and value != sentinel:
-                options[param] = value
+                api_name = PARAM_NAME_MAP.get(param, param)
+                options[api_name] = value
         return (options,)
 
 
@@ -130,7 +131,7 @@ class LLMOptionsOllamaExtra:
 
     @classmethod
     def INPUT_TYPES(cls) -> dict:  # noqa: N802
-        inputs: dict = {"required": {}, "optional": {"options_in": ("LLM_OPTIONS",)}}
+        inputs: dict = {"required": {}, "optional": {}}
         for name, dtype, opts in cls.PARAMS:
             inputs["optional"][f"enable_{name}"] = (
                 "BOOLEAN",
@@ -142,7 +143,5 @@ class LLMOptionsOllamaExtra:
                 inputs["optional"][name] = (dtype, opts)
         return inputs
 
-    def build_options(
-        self, options_in: dict | None = None, **kwargs: object,
-    ) -> tuple[dict]:
-        return build_toggle_options(self.PARAMS, kwargs, options_in)
+    def build_options(self, **kwargs: object) -> tuple[dict]:
+        return build_toggle_options(self.PARAMS, kwargs)
