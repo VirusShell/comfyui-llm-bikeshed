@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-import logging
-
 from ..adapters import get_adapter
 from ..graph.introspection import has_downstream_gen_node
-
-logger = logging.getLogger("llm-bikeshed")
 
 
 def _build_messages(system_prompt: str, prompt: str) -> list[dict[str, str]]:
@@ -175,13 +171,6 @@ class LLMGenerateTest:
         unique_id = kwargs.get("unique_id")
 
         skip_unload = has_downstream_gen_node(prompt_graph, unique_id, 1)
-
-        logger.warning(
-            "DEBUG GenerateTest inputs — system_prompt: type=%s repr=%r, "
-            "prompt: type=%s repr=%r",
-            type(system_prompt).__name__, system_prompt,
-            type(prompt).__name__, prompt,
-        )
 
         messages = _build_messages(system_prompt, prompt)
         text = adapter.generate(provider, messages, merged_options, skip_unload)

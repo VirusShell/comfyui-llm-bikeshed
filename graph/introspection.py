@@ -8,7 +8,11 @@ from __future__ import annotations
 
 from typing import Any
 
-GENERATION_CLASS_TYPES = {"LLMGenerate", "LLMGenerateAdvanced"}
+GENERATION_CLASS_TYPES = {
+    "LLMGenerate",
+    "LLMGenerateAdvanced",
+    "LLMGenerateTest",
+}
 
 
 def find_downstream_nodes(
