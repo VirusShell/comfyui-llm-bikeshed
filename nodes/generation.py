@@ -101,84 +101,6 @@ class LLMGenerate:
         return (text, meta)
 
 
-class LLMGenerateTest:
-    """Test Generation node — clone of Basic with options input."""
-
-    CATEGORY = "LLM Bikeshed/generation"
-    RETURN_TYPES = ("STRING", "LLM_META")
-    RETURN_NAMES = ("text", "meta")
-    FUNCTION = "generate"
-    OUTPUT_NODE = False
-
-    @classmethod
-    def INPUT_TYPES(cls) -> dict:  # noqa: N802
-        return {
-            "required": {
-                "provider": ("LLM_PROVIDER",),
-                "temperature": (
-                    "FLOAT",
-                    {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.05},
-                ),
-                "max_tokens": ("INT", {"default": 1024, "min": 1, "max": 128000}),
-                "seed": ("INT", {"default": -1}),
-                "system_prompt": ("STRING", {"multiline": True, "default": ""}),
-                "prompt": ("STRING", {"multiline": True}),
-            },
-            "optional": {
-                "options": ("LLM_OPTIONS",),
-            },
-            "hidden": {
-                "prompt_graph": "PROMPT",
-                "unique_id": "UNIQUE_ID",
-            },
-        }
-
-    @classmethod
-    def IS_CHANGED(cls, **kwargs: object) -> float:  # noqa: N802
-        return float("NaN")
-
-    @classmethod
-    def VALIDATE_INPUTS(cls, **kwargs: object) -> bool:  # noqa: N802
-        return True
-
-    def generate(
-        self,
-        provider: dict,
-        temperature: float,
-        max_tokens: int,
-        seed: int,
-        system_prompt: str,
-        prompt: str,
-        options: dict | None = None,
-        **kwargs: object,
-    ) -> tuple[str, dict]:
-        """Run LLM generation and return (text, meta)."""
-        # Build inline options — exclude sentinel values (use model defaults)
-        inline_options: dict = {}
-        if temperature >= 0:
-            inline_options["temperature"] = temperature
-        if max_tokens > 0:
-            inline_options["max_tokens"] = max_tokens
-        if seed >= 0:
-            inline_options["seed"] = seed
-
-        # Merge: connected options override inline options
-        merged_options = {**inline_options, **(options or {})}
-
-        adapter = get_adapter(provider["adapter"])
-
-        prompt_graph = kwargs.get("prompt_graph", {})
-        unique_id = kwargs.get("unique_id")
-
-        skip_unload = has_downstream_gen_node(prompt_graph, unique_id, 1)
-
-        messages = _build_messages(system_prompt, prompt)
-        text = adapter.generate(provider, messages, merged_options, skip_unload)
-
-        meta: dict = {"provider": provider, "options": merged_options}
-        return (text, meta)
-
-
 class LLMGenerateAdvanced:
     """Advanced Generation node — modular, accepts options/meta connections."""
 
@@ -193,7 +115,7 @@ class LLMGenerateAdvanced:
         return {
             "required": {
                 "system_prompt": ("STRING", {"multiline": True, "default": ""}),
-                "prompt": ("STRING", {"multiline": True, "defaultInput": True}),
+                "prompt": ("STRING", {"multiline": True}),
             },
             "optional": {
                 "provider": ("LLM_PROVIDER",),

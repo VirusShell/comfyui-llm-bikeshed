@@ -47,6 +47,18 @@ BACKEND_ALLOWLISTS: dict[str, set[str]] = {
         "typical_p",
         "tfs",
     },
+    "llamacpp": {
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "seed",
+        "stop",
+        "top_k",
+        "min_p",
+        "repeat_penalty",
+        "presence_penalty",
+        "frequency_penalty",
+    },
 }
 
 # Per-backend parameter name mapping (OAI names match, but structure
@@ -55,6 +67,7 @@ NAME_MAPS: dict[str, dict[str, str]] = {
     "openai": {},
     "lm_studio": {},
     "text_gen_webui": {"tfs_z": "tfs"},
+    "llamacpp": {},
 }
 
 
@@ -89,7 +102,7 @@ class OAICompatAdapter:
         # Messages are passed in ready-to-use format by the generation node.
 
         # Filter and map options against backend allowlist.
-        allowlist = BACKEND_ALLOWLISTS.get(backend, set())
+        allowlist = BACKEND_ALLOWLISTS.get(backend)
         name_map = NAME_MAPS.get(backend, {})
         filtered: dict = {}
         for key, value in options.items():
@@ -101,7 +114,9 @@ class OAICompatAdapter:
                     backend,
                 )
                 continue
-            if key in allowlist:
+            if allowlist is None:
+                filtered[key] = value
+            elif key in allowlist:
                 mapped_key = name_map.get(key, key)
                 filtered[mapped_key] = value
             else:
@@ -114,11 +129,23 @@ class OAICompatAdapter:
         if backend == "openai":
             _dedupe_openai_token_limits(filtered)
 
-        # Ensure model is loaded before generation.
-        if backend == "lm_studio":
-            self._ensure_model_loaded_lm_studio(provider, model)
-        elif backend == "text_gen_webui":
+        lifecycle = provider.get("lifecycle")
+
+        # Ensure model is loaded (only with matching lifecycle).
+        lc_type = lifecycle.get("type") if lifecycle else None
+        if lifecycle and lc_type == "lm_studio" and backend == "lm_studio":
+            self._ensure_model_loaded_lm_studio(
+                provider, model, lifecycle,
+            )
+        elif lifecycle and lc_type == "text_gen_webui" and backend == "text_gen_webui":
             self._ensure_model_loaded(provider, model)
+        elif lifecycle and lc_type != backend:
+            logger.info(
+                "Lifecycle type '%s' doesn't match backend '%s'"
+                " — skipping model management",
+                lc_type,
+                backend,
+            )
 
         # Build request payload.
         payload: dict = {
@@ -129,13 +156,12 @@ class OAICompatAdapter:
         }
 
         # Handle LM Studio TTL for model memory management.
-        memory = provider.get("memory", {})
-        if backend == "lm_studio" and memory.get("ttl") is not None:
-            ttl = memory["ttl"]
-            if skip_unload:
-                # Extend TTL when more generation nodes follow in the chain.
-                ttl = max(ttl * 10, 300)
-            payload["ttl"] = ttl
+        if lifecycle and lc_type == "lm_studio" and backend == "lm_studio":
+            ttl = lifecycle.get("ttl")
+            if ttl is not None:
+                if skip_unload:
+                    ttl = max(ttl * 10, 300)
+                payload["ttl"] = ttl
 
         # Build headers with optional auth.
         headers: dict[str, str] = {"Content-Type": "application/json"}
@@ -160,11 +186,12 @@ class OAICompatAdapter:
         data = response.json()
         text = data["choices"][0]["message"]["content"]
 
-        # Unload model if last in chain.
-        if not skip_unload:
-            if backend == "text_gen_webui":
+        # Unload model if last in chain and lifecycle is active.
+        if not skip_unload and lifecycle:
+            lc_type = lifecycle.get("type")
+            if lc_type == "text_gen_webui" and backend == "text_gen_webui":
                 self._unload_model_text_gen_webui(provider)
-            elif backend == "lm_studio":
+            elif lc_type == "lm_studio" and backend == "lm_studio":
                 self._unload_model_lm_studio(provider, model)
 
         return text
@@ -186,14 +213,13 @@ class OAICompatAdapter:
     # ── LM Studio model management ──────────────────────────────────
 
     def _ensure_model_loaded_lm_studio(
-        self, provider: dict, model: str
+        self, provider: dict, model: str, lifecycle: dict | None = None
     ) -> None:
         """Check if model is loaded with correct context_length, load if needed."""
         url = provider["url"]
         headers = self._auth_headers(provider)
         timeout = provider.get("timeout", 120)
-        memory = provider.get("memory", {})
-        desired_ctx = memory.get("context_length")  # None = don't care
+        desired_ctx = lifecycle.get("context_length") if lifecycle else None
 
         # Check current state via /api/v1/models.
         try:

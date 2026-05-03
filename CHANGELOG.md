@@ -7,16 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-02
+
 ### Added
 
-- **OpenAI API** — `LLM Provider: OpenAI` and `LLM Options: OpenAI` for non-streaming Chat Completions (`POST /v1/chat/completions`) with core sampling allowlist; model list via `GET /v1/models`; API key from `config.yaml` / `LLM_BIKESHED_OPENAI_API_KEY` only.
+- **Backend auto-detection** — `detection.py` probes API endpoints to identify the backend at a URL (Ollama, llama.cpp, LM Studio, Textgen, OpenAI, or generic fallback).
+- **Generic OAI-compatible provider** — single `LLM Provider: OAI Compatible` node replaces the three separate LM Studio, OpenAI, and Textgen provider nodes. Auto-detects backend and resolves API keys accordingly.
+- **Composable lifecycle nodes** — `LLM Lifecycle: LM Studio` (TTL + context_length) and `LLM Lifecycle: Textgen` (presence-only) for opt-in VRAM management. Model management only activates when a lifecycle node is connected.
+- **llama.cpp parameter allowlist** — llama.cpp backends now get a curated allowlist instead of dropping all params.
+- **Generic backend passthrough** — unknown/unrecognized backends pass all JSON-safe params through unfiltered.
+- **Backend detection endpoint** — `POST /llm-bikeshed/detect` returns the detected backend type for a URL.
+- **API key entry endpoint** — `POST /llm-bikeshed/set-key` writes API keys to `config.yaml` from the frontend.
+- **Consolidated model list endpoint** — `POST /llm-bikeshed/models/oai-compat` replaces the three per-backend model endpoints, with auth retry across all configured keys.
+- **Backend indicator widget** — non-serialized `detected_backend` text widget on the OAI-compatible provider node shows the auto-detected backend type.
+- **Detection tests** — 11 tests covering all backend detection paths and edge cases.
+- **Lifecycle tests** — 5 tests for both lifecycle node types.
 
 ### Changed
 
-- **Display names:** text-gen-webui provider/options nodes show as **Textgen** in the UI (Python class names unchanged).
+- **Provider dict shape** — OAI-compat providers now use `lifecycle` key (dict or None) instead of `memory` key. Ollama provider unchanged (keeps `memory.keep_alive`).
+- **Model management gating** — adapter load/unload calls are now gated on lifecycle presence AND lifecycle type matching the detected backend. No lifecycle = no model management.
+- **Server endpoints** — removed `/llm-bikeshed/models/lm-studio`, `/models/openai`, `/models/text-gen-webui`; replaced by single `/models/oai-compat`.
+- **JS frontend** — `PROVIDER_CONFIG` collapsed from 4 entries to 2 (OAI-compat + Ollama). URL change triggers debounced backend re-detection.
+
+### Removed
+
+- `LLMProviderLMStudio`, `LLMProviderOpenAI`, `LLMProviderTextGenWebUI` — replaced by `LLMProviderOAICompat`.
+- `LLMGenerateTest` — test generation node superseded by `LLMGenerateAdvanced`.
+- `LLMOptionsLMStudioTest` — test options node removed.
 
 ### Fixed
 
+- `__init__.py` guarded with try/except to prevent pytest collection failures from relative imports.
+- `defaultInput` deprecation warnings replaced with `forceInput` across all nodes.
 - Textgen model dropdown auth retry now uses `get_admin_key("text_gen_webui")` so configured `admin_key` applies.
 
 ## [0.1.0] - 2026-03-13

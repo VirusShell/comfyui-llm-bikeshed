@@ -17,50 +17,15 @@ except ImportError:
 logger = logging.getLogger("llm-bikeshed")
 
 
-def _fetch_models_lm_studio(
+def _fetch_models_oai_compat(
     url: str, api_key: str | None = None, timeout: int = 10
 ) -> list[str]:
-    """Fetch available model IDs from an LM Studio instance.
+    """Fetch model IDs from any OAI-compatible ``GET /v1/models`` endpoint.
 
-    Args:
-        url: Base URL of the LM Studio server (e.g. "http://localhost:1234").
-        api_key: Optional API key for Bearer auth.
-        timeout: Request timeout in seconds.
+    Works for LM Studio, OpenAI, Textgen (via its OAI-compat layer),
+    llama.cpp, and any other endpoint that returns ``{data: [{id: ...}]}``.
 
-    Returns:
-        List of model ID strings, or empty list on any error.
-    """
-    headers: dict[str, str] = {}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-
-    try:
-        response = requests.get(
-            f"{url}/v1/models", headers=headers, timeout=timeout
-        )
-        response.raise_for_status()
-        data = response.json()
-        return [model["id"] for model in data.get("data", [])]
-    except requests.HTTPError as e:
-        if e.response is not None and e.response.status_code in (401, 403):
-            raise  # Let caller handle auth retry
-        logger.info("LM Studio model fetch failed (%s): %s", url, e)
-        return []
-    except requests.RequestException as e:
-        logger.info("LM Studio model fetch failed (%s): %s", url, e)
-        return []
-    except (KeyError, TypeError, ValueError) as e:
-        logger.info("LM Studio model response parse error: %s", e)
-        return []
-
-
-def _fetch_models_openai(
-    url: str, api_key: str | None = None, timeout: int = 10
-) -> list[str]:
-    """Fetch available model IDs from an OpenAI-compatible /v1/models endpoint.
-
-    Same response shape as LM Studio (``data[].id``). Used for ``api.openai.com``
-    and compatible proxies that expose ``GET /v1/models``.
+    Raises ``requests.HTTPError`` on 401/403 so callers can retry with auth.
     """
     headers: dict[str, str] = {}
     if api_key:
@@ -76,26 +41,18 @@ def _fetch_models_openai(
     except requests.HTTPError as e:
         if e.response is not None and e.response.status_code in (401, 403):
             raise
-        logger.info("OpenAI model fetch failed (%s): %s", url, e)
+        logger.info("OAI-compat model fetch failed (%s): %s", url, e)
         return []
     except requests.RequestException as e:
-        logger.info("OpenAI model fetch failed (%s): %s", url, e)
+        logger.info("OAI-compat model fetch failed (%s): %s", url, e)
         return []
     except (KeyError, TypeError, ValueError) as e:
-        logger.info("OpenAI model response parse error: %s", e)
+        logger.info("OAI-compat model response parse error: %s", e)
         return []
 
 
 def _fetch_models_ollama(url: str, timeout: int = 10) -> list[str]:
-    """Fetch available model names from an Ollama instance.
-
-    Args:
-        url: Base URL of the Ollama server (e.g. "http://localhost:11434").
-        timeout: Request timeout in seconds.
-
-    Returns:
-        List of model name strings, or empty list on any error.
-    """
+    """Fetch available model names from an Ollama instance."""
     try:
         response = requests.get(f"{url}/api/tags", timeout=timeout)
         response.raise_for_status()
@@ -109,56 +66,24 @@ def _fetch_models_ollama(url: str, timeout: int = 10) -> list[str]:
         return []
 
 
-def _fetch_models_text_gen_webui(
-    url: str, admin_key: str | None = None, timeout: int = 10
-) -> list[str]:
-    """Fetch available model names from a text-generation-webui instance.
-
-    Args:
-        url: Base URL of the text-gen-webui server (e.g. "http://localhost:5000").
-        admin_key: Optional admin API key for Bearer auth.
-        timeout: Request timeout in seconds.
-
-    Returns:
-        List of model name strings, or empty list on any error.
-    """
-    headers: dict[str, str] = {}
-    if admin_key:
-        headers["Authorization"] = f"Bearer {admin_key}"
-
-    try:
-        response = requests.get(
-            f"{url}/v1/internal/model/list", headers=headers, timeout=timeout
-        )
-        response.raise_for_status()
-        data = response.json()
-        return data.get("model_names", [])
-    except requests.HTTPError as e:
-        if e.response is not None and e.response.status_code in (401, 403):
-            raise  # Let caller handle auth retry
-        logger.info("text-gen-webui model fetch failed (%s): %s", url, e)
-        return []
-    except requests.RequestException as e:
-        logger.info("text-gen-webui model fetch failed (%s): %s", url, e)
-        return []
-    except (KeyError, TypeError, ValueError) as e:
-        logger.info("text-gen-webui model response parse error: %s", e)
-        return []
-
-
 if HAS_SERVER:
     try:
-        from ..config import get_admin_key, get_api_key, load_config
+        from ..config import get_admin_key, get_api_key, load_config, write_api_key
+        from ..detection import detect_backend
     except ImportError:
         get_admin_key = None  # type: ignore[assignment]
         get_api_key = None  # type: ignore[assignment]
         load_config = None  # type: ignore[assignment]
+        write_api_key = None  # type: ignore[assignment]
+        detect_backend = None  # type: ignore[assignment]
 
-    @PromptServer.instance.routes.post("/llm-bikeshed/models/lm-studio")
-    async def _endpoint_models_lm_studio(request: web.Request) -> web.Response:
-        """Return available models from an LM Studio instance.
+    @PromptServer.instance.routes.post("/llm-bikeshed/models/oai-compat")
+    async def _endpoint_models_oai_compat(
+        request: web.Request,
+    ) -> web.Response:
+        """Return models from any OAI-compatible endpoint.
 
-        Tries without auth first; retries with API key on 401/403.
+        Tries without auth first; on 401/403 retries with all configured keys.
         """
         data = await request.json()
         url = data.get("url", "")
@@ -166,56 +91,38 @@ if HAS_SERVER:
             return web.json_response({"models": []})
 
         try:
-            models = await asyncio.to_thread(_fetch_models_lm_studio, url)
-        except requests.HTTPError:
-            # Auth failure — retry with configured key
-            models = []
-            if get_api_key is not None:
-                api_key = get_api_key("lm_studio")
-                if api_key:
-                    models = await asyncio.to_thread(
-                        _fetch_models_lm_studio, url, api_key=api_key
-                    )
-            if not models:
-                logger.info("LM Studio auth failed, returning empty model list")
-
-        return web.json_response({"models": models})
-
-    @PromptServer.instance.routes.post("/llm-bikeshed/models/openai")
-    async def _endpoint_models_openai(request: web.Request) -> web.Response:
-        """Return available models from OpenAI (or compatible) ``GET /v1/models``.
-
-        Tries without auth first; retries with API key on 401/403.
-        """
-        data = await request.json()
-        url = data.get("url", "")
-        if not url:
-            return web.json_response({"models": []})
-
-        try:
-            models = await asyncio.to_thread(_fetch_models_openai, url)
+            models = await asyncio.to_thread(
+                _fetch_models_oai_compat, url,
+            )
         except requests.HTTPError:
             models = []
             if get_api_key is not None:
-                api_key = get_api_key("openai")
-                if api_key:
-                    models = await asyncio.to_thread(
-                        _fetch_models_openai, url, api_key=api_key
-                    )
+                for provider in (
+                    "lm_studio", "openai", "text_gen_webui", "oai_compat",
+                ):
+                    api_key = get_api_key(provider)
+                    if api_key:
+                        try:
+                            models = await asyncio.to_thread(
+                                _fetch_models_oai_compat,
+                                url,
+                                api_key=api_key,
+                            )
+                            if models:
+                                break
+                        except requests.HTTPError:
+                            continue
             if not models:
-                logger.info("OpenAI auth failed, returning empty model list")
+                logger.info(
+                    "OAI-compat auth failed for %s, returning empty", url,
+                )
 
         return web.json_response({"models": models})
-
-    @PromptServer.instance.routes.post("/llm-bikeshed/reload-config")
-    async def _endpoint_reload_config(request: web.Request) -> web.Response:
-        """Reload configuration from disk."""
-        if load_config is not None:
-            await asyncio.to_thread(load_config)
-        return web.json_response({"status": "ok"})
 
     @PromptServer.instance.routes.post("/llm-bikeshed/models/ollama")
-    async def _endpoint_models_ollama(request: web.Request) -> web.Response:
+    async def _endpoint_models_ollama(
+        request: web.Request,
+    ) -> web.Response:
         """Return available models from an Ollama instance."""
         data = await request.json()
         url = data.get("url", "")
@@ -225,35 +132,44 @@ if HAS_SERVER:
         models = await asyncio.to_thread(_fetch_models_ollama, url)
         return web.json_response({"models": models})
 
-    @PromptServer.instance.routes.post("/llm-bikeshed/models/text-gen-webui")
-    async def _endpoint_models_text_gen_webui(
+    @PromptServer.instance.routes.post("/llm-bikeshed/detect")
+    async def _endpoint_detect_backend(
         request: web.Request,
     ) -> web.Response:
-        """Return available models from a text-generation-webui instance.
-
-        Tries without auth first; retries with admin key on 401/403.
-        """
+        """Detect backend type at the given URL."""
         data = await request.json()
         url = data.get("url", "")
         if not url:
-            return web.json_response({"models": []})
+            return web.json_response({"backend": "generic"})
 
-        try:
-            models = await asyncio.to_thread(_fetch_models_text_gen_webui, url)
-        except requests.HTTPError:
-            # Auth failure — retry with configured admin key
-            models = []
-            if get_admin_key is not None:
-                admin_key = get_admin_key("text_gen_webui")
-                if admin_key:
-                    models = await asyncio.to_thread(
-                        _fetch_models_text_gen_webui,
-                        url,
-                        admin_key=admin_key,
-                    )
-            if not models:
-                logger.info(
-                    "text-gen-webui auth failed, returning empty model list"
-                )
+        api_key = None
+        if get_api_key is not None:
+            api_key = get_api_key("oai_compat")
+        backend = await asyncio.to_thread(
+            detect_backend, url, api_key=api_key,
+        )
+        return web.json_response({"backend": backend})
 
-        return web.json_response({"models": models})
+    @PromptServer.instance.routes.post("/llm-bikeshed/set-key")
+    async def _endpoint_set_key(request: web.Request) -> web.Response:
+        """Store an API key in config.yaml for the given provider."""
+        data = await request.json()
+        provider = data.get("provider", "")
+        api_key = data.get("api_key", "")
+        if not provider:
+            return web.json_response(
+                {"error": "provider required"}, status=400,
+            )
+
+        if write_api_key is not None:
+            await asyncio.to_thread(write_api_key, provider, api_key)
+        return web.json_response({"status": "ok"})
+
+    @PromptServer.instance.routes.post("/llm-bikeshed/reload-config")
+    async def _endpoint_reload_config(
+        request: web.Request,
+    ) -> web.Response:
+        """Reload configuration from disk."""
+        if load_config is not None:
+            await asyncio.to_thread(load_config)
+        return web.json_response({"status": "ok"})

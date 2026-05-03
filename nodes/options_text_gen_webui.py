@@ -1,4 +1,4 @@
-"""Textgen (text-generation-webui) Options node — toggle pattern for 12 generation parameters."""
+"""Textgen (text-generation-webui) Options node — toggle pattern."""
 
 from __future__ import annotations
 

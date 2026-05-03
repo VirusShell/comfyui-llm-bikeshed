@@ -1,21 +1,14 @@
 import { app } from "../../scripts/app.js";
 
 const PROVIDER_CONFIG = {
-  LLMProviderLMStudio: {
-    endpoint: "/llm-bikeshed/models/lm-studio",
+  LLMProviderOAICompat: {
+    endpoint: "/llm-bikeshed/models/oai-compat",
+    detectEndpoint: "/llm-bikeshed/detect",
     defaultUrl: "http://localhost:1234",
-  },
-  LLMProviderOpenAI: {
-    endpoint: "/llm-bikeshed/models/openai",
-    defaultUrl: "https://api.openai.com",
   },
   LLMProviderOllama: {
     endpoint: "/llm-bikeshed/models/ollama",
     defaultUrl: "http://localhost:11434",
-  },
-  LLMProviderTextGenWebUI: {
-    endpoint: "/llm-bikeshed/models/text-gen-webui",
-    defaultUrl: "http://localhost:5000",
   },
 };
 
@@ -39,6 +32,29 @@ async function fetchModels(endpoint, url) {
     return data.models || [];
   } catch {
     return [];
+  }
+}
+
+/**
+ * Detect backend type at a given URL.
+ * @param {string} detectEndpoint - The PromptServer detect route.
+ * @param {string} url - The backend base URL to probe.
+ * @returns {Promise<string>} Backend type string.
+ */
+async function detectBackend(detectEndpoint, url) {
+  try {
+    const response = await app.api.fetchApi(detectEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    if (!response.ok) {
+      return "unknown";
+    }
+    const data = await response.json();
+    return data.backend || "unknown";
+  } catch {
+    return "unknown";
   }
 }
 
@@ -74,6 +90,17 @@ function updateModelWidget(widget, models, savedValue) {
   }
 }
 
+/** Backend display names for the indicator widget. */
+const BACKEND_LABELS = {
+  lm_studio: "LM Studio",
+  text_gen_webui: "Textgen",
+  openai: "OpenAI",
+  llamacpp: "llama.cpp",
+  ollama: "Ollama",
+  generic: "Generic",
+  unknown: "Unknown",
+};
+
 app.registerExtension({
   name: "llm-bikeshed.model-dropdown",
 
@@ -83,7 +110,7 @@ app.registerExtension({
       return;
     }
 
-    const { endpoint, defaultUrl } = config;
+    const { endpoint, defaultUrl, detectEndpoint } = config;
 
     // Find the model and url widgets
     const modelWidget = node.widgets?.find((w) => w.name === "model");
@@ -102,6 +129,51 @@ app.registerExtension({
       updateModelWidget(modelWidget, models, savedModel);
     });
 
+    // Add detected backend indicator (OAI-compat only)
+    let backendWidget = null;
+    if (detectEndpoint) {
+      backendWidget = node.addWidget(
+        "text",
+        "detected_backend",
+        "detecting...",
+        () => {},
+        { serialize: false },
+      );
+
+      detectBackend(detectEndpoint, currentUrl).then((backend) => {
+        backendWidget.value = BACKEND_LABELS[backend] || backend;
+        node.setDirtyCanvas(true);
+      });
+    }
+
+    // Debounce timer for URL change detection
+    let detectTimer = null;
+
+    // Re-fetch models and re-detect on URL change
+    if (urlWidget) {
+      const origCallback = urlWidget.callback;
+      urlWidget.callback = function (value) {
+        if (origCallback) {
+          origCallback.call(this, value);
+        }
+        fetchModels(endpoint, value).then((models) => {
+          updateModelWidget(modelWidget, models, modelWidget.value);
+          node.setDirtyCanvas(true);
+        });
+
+        if (detectEndpoint && backendWidget) {
+          clearTimeout(detectTimer);
+          backendWidget.value = "detecting...";
+          detectTimer = setTimeout(() => {
+            detectBackend(detectEndpoint, value).then((backend) => {
+              backendWidget.value = BACKEND_LABELS[backend] || backend;
+              node.setDirtyCanvas(true);
+            });
+          }, 500);
+        }
+      };
+    }
+
     // Add refresh button widget
     node.addWidget("button", "Refresh Models", null, () => {
       const url = urlWidget?.value || defaultUrl;
@@ -109,6 +181,14 @@ app.registerExtension({
         updateModelWidget(modelWidget, models, modelWidget.value);
         node.setDirtyCanvas(true);
       });
+
+      if (detectEndpoint && backendWidget) {
+        backendWidget.value = "detecting...";
+        detectBackend(detectEndpoint, url).then((backend) => {
+          backendWidget.value = BACKEND_LABELS[backend] || backend;
+          node.setDirtyCanvas(true);
+        });
+      }
     });
   },
 });

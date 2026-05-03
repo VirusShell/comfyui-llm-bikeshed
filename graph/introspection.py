@@ -11,7 +11,6 @@ from typing import Any
 GENERATION_CLASS_TYPES = {
     "LLMGenerate",
     "LLMGenerateAdvanced",
-    "LLMGenerateTest",
 }
 
 
