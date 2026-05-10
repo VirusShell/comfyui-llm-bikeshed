@@ -113,7 +113,7 @@ Configure a backend connection. Each outputs an `LLM_PROVIDER` type.
 | **LLM Provider: Ollama** | Native Ollama | `url`, `model` dropdown, `keep_alive` |
 
 All provider nodes have:
-- Dynamic model dropdown (queries backend via PromptServer; refresh button). Initial fetch is deferred one microtask so saved workflow values apply before the list updates.
+- Dynamic model dropdown (queries backend via PromptServer; refresh button). Initial fetch is deferred one microtask so saved workflow values apply before the list updates. For **Textgen**, the server asks **`/v1/internal/model/list`** first (same models as the Textgen UI), then falls back to **`/v1/models`** if needed.
 - `model_fallback` STRING input — overrides dropdown when connected (useful when backend is offline)
 
 ### Lifecycle nodes (optional)

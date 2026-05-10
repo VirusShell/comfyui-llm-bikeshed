@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-05-11
+
+### Fixed
+
+- **`model_list.py` shipped with the pack** — `server/endpoints.py` imports it for `POST /llm-bikeshed/models/oai-compat`, but the module was missing from the repo. Restores Textgen model dropdown behavior: when the detected backend is Textgen, the code prefers **`GET /v1/internal/model/list`** (matches the Textgen UI) before falling back to OpenAI-style **`GET /v1/models`**, with Bearer retries using `providers.text_gen_webui` / `oai_compat` keys via [`get_textgen_auth_keys`](config/__init__.py).
+
 ## [0.2.1] - 2026-05-10
 
 ### Fixed

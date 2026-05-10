@@ -76,6 +76,7 @@ Generated: 2026-02-25
 | API-6 | text-gen-webui internal model management endpoints | Confirmed | load/unload/list/info endpoints confirmed. Gated behind `--admin-key` (or `--api-key` if no admin key set). |
 | API-7 | text-gen-webui admin key handling | Confirmed | Supports separate `--admin-key` from `--api-key`. If admin-key not set, api-key is used for admin ops. Config should support both: `api_key` for generation, `admin_key` for model management. If only one configured, use it for both. |
 | API-8 | OpenAI Chat Completions — provider slice | Confirmed | Same HTTP surface as LM Studio OAI path for chat (`/v1/chat/completions`) and models (`/v1/models`). Backend id `openai` skips Textgen/LM-only lifecycle APIs. Parameter surface intentionally smaller than full OpenAI API (see A-23). |
+| API-9 | Textgen model list source | Confirmed | For backend `text_gen_webui`, prefer `GET /v1/internal/model/list` (authoritative vs UI) before `GET /v1/models`. Implemented in `model_list._sync_resolve_oai_compat_models` with `get_textgen_auth_keys()` for credentials. |
 
 ---
 
