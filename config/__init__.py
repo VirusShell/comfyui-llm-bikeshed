@@ -88,3 +88,27 @@ def get_admin_key(provider: str) -> str | None:
     if key:
         return key
     return os.environ.get(f"LLM_BIKESHED_{provider.upper()}_ADMIN_KEY")
+
+
+def get_textgen_auth_keys() -> tuple[str | None, str | None]:
+    """Resolve ``api_key`` and ``admin_key`` for text-generation-webui.
+
+    The server uses one ``--api-key`` for OpenAI-style and internal routes.
+    Users often store that secret only under ``providers.oai_compat`` while the
+    OAI-compat node still detects ``text_gen_webui`` — without falling back,
+    chat and model-list requests send no credentials (HTTP 401).
+    """
+    tg_api = get_api_key("text_gen_webui")
+    tg_admin = get_admin_key("text_gen_webui")
+    oai_api = get_api_key("oai_compat")
+    oai_admin = get_admin_key("oai_compat")
+
+    api_key = tg_api or oai_api
+    admin_key = tg_admin or oai_admin
+
+    if api_key and not admin_key:
+        admin_key = api_key
+    if admin_key and not api_key:
+        api_key = admin_key
+
+    return api_key, admin_key

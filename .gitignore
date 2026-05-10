@@ -2,6 +2,9 @@
 .claude/
 CLAUDE.md
 
+# VS Code
+*.code-workspace
+
 # Ralph Specum state
 specs/
 **/.progress.md

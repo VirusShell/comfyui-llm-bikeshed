@@ -20,9 +20,10 @@ def lm_studio_provider() -> dict:
         "timeout": 120,
         "api_key": None,
         "admin_key": None,
-        "memory": {
-            "ttl": "30s",
-            "keep_alive": None,
+        "lifecycle": {
+            "type": "lm_studio",
+            "ttl": 30,
+            "context_length": None,
         },
     }
 
@@ -56,9 +57,8 @@ def text_gen_webui_provider() -> dict:
         "timeout": 120,
         "api_key": "test-api-key",
         "admin_key": "test-admin-key",
-        "memory": {
-            "keep_alive": None,
-            "ttl": None,
+        "lifecycle": {
+            "type": "text_gen_webui",
         },
     }
 

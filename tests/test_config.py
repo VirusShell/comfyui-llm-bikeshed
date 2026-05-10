@@ -7,6 +7,7 @@ from config import (
     get_admin_key,
     get_api_key,
     get_config,
+    get_textgen_auth_keys,
     load_config,
     reload_config,
 )
@@ -240,3 +241,35 @@ class TestGetAdminKey:
         monkeypatch.delenv("LLM_BIKESHED_TEXTGENWEBUI_ADMIN_KEY", raising=False)
 
         assert get_admin_key("textgenwebui") is None
+
+
+class TestGetTextgenAuthKeys:
+    """get_textgen_auth_keys: text_gen_webui + oai_compat fallback."""
+
+    def test_oai_compat_fallback_when_textgen_empty(
+        self, tmp_path, monkeypatch,
+    ) -> None:
+        user = tmp_path / "config.yaml"
+        user.write_text("providers:\n  oai_compat:\n    api_key: shared-secret\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.setattr(config_module, "_config", None)
+
+        api, admin = get_textgen_auth_keys()
+        assert api == "shared-secret"
+        assert admin == "shared-secret"
+
+    def test_text_gen_webui_wins_over_oai_compat(
+        self, tmp_path, monkeypatch,
+    ) -> None:
+        user = tmp_path / "config.yaml"
+        user.write_text(
+            "providers:\n"
+            "  text_gen_webui:\n    api_key: tg-key\n"
+            "  oai_compat:\n    api_key: oai-key\n",
+        )
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.setattr(config_module, "_config", None)
+
+        api, admin = get_textgen_auth_keys()
+        assert api == "tg-key"
+        assert admin == "tg-key"

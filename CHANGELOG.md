@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-10
+
+### Fixed
+
+- **LLM Lifecycle: Textgen** — added `manage_model_memory` BOOLEAN (default ON). Nodes with no widgets did not render inputs in ComfyUI; LM Studio lifecycle already had TTL/context widgets.
+
+### Changed
+
+- **Model dropdown** — initial model fetch runs after `queueMicrotask` so workflow-loaded COMBO values deserialize before the first refresh (reduces wrong or blank model labels after tab/graph switches).
+
 ## [0.2.0] - 2026-05-02
 
 ### Added

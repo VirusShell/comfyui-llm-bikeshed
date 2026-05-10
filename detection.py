@@ -18,6 +18,19 @@ BACKEND_GENERIC = "generic"
 _PROBE_TIMEOUT = 4
 
 
+def normalize_oai_base_url(url: str) -> str:
+    """Strip trailing ``/v1`` segments from a base URL.
+
+    Chat and model-list code append ``/v1/...`` paths. Users often paste
+    ``http://host:port/v1`` (OpenAI-style base), which would otherwise become
+    ``.../v1/v1/models`` and fail.
+    """
+    u = (url or "").strip().rstrip("/")
+    while len(u) > 4 and u.lower().endswith("/v1"):
+        u = u[:-3].rstrip("/")
+    return u
+
+
 def _probe(url: str, path: str, headers: dict | None = None) -> int | None:
     """Send a GET probe and return the HTTP status code, or None on failure."""
     try:
@@ -62,7 +75,7 @@ def detect_backend(url: str, api_key: str | None = None) -> str:
     Returns:
         One of the BACKEND_* constants.
     """
-    url = url.rstrip("/")
+    url = normalize_oai_base_url(url)
 
     # 1. Ollama — GET /api/version
     status, body = _probe_json(url, "/api/version")
@@ -87,7 +100,7 @@ def detect_backend(url: str, api_key: str | None = None) -> str:
     # 4. Textgen — GET /v1/internal/model/info
     status = _probe(url, "/v1/internal/model/info")
     if status is not None and status != 404:
-        logger.info("Detected text-gen-webui at %s", url)
+        logger.info("Detected Textgen (text-generation-webui) at %s", url)
         return BACKEND_TEXT_GEN_WEBUI
 
     # 5. Fallback — try /v1/models with optional auth

@@ -1,7 +1,7 @@
 """Provider nodes — generic OAI-compatible and Ollama."""
 
-from ..config import get_admin_key, get_api_key, get_config
-from ..detection import detect_backend
+from ..config import get_api_key, get_config, get_textgen_auth_keys
+from ..detection import detect_backend, normalize_oai_base_url
 
 
 class LLMProviderOAICompat:
@@ -48,17 +48,14 @@ class LLMProviderOAICompat:
         fallback = model_fallback.strip() if model_fallback else ""
         resolved_model = fallback if fallback else model
 
+        url = normalize_oai_base_url(url)
+
         cfg = get_config()
         providers_cfg = cfg.get("providers", {})
 
         # Detect backend type
         preliminary_key = get_api_key("oai_compat")
         backend = detect_backend(url, api_key=preliminary_key)
-
-        # Resolve API key: try detected backend, then oai_compat fallback
-        api_key = get_api_key(backend)
-        if not api_key and backend in ("generic", "openai"):
-            api_key = get_api_key("oai_compat")
 
         # Resolve timeout: try detected backend, then oai_compat, then default
         timeout = (
@@ -67,8 +64,14 @@ class LLMProviderOAICompat:
             or 120
         )
 
-        # Admin key only relevant for text_gen_webui
-        admin_key = get_admin_key(backend) if backend == "text_gen_webui" else None
+        # Credentials (Textgen: single password, often stored under oai_compat)
+        if backend == "text_gen_webui":
+            api_key, admin_key = get_textgen_auth_keys()
+        else:
+            api_key = get_api_key(backend)
+            if not api_key and backend in ("generic", "openai"):
+                api_key = get_api_key("oai_compat")
+            admin_key = None
 
         provider = {
             "backend": backend,

@@ -20,9 +20,12 @@ providers:
   text_gen_webui:
     url: "http://localhost:5000"
     timeout: 120
+    # Same as Textgen --api-key (used for chat + /v1/internal/model/list).
     # api_key: "your-api-key-here"
     # admin_key: "your-admin-key-here"
 
   oai_compat:
     timeout: 120
+    # If you only use LLM Provider: OAI Compatible, keys here are used for
+    # OpenAI-style backends and also as fallback when the URL is Textgen.
     # api_key: "your-api-key-here"

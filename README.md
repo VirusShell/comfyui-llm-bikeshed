@@ -1,14 +1,15 @@
 # ComfyUI LLM Bikeshed
 
-ComfyUI custom nodes for local LLM text generation. Connect your workflows to **Ollama**, **LM Studio**, **Textgen** (text-generation-webui), and **OpenAI** Chat Completions (keys via config/env only). Local backends use VRAM-aware model memory management.
+ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Compatible** for OpenAI-style backends (LM Studio, Textgen, OpenAI, llama.cpp, etc.) with automatic detection at the URL, or **LLM Provider: Ollama** for native Ollama. API keys live in config or environment variables only.
 
 ## Features
 
-- **4 Provider nodes** — local backends plus OpenAI-compatible API (OpenAI cloud or compatible proxies)
+- **2 Provider nodes** — OAI Compatible (auto-detected backend at URL) and Ollama
+- **2 Lifecycle nodes** (optional) — VRAM-aware LM Studio TTL/context or Textgen load/unload when wired into the OAI provider’s `lifecycle` input
 - **2 Generation nodes** — Basic (compact, inline params) and Advanced (modular, connection-driven)
 - **5 Options nodes** — per-backend inference parameter control (including OpenAI core sampling params)
 - **2 Utility nodes** — Preset Loader and Load Text File
-- **VRAM-aware** — short TTL/keep_alive defaults free GPU memory for Stable Diffusion after LLM generation
+- **VRAM-aware** — optional lifecycle nodes gate explicit model load/unload (Textgen, LM Studio); Ollama uses `keep_alive` on the provider
 - **Secure** — API keys from config file or environment variables, never in workflow JSON
 - **Minimal dependencies** — only `pyyaml` and `requests` (no provider SDKs)
 
@@ -73,6 +74,11 @@ ComfyUI custom nodes for local LLM text generation. Connect your workflows to **
        timeout: 120
        # api_key: "your-api-key-here"
        # admin_key: "your-admin-key-here"
+
+     oai_compat:
+       timeout: 120
+       # Fallback keys for OAI Compatible node (OpenAI, proxies, or when probing Textgen).
+       # api_key: "your-api-key-here"
    ```
 
 3. `config.yaml` is gitignored — your keys and overrides stay local.
@@ -101,16 +107,23 @@ POST /llm-bikeshed/reload-config
 
 Configure a backend connection. Each outputs an `LLM_PROVIDER` type.
 
-| Node | Backend | Key Settings |
-|------|---------|-------------|
-| **LLM Provider: LM Studio** | LM Studio | `url`, `model` dropdown, `ttl` (seconds, default 30) |
-| **LLM Provider: Ollama** | Ollama | `url`, `model` dropdown, `keep_alive` (string, default "30s") |
-| **LLM Provider: OpenAI** | OpenAI Chat Completions | `url` (default `https://api.openai.com`), `model` dropdown — API key from config/env only |
-| **LLM Provider: Textgen** | text-generation-webui | `url`, `model` dropdown — optional `api_key` / `admin_key` from config/env |
+| Node | Role | Key settings |
+|------|------|----------------|
+| **LLM Provider: OAI Compatible** | OpenAI-style HTTP backends (detected at `url`) | `url`, `model` dropdown, optional `lifecycle` input — API keys from config/env per detected backend + `oai_compat` fallback |
+| **LLM Provider: Ollama** | Native Ollama | `url`, `model` dropdown, `keep_alive` |
 
-All Provider nodes have:
-- Dynamic model dropdown (queries running backend, refresh button)
+All provider nodes have:
+- Dynamic model dropdown (queries backend via PromptServer; refresh button). Initial fetch is deferred one microtask so saved workflow values apply before the list updates.
 - `model_fallback` STRING input — overrides dropdown when connected (useful when backend is offline)
+
+### Lifecycle nodes (optional)
+
+Use only with **LLM Provider: OAI Compatible**. Connect the `lifecycle` output to the provider’s optional `lifecycle` input to turn on explicit VRAM management for **LM Studio** or **Textgen** when that backend is detected. Without a lifecycle connection, the adapter does not run local load/unload.
+
+| Node | When to use | Widgets |
+|------|-------------|---------|
+| **LLM Lifecycle: LM Studio** | Detected backend is LM Studio | `ttl`, `context_length` |
+| **LLM Lifecycle: Textgen** | Detected backend is Textgen | `manage_model_memory` (ON = enable load/unload; OFF = same as no lifecycle node). A widget is required so ComfyUI draws the node body reliably. |
 
 ### Generation Nodes
 
@@ -154,7 +167,7 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 
 ### Minimal Setup (Basic Generation)
 
-1. Add **LLM Provider: LM Studio** (or your backend of choice)
+1. Add **LLM Provider: OAI Compatible** (point `url` at your LM Studio, Textgen, OpenAI-compatible server, etc.) or **LLM Provider: Ollama**
 2. Add **LLM Generate (Basic)**
 3. Connect Provider output to Generate's `provider` input
 4. Type your prompt and system prompt
@@ -178,12 +191,13 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 
 - **Adapter pattern**: Two adapters handle all backends
   - Ollama Native — `POST {url}/api/chat`
-  - OpenAI-Compatible — `POST {url}/v1/chat/completions` (OpenAI API, LM Studio, Textgen); OpenAI uses the same endpoint with no local load/unload lifecycle
+  - OpenAI-Compatible — `POST {url}/v1/chat/completions`; optional lifecycle hooks for LM Studio (`/api/v1/models`, `ttl`) and Textgen (`/v1/internal/model/*`) when a matching lifecycle node is connected
+- **Backend detection** — `detection.py` plus `POST /llm-bikeshed/detect` for the indicator on the OAI Compatible provider
 - **Synchronous HTTP** via `requests` (ComfyUI nodes run synchronously)
 - **Config merge-on-load**: `config.example.yaml` defaults deep-merged with user's `config.yaml`
 - **Frontend JS** for dynamic model dropdowns via PromptServer endpoints
 
-## Out of Scope (v0.1.0)
+## Out of scope (current release)
 
 - Image/vision describe nodes
 - Chat/conversation history nodes

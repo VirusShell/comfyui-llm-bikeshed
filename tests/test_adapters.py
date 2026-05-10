@@ -482,7 +482,7 @@ class TestLMStudioAllowlistFiltering:
     """LM Studio params are filtered through the lm_studio allowlist."""
 
     def _lm_studio_provider(self) -> dict:
-        """LM Studio provider with numeric TTL."""
+        """LM Studio provider without lifecycle (allowlist tests only)."""
         return {
             "backend": "lm_studio",
             "adapter": "oai_compat",
@@ -491,7 +491,7 @@ class TestLMStudioAllowlistFiltering:
             "timeout": 120,
             "api_key": None,
             "admin_key": None,
-            "memory": {"ttl": 30, "keep_alive": None},
+            "lifecycle": None,
         }
 
     def test_lm_studio_allowed_params_forwarded(
@@ -585,20 +585,33 @@ class TestLMStudioTTL:
             "timeout": 120,
             "api_key": None,
             "admin_key": None,
-            "memory": {"ttl": ttl, "keep_alive": None},
+            "lifecycle": {"type": "lm_studio", "ttl": ttl, "context_length": None},
         }
+
+    @staticmethod
+    def _mock_model_loaded(model: str = "test-model") -> MagicMock:
+        resp = MagicMock()
+        resp.ok = True
+        resp.json.return_value = {
+            "data": [{"id": model, "loaded_instances": [{"config": {}}]}],
+        }
+        return resp
 
     def test_lm_studio_ttl_in_payload(
         self, mock_oai_response, monkeypatch
     ):
-        """TTL from provider memory is forwarded in payload."""
-        captured: dict = {}
+        """TTL from provider lifecycle is forwarded in payload."""
+        gen_payloads: list[dict] = []
 
         def fake_post(url, **kwargs):
-            captured.update(kwargs)
+            if "/v1/chat/completions" in url:
+                gen_payloads.append(kwargs.get("json", {}))
             return mock_oai_response
 
         monkeypatch.setattr("adapters.base.requests.post", fake_post)
+        monkeypatch.setattr(
+            "requests.get", lambda *a, **kw: self._mock_model_loaded(),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
@@ -607,22 +620,26 @@ class TestLMStudioTTL:
             {},
         )
 
-        assert captured["json"]["ttl"] == 30
+        assert gen_payloads[0]["ttl"] == 30
 
     def test_lm_studio_ttl_absent_when_none(
         self, mock_oai_response, monkeypatch
     ):
-        """TTL omitted from payload when provider has ttl=None."""
-        captured: dict = {}
+        """TTL omitted from payload when lifecycle has ttl=None."""
+        gen_payloads: list[dict] = []
 
         def fake_post(url, **kwargs):
-            captured.update(kwargs)
+            if "/v1/chat/completions" in url:
+                gen_payloads.append(kwargs.get("json", {}))
             return mock_oai_response
 
         monkeypatch.setattr("adapters.base.requests.post", fake_post)
+        monkeypatch.setattr(
+            "requests.get", lambda *a, **kw: self._mock_model_loaded(),
+        )
 
         provider = self._lm_studio_provider()
-        provider["memory"]["ttl"] = None
+        provider["lifecycle"]["ttl"] = None
         adapter = OAICompatAdapter()
         adapter.generate(
             provider,
@@ -630,19 +647,23 @@ class TestLMStudioTTL:
             {},
         )
 
-        assert "ttl" not in captured["json"]
+        assert "ttl" not in gen_payloads[0]
 
     def test_lm_studio_mid_chain_ttl_extension(
         self, mock_oai_response, monkeypatch
     ):
         """skip_unload=True extends TTL to max(ttl*10, 300)."""
-        captured: dict = {}
+        gen_payloads: list[dict] = []
 
         def fake_post(url, **kwargs):
-            captured.update(kwargs)
+            if "/v1/chat/completions" in url:
+                gen_payloads.append(kwargs.get("json", {}))
             return mock_oai_response
 
         monkeypatch.setattr("adapters.base.requests.post", fake_post)
+        monkeypatch.setattr(
+            "requests.get", lambda *a, **kw: self._mock_model_loaded(),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
@@ -653,19 +674,23 @@ class TestLMStudioTTL:
         )
 
         # max(30*10, 300) = 300
-        assert captured["json"]["ttl"] == 300
+        assert gen_payloads[0]["ttl"] == 300
 
     def test_lm_studio_mid_chain_ttl_extension_large_ttl(
         self, mock_oai_response, monkeypatch
     ):
         """When base TTL is large, extended TTL = ttl*10."""
-        captured: dict = {}
+        gen_payloads: list[dict] = []
 
         def fake_post(url, **kwargs):
-            captured.update(kwargs)
+            if "/v1/chat/completions" in url:
+                gen_payloads.append(kwargs.get("json", {}))
             return mock_oai_response
 
         monkeypatch.setattr("adapters.base.requests.post", fake_post)
+        monkeypatch.setattr(
+            "requests.get", lambda *a, **kw: self._mock_model_loaded(),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
@@ -676,7 +701,7 @@ class TestLMStudioTTL:
         )
 
         # max(60*10, 300) = 600
-        assert captured["json"]["ttl"] == 600
+        assert gen_payloads[0]["ttl"] == 600
 
 
 # ---------------------------------------------------------------------------
@@ -696,7 +721,7 @@ class TestLMStudioAuthHeaders:
             "timeout": 120,
             "api_key": api_key,
             "admin_key": None,
-            "memory": {"ttl": 30, "keep_alive": None},
+            "lifecycle": None,
         }
 
     def test_lm_studio_no_auth_header_when_no_key(
@@ -761,7 +786,7 @@ class TestLMStudioPayloadStructure:
             "timeout": 120,
             "api_key": None,
             "admin_key": None,
-            "memory": {"ttl": 30, "keep_alive": None},
+            "lifecycle": None,
         }
 
     def test_lm_studio_endpoint_url(
@@ -1167,6 +1192,34 @@ class TestTextGenWebuiAdminHeaders:
 
         assert len(gen_headers) == 1
         assert gen_headers[0]["Authorization"] == "Bearer test-api-key"
+
+    def test_text_gen_webui_admin_key_used_for_chat_when_no_api_key(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """Generate POST uses admin_key when api_key is unset (single --api-key)."""
+        gen_headers: list[dict] = []
+
+        def fake_post(url, **kwargs):
+            if "/v1/chat/completions" in url:
+                gen_headers.append(kwargs.get("headers", {}))
+            return mock_oai_response
+
+        text_gen_webui_provider["api_key"] = None
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("my-model"),
+        )
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert len(gen_headers) == 1
+        assert gen_headers[0]["Authorization"] == "Bearer test-admin-key"
 
     def test_text_gen_webui_fallback_to_api_key_when_no_admin_key(
         self, text_gen_webui_provider, mock_oai_response, monkeypatch

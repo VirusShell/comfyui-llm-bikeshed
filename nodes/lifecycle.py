@@ -37,7 +37,12 @@ class LLMLifecycleLMStudio:
 
 
 class LLMLifecycleTextGenWebUI:
-    """Textgen VRAM lifecycle — presence enables load/unload management."""
+    """Textgen VRAM lifecycle — presence enables load/unload management.
+
+    ComfyUI does not reliably render nodes whose ``INPUT_TYPES`` has no widgets
+    (only title + output). A BOOLEAN widget keeps the node usable while staying
+    optional to disable by returning an empty lifecycle dict.
+    """
 
     RETURN_TYPES = ("LLM_LIFECYCLE",)
     RETURN_NAMES = ("lifecycle",)
@@ -47,11 +52,24 @@ class LLMLifecycleTextGenWebUI:
     @classmethod
     def INPUT_TYPES(cls) -> dict:  # noqa: N802
         return {
-            "required": {},
+            "required": {
+                "manage_model_memory": (
+                    "BOOLEAN",
+                    {
+                        "default": True,
+                        "label_on": "ON",
+                        "label_off": "OFF",
+                    },
+                ),
+            },
         }
 
-    def build_lifecycle(self) -> tuple[dict]:
+    def build_lifecycle(self, manage_model_memory: bool) -> tuple[dict]:
         """Build LLM_LIFECYCLE dict for Textgen VRAM management."""
+        if not manage_model_memory:
+            # Empty dict is falsy — adapter skips load/unload (same as no lifecycle).
+            return ({},)
+
         return (
             {
                 "type": "text_gen_webui",

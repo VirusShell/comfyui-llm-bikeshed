@@ -164,10 +164,10 @@ class OAICompatAdapter:
                 payload["ttl"] = ttl
 
         # Build headers with optional auth.
-        headers: dict[str, str] = {"Content-Type": "application/json"}
-        api_key = provider.get("api_key")
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
+        headers: dict[str, str] = {
+            "Content-Type": "application/json",
+            **self._auth_headers(provider),
+        }
 
         # Send request.
         endpoint = f"{url.rstrip('/')}/v1/chat/completions"
@@ -197,8 +197,14 @@ class OAICompatAdapter:
         return text
 
     def _auth_headers(self, provider: dict) -> dict[str, str]:
-        """Build headers with api_key."""
+        """Build headers with api_key.
+
+        text-generation-webui uses one ``--api-key`` for chat and internal routes.
+        Users may store it only as ``admin_key`` in config; fall back so chat works.
+        """
         key = provider.get("api_key")
+        if provider.get("backend") == "text_gen_webui":
+            key = key or provider.get("admin_key")
         if key:
             return {"Authorization": f"Bearer {key}"}
         return {}
