@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 
@@ -68,12 +69,15 @@ def _normalize_textgen_loaded_model_name(name: object) -> str | None:
     return s
 
 
+# Textgen internal HTTP + auth split: docs/research/textgen-lifecycle-verified.md
+
+
 def _fetch_textgen_loaded_model_from_info(
     url: str,
     api_key: str | None = None,
     timeout: int = 10,
 ) -> str | None:
-    """``GET /v1/internal/model/info`` — upstream gates this with Textgen ``--api-key``."""
+    """``GET /v1/internal/model/info`` (Textgen ``--api-key`` when set)."""
     url = normalize_oai_base_url(url)
     endpoint = f"{url.rstrip('/')}/v1/internal/model/info"
     if not api_key:
@@ -216,13 +220,20 @@ def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str, str | Non
     if get_textgen_auth_keys is not None:
         tk, ak = get_textgen_auth_keys()
 
+    loaded_early: str | None = None
     if backend == "text_gen_webui":
-        internal = _fetch_models_text_gen_internal(
-            url, admin_key=ak, api_key=tk,
-        )
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            fut_i = pool.submit(
+                _fetch_models_text_gen_internal,
+                url, admin_key=ak, api_key=tk,
+            )
+            fut_l = pool.submit(
+                _fetch_textgen_loaded_model_from_info, url, api_key=tk,
+            )
+            internal = fut_i.result()
+            loaded_early = fut_l.result()
         if internal:
-            loaded = _fetch_textgen_loaded_model_from_info(url, api_key=tk)
-            return internal, backend, loaded
+            return internal, backend, loaded_early
 
     try:
         models = _fetch_models_oai_compat(url)
@@ -254,6 +265,5 @@ def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str, str | Non
                 url,
             )
     if backend == "text_gen_webui":
-        loaded = _fetch_textgen_loaded_model_from_info(url, api_key=tk)
-        return models, backend, loaded
+        return models, backend, loaded_early
     return models, backend, None

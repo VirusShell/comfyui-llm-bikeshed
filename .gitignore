@@ -21,9 +21,6 @@ uv.lock
 .ruff_cache/
 .pytest_cache/
 
-# Tests
-tests/
-
 # Config (user secrets)
 config.yaml
 

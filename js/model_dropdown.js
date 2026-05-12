@@ -43,16 +43,26 @@ async function fetchModels(endpoint, url) {
   }
 }
 
-/** Backend label with optional Textgen VRAM line from ``loaded_model``."""
-function formatBackendLabel(backend, loadedModel) {
-  const base = BACKEND_LABELS[backend] || backend;
-  if (backend !== "text_gen_webui" || loadedModel === undefined) {
-    return base;
+/** Human-readable backend family (never leaves UI stuck on “detecting…”). */
+function formatBackendName(backend) {
+  if (backend === null || backend === undefined || backend === "") {
+    return "Unknown";
   }
-  if (loadedModel) {
-    return `${base} · loaded: ${loadedModel}`;
+  return BACKEND_LABELS[backend] || String(backend);
+}
+
+/** Read-only line for currently loaded model (Textgen); other backends N/A. */
+function formatLoadedModelStatus(backend, loadedModel) {
+  if (backend !== "text_gen_webui") {
+    return "—";
   }
-  return `${base} · loaded: —`;
+  if (loadedModel === undefined) {
+    return "—";
+  }
+  if (!loadedModel) {
+    return "None loaded";
+  }
+  return loadedModel;
 }
 
 /**
@@ -101,6 +111,23 @@ const BACKEND_LABELS = {
   unknown: "Unknown",
 };
 
+function markNodeDirty(node) {
+  node.setDirtyCanvas(true, true);
+  if (app.graph) {
+    app.graph.setDirtyCanvas(true);
+  }
+}
+
+function applyProviderStatus(node, backendWidget, loadedWidget, backend, loadedModel) {
+  if (backendWidget) {
+    backendWidget.value = formatBackendName(backend);
+  }
+  if (loadedWidget) {
+    loadedWidget.value = formatLoadedModelStatus(backend, loadedModel);
+  }
+  markNodeDirty(node);
+}
+
 app.registerExtension({
   name: "llm-bikeshed.model-dropdown",
 
@@ -120,30 +147,39 @@ app.registerExtension({
       return;
     }
 
-    // Add detected backend indicator (OAI-compat only)
     let backendWidget = null;
+    let loadedModelWidget = null;
     if (showBackendLabel) {
       backendWidget = node.addWidget(
         "text",
         "detected_backend",
-        "detecting...",
+        "detecting…",
+        () => {},
+        { serialize: false },
+      );
+      loadedModelWidget = node.addWidget(
+        "text",
+        "loaded_model_status",
+        "—",
         () => {},
         { serialize: false },
       );
     }
 
+    /** @param {unknown} [initialSavedModel] if set, restore COMBO to this after fetch */
+    const runFetch = (url, initialSavedModel) => {
+      fetchModels(endpoint, url).then(({ models, backend, loadedModel }) => {
+        const saved =
+          initialSavedModel !== undefined ? initialSavedModel : modelWidget.value;
+        updateModelWidget(modelWidget, models, saved);
+        applyProviderStatus(node, backendWidget, loadedModelWidget, backend, loadedModel);
+      });
+    };
+
     // Defer fetch until after workflow/widget restore so COMBO keeps saved model id.
     queueMicrotask(() => {
-      const savedModel = modelWidget.value || null;
       const currentUrl = urlWidget?.value || defaultUrl;
-
-      fetchModels(endpoint, currentUrl).then(({ models, backend, loadedModel }) => {
-        updateModelWidget(modelWidget, models, savedModel);
-        if (showBackendLabel && backendWidget && backend != null) {
-          backendWidget.value = formatBackendLabel(backend, loadedModel);
-        }
-        node.setDirtyCanvas(true);
-      });
+      runFetch(currentUrl, modelWidget.value);
     });
 
     // Debounce timer for URL change detection
@@ -158,16 +194,14 @@ app.registerExtension({
         }
         clearTimeout(detectTimer);
         if (showBackendLabel && backendWidget) {
-          backendWidget.value = "detecting...";
+          backendWidget.value = "detecting…";
         }
+        if (showBackendLabel && loadedModelWidget) {
+          loadedModelWidget.value = "—";
+        }
+        markNodeDirty(node);
         detectTimer = setTimeout(() => {
-          fetchModels(endpoint, value).then(({ models, backend, loadedModel }) => {
-            updateModelWidget(modelWidget, models, modelWidget.value);
-            if (showBackendLabel && backendWidget && backend != null) {
-              backendWidget.value = formatBackendLabel(backend, loadedModel);
-            }
-            node.setDirtyCanvas(true);
-          });
+          runFetch(value, undefined);
         }, 500);
       };
     }
@@ -176,15 +210,13 @@ app.registerExtension({
     node.addWidget("button", "Refresh Models", null, () => {
       const url = urlWidget?.value || defaultUrl;
       if (showBackendLabel && backendWidget) {
-        backendWidget.value = "detecting...";
+        backendWidget.value = "detecting…";
       }
-      fetchModels(endpoint, url).then(({ models, backend, loadedModel }) => {
-        updateModelWidget(modelWidget, models, modelWidget.value);
-        if (showBackendLabel && backendWidget && backend != null) {
-          backendWidget.value = formatBackendLabel(backend, loadedModel);
-        }
-        node.setDirtyCanvas(true);
-      });
+      if (showBackendLabel && loadedModelWidget) {
+        loadedModelWidget.value = "—";
+      }
+      markNodeDirty(node);
+      runFetch(url, undefined);
     });
   },
 });

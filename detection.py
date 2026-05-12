@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 
@@ -61,12 +62,15 @@ def _probe_json(url: str, path: str) -> tuple[int | None, dict | None]:
 def detect_backend(url: str, api_key: str | None = None) -> str:
     """Probe proprietary endpoints to identify the backend at *url*.
 
-    Probe order (short-circuits on first hit):
+    Probes run **in parallel** (same priority as the former sequential order):
       1. Ollama  — GET /api/version
       2. llama.cpp — GET /health
       3. LM Studio — GET /api/v1/models
       4. Textgen — GET /v1/internal/model/info
       5. Fallback — "openai" if /v1/models responds, else "generic"
+
+    Wall time is roughly one probe round-trip instead of up to five in series
+    when the host is slow or offline.
 
     Args:
         url: Base URL of the backend (e.g. "http://localhost:1234").
@@ -77,38 +81,59 @@ def detect_backend(url: str, api_key: str | None = None) -> str:
     """
     url = normalize_oai_base_url(url)
 
+    headers: dict[str, str] = {}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    probes: dict[str, object] = {}
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        futs = {
+            pool.submit(_probe_json, url, "/api/version"): "ollama_json",
+            pool.submit(_probe_json, url, "/health"): "llamacpp_json",
+            pool.submit(_probe, url, "/api/v1/models"): "lm_status",
+            pool.submit(_probe, url, "/v1/internal/model/info"): "tg_status",
+            pool.submit(_probe, url, "/v1/models", headers): "oai_status",
+        }
+        for fut in as_completed(futs):
+            key = futs[fut]
+            try:
+                probes[key] = fut.result(timeout=0)
+            except Exception:
+                probes[key] = None
+
     # 1. Ollama — GET /api/version
-    status, body = _probe_json(url, "/api/version")
-    if status is not None and status != 404:
-        if body and "version" in body:
-            logger.info("Detected Ollama at %s", url)
-            return BACKEND_OLLAMA
+    ollama = probes.get("ollama_json")
+    if isinstance(ollama, tuple) and len(ollama) == 2:
+        status, body = ollama[0], ollama[1]
+        if status is not None and status != 404:
+            if body and "version" in body:
+                logger.info("Detected Ollama at %s", url)
+                return BACKEND_OLLAMA
 
     # 2. llama.cpp — GET /health (auth-exempt)
-    status, body = _probe_json(url, "/health")
-    if status is not None and status != 404:
-        if body and "status" in body:
-            logger.info("Detected llama.cpp at %s", url)
-            return BACKEND_LLAMACPP
+    llama = probes.get("llamacpp_json")
+    if isinstance(llama, tuple) and len(llama) == 2:
+        status, body = llama[0], llama[1]
+        if status is not None and status != 404:
+            if body and "status" in body:
+                logger.info("Detected llama.cpp at %s", url)
+                return BACKEND_LLAMACPP
 
     # 3. LM Studio — GET /api/v1/models
-    status = _probe(url, "/api/v1/models")
-    if status is not None and status != 404:
+    lm_status = probes.get("lm_status")
+    if lm_status is not None and lm_status != 404:
         logger.info("Detected LM Studio at %s", url)
         return BACKEND_LM_STUDIO
 
     # 4. Textgen — GET /v1/internal/model/info
-    status = _probe(url, "/v1/internal/model/info")
-    if status is not None and status != 404:
+    tg_status = probes.get("tg_status")
+    if tg_status is not None and tg_status != 404:
         logger.info("Detected Textgen (text-generation-webui) at %s", url)
         return BACKEND_TEXT_GEN_WEBUI
 
     # 5. Fallback — try /v1/models with optional auth
-    headers = {}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-    status = _probe(url, "/v1/models", headers=headers)
-    if status is not None and status != 404:
+    oai_status = probes.get("oai_status")
+    if oai_status is not None and oai_status != 404:
         logger.info("Detected OpenAI-compatible API at %s", url)
         return BACKEND_OPENAI
 

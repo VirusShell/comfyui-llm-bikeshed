@@ -298,6 +298,14 @@ System: Absolute vs Relative" entry above for the full details.
 
 **Addendum — ``detected_backend`` stuck on Unknown:** The frontend maps any non-OK response to the label ``Unknown``. ``server/endpoints.py`` used one ``try`` for both ``from ..config`` and ``from ..detection``; if config import failed, ``detect_backend`` was set to ``None`` and the detect handler crashed when calling it → 500 → Unknown. **Fix:** import config and detection in separate ``try`` blocks; return HTTP 200 with ``generic`` when the handler degrades; load ``model_list`` only inside ``HAS_SERVER``. **Fix:** ``model_list`` tries ``from .detection`` then ``from detection import`` so it works as a package submodule (ComfyUI) and as a flat test import; same pattern for ``get_admin_key`` / ``get_api_key`` via ``.config`` then ``config``.
 
+## Provider UI: ``detected_backend`` stuck on “detecting…” (2026-05-12)
+
+**Severity:** Medium — operator thinks detection failed while the server already logged a match  
+**What happened:** After `POST /llm-bikeshed/models/oai-compat` returned, the read-only `detected_backend` text widget sometimes stayed on ``detecting…`` even though Python logged Textgen/LM Studio.  
+**Root cause:** The frontend only assigned ``backendWidget.value`` when ``backend != null``. Any response shape that yielded a null/omitted ``backend`` (transient error, race, or older handler) never cleared the placeholder; ``setDirtyCanvas(true)`` alone did not always repaint text widgets in some Comfy builds.  
+**Fix:** Always set a terminal label (``formatBackendName`` → ``Unknown`` when missing); add ``loaded_model_status``; call ``setDirtyCanvas(true, true)`` and ``app.graph.setDirtyCanvas(true)`` after updates; drop the null-only gate.  
+**Prevention:** Treat async refresh UI as “must reach a terminal state”; never gate label updates on optional JSON fields without a fallback; after mutating extension-added widgets, mark both node and graph dirty.
+
 ## Options merge: ``options_in`` ignored in toggle builder
 
 **Date:** 2026-05-12  
