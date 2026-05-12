@@ -67,7 +67,7 @@ Replace presence-only payload with explicit policy fields:
     "type": "text_gen_webui",
     "enabled": True,
     "load_policy": "ensure_loaded",            # ensure_loaded | require_preloaded
-    "unload_policy": "after_idle",             # immediate | after_idle | never
+    "unload_policy": "immediate",              # immediate | after_idle | never (VRAM-first default)
     "idle_seconds": 30,                        # used when unload_policy == after_idle
     "switch_policy": "auto_switch",            # auto_switch | error_if_other_model_loaded
 }
@@ -75,7 +75,7 @@ Replace presence-only payload with explicit policy fields:
 
 Backward compatibility:
 
-- Existing `{"type": "text_gen_webui"}` maps to defaults above
+- Existing `{"type": "text_gen_webui"}` maps to the same defaults as the recommended block below (`unload_policy = immediate`, same other fields)
 - Empty dict or missing lifecycle remains "disabled"
 
 ## Node changes
@@ -96,7 +96,7 @@ Behavioral intent:
 UI notes:
 
 - Keep at least one required widget to avoid empty-node rendering issues in ComfyUI
-- Choose defaults that balance convenience and VRAM safety
+- Choose defaults that prioritize VRAM reclamation; expose `after_idle` as an explicit iteration-session opt-in
 
 ## Adapter/runtime design
 
@@ -187,7 +187,7 @@ Existing workflows should continue to execute without edits.
 
 - Extend `LLM Lifecycle: Textgen` output schema
 - Add adapter compatibility parser (old shape -> default policy)
-- Keep current functional behavior under default policy
+- Keep legacy payload mapping aligned with recommended defaults (`immediate` unload at chain end, consistent with A-15 explicit unload)
 
 ### Phase 2: Runtime manager + policies
 
@@ -227,19 +227,19 @@ Manual ComfyUI verification:
 
 ## Recommended default policy
 
-Balanced defaults for most mixed workloads:
+VRAM-first defaults for new graphs and for legacy `{"type": "text_gen_webui"}` mapping (same values):
 
 - `enabled = true`
 - `load_policy = ensure_loaded`
-- `unload_policy = after_idle`
-- `idle_seconds = 30`
+- `unload_policy = immediate`
+- `idle_seconds = 30` (applies when `unload_policy == after_idle`; ignored for `immediate` / `never`)
 - `switch_policy = auto_switch`
 
 Rationale:
 
-- Retains convenience for first-run and model selection
-- Greatly reduces load/unload thrash during prompt iteration
-- Still reclaims VRAM quickly after activity pauses
+- Matches A-15 / A-18 intent: explicit unload at chain end by default so diffusion can reclaim VRAM immediately after the last generation node
+- Users doing prompt iteration opt into `after_idle` (and tune `idle_seconds`) to trade VRAM hold time for fewer reloads
+- Retains convenience for first-run and model selection via `ensure_loaded` + `auto_switch`
 
 ## Open decisions to finalize before implementation
 
@@ -254,7 +254,7 @@ This rehaul is successful when:
 
 1. Existing workflows continue working unchanged
 2. Users can select memory behavior intentionally without code changes
-3. Iterative prompt workflows show fewer expensive model reloads
+3. Iterative prompt workflows can opt into `after_idle` and show fewer expensive model reloads
 4. VRAM-first workflows still unload aggressively when desired
 5. Logs clearly explain lifecycle decisions during execution
 
@@ -272,7 +272,7 @@ Concerns raised in design review (2026-05-11). Status values: **Open**, **Mitiga
 | 4 | `model/info` caching is stale if user changes model in Textgen UI | Yes | Treat cached "currently loaded model" as a hint with a short TTL (5 s default, configurable). On cache miss/expiry, refresh via `GET /v1/internal/model/info` before issuing a switch. Invalidate cache on any 4xx/5xx response from generate or load endpoints — the server state is no longer trustworthy. Optional: surface a "stale cache detected" info log so users can correlate behavior with their UI actions. | Needs-implementation |
 | 5 | `GENERATION_CLASS_TYPES` hardcoded set in `graph/introspection.py` — whitelist drift when new generation nodes are added | Yes — already bit us (see lessons-learned 2026-04-27, `LLMGenerateTest` omission) | Replace the hardcoded set with a single registry. Two viable patterns: (a) class-attribute marker (`IS_GENERATION_NODE = True`) and have `has_downstream_gen_node` look up `class_type` in `NODE_CLASS_MAPPINGS` to check the marker; (b) declare a small `GENERATION_NODE_CLASSES` list in `nodes/__init__.py` alongside `NODE_CLASS_MAPPINGS` and import-derive the names from it. Either removes the duplication and the registration ceremony. Add a CI/test assertion: every class in `NODE_CLASS_MAPPINGS` whose `RETURN_TYPES` contains `LLM_META` must be discoverable by `has_downstream_gen_node`. | Needs-implementation |
 | 6 | Meta passthrough carries provider+lifecycle; policy changes "only when graph rewired" | Partial — mostly a UX/documentation concern | Widget value changes re-execute upstream nodes, so a policy edit on the upstream `LLM Lifecycle: Textgen` node propagates into meta on the next run — the "only when rewired" framing is incorrect. The real ambiguity is the `LLMGenerateAdvanced` precedence when both `meta.provider` and an explicit `provider` input are connected: current code (and this proposal) defines `explicit provider wins, then meta`. Document this precedence in the node help text and README. No code change needed beyond the documentation. | Mitigated-by-design |
-| 7 | Recommended default `after_idle` 30 s conflicts with A-18 "explicit unload, VRAM-first" | Yes | A-18 commits Textgen to explicit unload-at-chain-end as the VRAM-first default. The original recommendation here (`after_idle = 30 s`) silently shifts that contract. **Revise default to `unload_policy = immediate`** to preserve A-18 semantics for existing workflows. Expose `after_idle` as a deliberate opt-in for iteration sessions, with a clear node-help hint that it trades VRAM for warmth. If a future product decision wants `after_idle` as the new default, update A-18 in `resolution_tracker.md` in the same change so the docs don't drift. | Open (product decision) |
+| 7 | Prior doc default `after_idle` 30 s vs A-18 / VRAM-first explicit unload | Yes | **Resolved in this proposal:** shipped defaults use `unload_policy = immediate` for new graphs and legacy payload mapping; `after_idle` is an explicit opt-in (node help should say it trades VRAM for warmth). Aligns with A-15 explicit unload and A-18 text-gen-webui explicit-unload posture; no tracker change unless product later redefaults to `after_idle`. | Mitigated-by-design |
 | 8 | Optional Phase 4 explicit Load/Unload utility nodes risk double-unload / conflicting authority with central manager | Yes | Mandatory invariant: utility nodes call into the central manager — they never bypass it with direct adapter calls. Utility load: cancels any pending unload timer, sets `in_flight += 1` (held until matching Unload or chain end), marks lifecycle source = "explicit". Utility unload: cancels timer, decrements `in_flight`, marks "explicitly unloaded". A subsequent generation under `ensure_loaded` will re-check `model/info` and reload as normal. Gate Phase 4 behind the central manager landing in Phase 2; do not ship utility nodes that talk to the adapter directly. | Open (Phase 4 gate) |
 
 ### Cross-cutting follow-ups
@@ -283,4 +283,4 @@ Concerns raised in design review (2026-05-11). Status values: **Open**, **Mitiga
 ### Tracker delta
 
 - Concern #5 reinforces a known hazard from `docs/lessons-learned.md` (2026-04-27 entry). No new lessons-learned entry is added here because this section is prospective design review for an unbuilt feature, not a verified runtime finding.
-- Concern #7 may require an explicit update to `docs/resolution_tracker.md` (A-18) if the team chooses to change the default away from `immediate`. Until that decision is made, A-18 remains the source of truth.
+- Concern #7: proposal defaults now match A-15/A-18 (`immediate` at chain end). Update `docs/resolution_tracker.md` (A-18) only if future product changes the shipped default away from `immediate`.
