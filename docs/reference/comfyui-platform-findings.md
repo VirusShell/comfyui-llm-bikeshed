@@ -147,6 +147,10 @@ For Provider nodes, `float("NaN")` would trigger unnecessary model list API call
 
 ---
 
+## Textgen verified behavior (see also)
+
+Upstream `oobabooga/textgen` auth and internal model HTTP behavior (not ComfyUI-specific): [`docs/research/textgen-lifecycle-verified.md`](../research/textgen-lifecycle-verified.md).
+
 ## Sources
 
 - [ComfyUI Hidden Inputs](https://docs.comfy.org/custom-nodes/backend/more_on_inputs)

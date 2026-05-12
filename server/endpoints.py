@@ -37,6 +37,7 @@ if HAS_SERVER:
         """Return models from any OAI-compatible endpoint.
 
         Tries without auth first; on 401/403 retries with all configured keys.
+        Textgen ``loaded_model`` JSON: see docs/research/textgen-lifecycle-verified.md.
         """
         data = await request.json()
         url = data.get("url", "")

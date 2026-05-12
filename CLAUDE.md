@@ -19,6 +19,7 @@ ComfyUI custom node pack that connects workflows to **LM Studio**, **Textgen** (
 - `docs/text_gen_processing_concept.md` — node architecture and design decisions
 - `docs/resolution_tracker.md` — source of truth for open questions, assumptions, and confirmed decisions
 - `docs/proposals/product-direction-and-scope.md` — **non-authoritative** roadmap signals (Textgen-first, lifecycle rethink, **Ollama removed from pack as of 0.3.0**, llama.cpp deferred). Reconcile older tracker rows (e.g. A-16) when implementation proceeds.
+- **Textgen HTTP/auth and internal model routes** — before changing Textgen paths in `adapters/oai_compat.py`, Textgen helpers in `model_list.py`, or Textgen-related JSON from `server/endpoints.py`, read **`docs/research/textgen-lifecycle-verified.md`** (upstream-verified API key split, `model/info` vs `model/list`, load/unload).
 
 Old docs (`docs/old/CONCEPT.md`, `docs/old/RESEARCH_BRIEF.md`) are superseded — do not reference them for current decisions.
 

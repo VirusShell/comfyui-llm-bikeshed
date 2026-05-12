@@ -304,6 +304,8 @@ class OAICompatAdapter:
             logger.warning("Failed to unload LM Studio model: %s", e)
 
     # ── text-gen-webui model management ──────────────────────────────
+    # See docs/research/textgen-lifecycle-verified.md (API key: model/info + chat;
+    # admin key: internal model list / load / unload).
 
     def _ensure_model_loaded(self, provider: dict, model: str) -> None:
         """Check if correct model is loaded on text-gen-webui, load if needed."""

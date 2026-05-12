@@ -21,7 +21,7 @@ ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Comp
 - Python 3.10+
 - At least one LLM backend running, for example:
   - [LM Studio](https://lmstudio.ai/) (default: `http://localhost:1234`)
-  - [Textgen / text-generation-webui](https://github.com/oobabooga/text-generation-webui) (default: `http://localhost:5000`)
+  - [Textgen / text-generation-webui](https://github.com/oobabooga/text-generation-webui) (default: `http://localhost:5000`) — verified HTTP/auth for internal model routes is summarized in [`docs/research/textgen-lifecycle-verified.md`](docs/research/textgen-lifecycle-verified.md).
   - Optional: **OpenAI** (`https://api.openai.com`) — set `providers.openai.api_key` or `LLM_BIKESHED_OPENAI_API_KEY`; keys never stored in workflows
 
 Native **Ollama** (`/api/chat`) is not supported by this pack; use a dedicated Ollama-focused custom node pack, or an OpenAI-compatible gateway if your stack exposes `/v1/chat/completions`.
