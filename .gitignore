@@ -32,7 +32,7 @@ config.yaml
 *.swp
 
 # Documentation
-docs/
+docs/old/
 
 # Reference screenshots
 docs/Screenshot-*.png
