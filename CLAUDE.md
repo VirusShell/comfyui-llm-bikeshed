@@ -18,6 +18,7 @@ ComfyUI custom node pack that connects workflows to **Ollama**, **LM Studio**, *
 **Current status:** Pre-implementation (design phase). Authoritative docs:
 - `docs/text_gen_processing_concept.md` — node architecture and design decisions
 - `docs/resolution_tracker.md` — source of truth for open questions, assumptions, and confirmed decisions
+- `docs/proposals/product-direction-and-scope.md` — **non-authoritative** roadmap signals (Textgen-first, lifecycle rethink, planned Ollama removal as docs-stage intent with code removal follow-up, llama.cpp deferred). Reconcile older tracker rows (e.g. A-16) when implementation proceeds.
 
 Old docs (`docs/old/CONCEPT.md`, `docs/old/RESEARCH_BRIEF.md`) are superseded — do not reference them for current decisions.
 

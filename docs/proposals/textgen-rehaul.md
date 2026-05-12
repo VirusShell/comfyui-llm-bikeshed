@@ -1,5 +1,13 @@
 # Textgen Lifecycle Rehaul Proposal
 
+## Status & scope
+
+**Design stance:** Lifecycle content in this document—the proposed policy schema, runtime manager, rollout phases, and related adapter behavior—is **not** validated as the correct long-term product design. It can conflict with common mental models for how model memory should behave in ComfyUI graphs. A **full rethink** of lifecycle UX and architecture is expected before locking anything in; see [`product-direction-and-scope.md`](product-direction-and-scope.md).
+
+Until that rethink, treat implementation work on a Textgen lifecycle **manager** and policy-driven schema as **on hold** or **experimental**—useful as exploration, not as committed roadmap.
+
+Sections that are only **tangentially** tied to lifecycle (for example diagnostics, optional utility nodes, or traffic-reduction ideas) still carry **uncertainty** wherever they assume a particular lifecycle core; they may survive a redesign in another form, or they may need revision once the lifecycle story is clearer.
+
 ## Why this proposal exists
 
 Current Textgen lifecycle behavior is technically valid but too narrow for real ComfyUI usage patterns. Today, lifecycle is effectively a binary switch:

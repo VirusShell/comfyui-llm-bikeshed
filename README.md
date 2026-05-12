@@ -2,6 +2,8 @@
 
 ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Compatible** for OpenAI-style backends (LM Studio, Textgen, OpenAI, llama.cpp, etc.) with automatic detection at the URL, or **LLM Provider: Ollama** for native Ollama. API keys live in config or environment variables only.
 
+**Product direction:** See [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md) for current scope notes (Textgen-first, lifecycle model under review, planned removal of in-pack Ollama support — documentation stage; code removal is a follow-up task).
+
 ## Features
 
 - **2 Provider nodes** — OAI Compatible (auto-detected backend at URL) and Ollama
