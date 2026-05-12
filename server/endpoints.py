@@ -19,7 +19,6 @@ if HAS_SERVER:
     from ..model_list import (
         _sync_resolve_oai_compat_models,
         _sync_resolve_textgen_models,
-        sync_textgen_load_model,
     )
 
     try:
@@ -78,32 +77,7 @@ if HAS_SERVER:
             },
         )
 
-    @PromptServer.instance.routes.post("/llm-bikeshed/textgen/load-model")
-    async def _endpoint_textgen_load_model(
-        request: web.Request,
-    ) -> web.Response:
-        """Load a model on Textgen via ``POST /v1/internal/model/load``.
-
-        Body: ``{"url": "...", "model": "..."}`` only. Keys from
-        ``get_textgen_auth_keys()`` / config (same model as
-        ``/llm-bikeshed/models/oai-compat``).
-        """
-        try:
-            data = await request.json()
-        except (json.JSONDecodeError, TypeError, ValueError, OSError):
-            return web.json_response(
-                {"ok": False, "error": "invalid JSON"}, status=400,
-            )
-        url = (data.get("url") or "").strip()
-        model = data.get("model", "")
-        if not url:
-            return web.json_response(
-                {"ok": False, "error": "url required"}, status=400,
-            )
-        ok, err = await asyncio.to_thread(sync_textgen_load_model, url, str(model))
-        if ok:
-            return web.json_response({"ok": True})
-        return web.json_response({"ok": False, "error": err or "unknown"})
+    @PromptServer.instance.routes.post("/llm-bikeshed/detect")
     async def _endpoint_detect_backend(
         request: web.Request,
     ) -> web.Response:

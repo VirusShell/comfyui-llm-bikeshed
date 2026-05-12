@@ -62,7 +62,7 @@ The route is registered with `check_key` only; there is **no** route-level guard
 |------|-------------|
 | `adapters/oai_compat.py` | `_ensure_model_loaded` briefly used admin-priority for `model/info` — **fixed:** `info_headers` from `_auth_headers`, load/unload from `_admin_headers`. |
 | Docstrings / example config | Wording implied one key for all internal routes — **fixed** to distinguish API vs admin gates. |
-| UX | **Addressed:** loaded model and backend readouts on the OAI-compat provider (`loaded_model` JSON + `model_dropdown.js` widgets `detected_backend`, `loaded_model_status`); PromptServer path uses parallel backend probes and parallel Textgen internal list + `model/info` to cut first-paint latency. **Also:** when the detected backend is Textgen, the provider UI offers **Load model** → `POST /llm-bikeshed/textgen/load-model` (server resolves admin/API keys) → Textgen `POST /v1/internal/model/load`. |
+| UX | **Addressed:** loaded model and backend readouts on the OAI-compat provider (`loaded_model` JSON + `model_dropdown.js` widgets `detected_backend`, `loaded_model_status`); PromptServer path uses parallel Textgen internal list + `model/info` when the backend is Textgen. **Dedicated Textgen provider:** **LLM Provider: Textgen** uses `POST /llm-bikeshed/models/textgen` (no `detect_backend`) and **`manage_model_memory`** on-node for the same load/unload behavior as wiring **LLM Lifecycle: Textgen** into OAI Compatible. |
 
 ## Appendix: VRAM control in this pack (today)
 
@@ -70,9 +70,9 @@ This is a snapshot of **what actually runs over the network** for VRAM-related b
 
 - **Textgen (oobabooga/textgen):**
   - **List / loaded hint:** `GET /v1/internal/model/list` (admin bearer when required), `GET /v1/internal/model/info` (API bearer when required) — used by the model dropdown and `loaded_model_status`.
-  - **Load from Comfy without the separate lifecycle node:** `POST /llm-bikeshed/textgen/load-model` with body `{ "url", "model" }` only; Comfy resolves keys via `get_textgen_auth_keys()` and calls Textgen `POST /v1/internal/model/load` with `{"model_name": "<model>"}` and admin-style Bearer headers (with unauthenticated / key retries consistent with `model_list`).
+  - **Load before chat:** `POST {url}/v1/internal/model/load` is invoked by the **OpenAI-compatible adapter** when the provider has Textgen lifecycle enabled (**Manage model memory** on **LLM Provider: Textgen**, or **LLM Lifecycle: Textgen** → **OAI Compatible**), not via a separate PromptServer “load” button.
   - **Generation:** `POST {url}/v1/chat/completions` (OAI-compat).
-  - **Explicit unload / chain policy:** when a **LLM Lifecycle: Textgen** node is wired and enabled, the adapter uses `POST /v1/internal/model/unload` (and load when needed) per adapter logic; generation nodes support **`skip_unload`** so only the last node in a chain triggers unload when that design is in use.
+  - **Explicit unload / chain policy:** when Textgen lifecycle is enabled on the provider (**Manage model memory** on **LLM Provider: Textgen**, or **LLM Lifecycle: Textgen** wired to **OAI Compatible** and ON), the adapter uses `POST /v1/internal/model/unload` (and load when needed) per adapter logic; generation nodes support **`skip_unload`** so only the last node in a chain triggers unload when that design is in use.
 - **LM Studio:** TTL / context and related behavior are driven by the **LM Studio lifecycle** node and adapter paths (not the Textgen internal routes above).
 - **Ollama:** This pack does **not** ship native Ollama nodes or `/api/chat`; use another pack or an OAI-compatible gateway.
-- **What we still need (honest):** Product direction treats heavy **lifecycle manager** UX as under review (`docs/proposals/product-direction-and-scope.md`). Today you have: optional lifecycle nodes, adapter hooks, `skip_unload`, and Textgen **load** from the provider UI — not necessarily the final mental model for “VRAM management” in Comfy graphs.
+- **What we still need (honest):** Product direction treats heavy **lifecycle manager** UX as under review (`docs/proposals/product-direction-and-scope.md`). Today you have: optional lifecycle nodes, integrated Textgen provider, adapter hooks, and `skip_unload` — not necessarily the final mental model for “VRAM management” in Comfy graphs.

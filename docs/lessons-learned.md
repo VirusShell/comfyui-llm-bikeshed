@@ -323,3 +323,11 @@ System: Absolute vs Relative" entry above for the full details.
 **Root cause:** Assumption from informal docs without reading ``oobabooga/textgen`` ``modules/api/script.py``, where ``model/info`` uses ``check_key`` (API key) and ``model/list``, ``model/load``, ``model/unload`` use ``check_admin_key``.  
 **Fix:** Use ``_auth_headers`` for ``model/info`` and ``_admin_headers`` for load/unload; extend model refresh to call ``model/info`` for Textgen and show the loaded name in the UI; record citations in ``docs/research/textgen-lifecycle-verified.md``.  
 **Prevention:** For “OpenAI-compatible” servers with extra internal routes, verify each route’s ``Depends`` in source; add tests with **distinct** API and admin bearer values when both exist.
+
+## ``nodes/providers.py``: pytest import vs package-relative imports (2026-05-12)
+
+**Severity:** Low — breaks test collection only  
+**What happened:** New tests imported ``nodes.providers`` while the module used only ``from ..config`` / ``from ..detection``; under pytest ``nodes`` is treated as a top-level package, so ``..`` raised *attempted relative import beyond top-level package*.  
+**Root cause:** Same dual-context pattern already handled in ``nodes/generation.py`` (Comfy loads the repo as a subpackage; tests add ``nodes`` on ``sys.path``).  
+**Fix:** Wrap provider imports in ``try: relative except ImportError: absolute`` like ``generation.py``.  
+**Prevention:** Any new ``nodes/*.py`` that pytest imports directly should use the try/except import pattern or be tested only via the pack root package.
