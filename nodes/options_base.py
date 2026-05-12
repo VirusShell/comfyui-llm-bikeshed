@@ -27,6 +27,9 @@ def build_toggle_options(
     Returns:
         Single-element tuple containing the merged options dict.
     """
+    if options_in is None:
+        raw_oi = kwargs.get("options_in")
+        options_in = raw_oi if isinstance(raw_oi, dict) else None
     options = dict(options_in) if options_in else {}
     for name, _, _ in params:
         if kwargs.get(f"enable_{name}", False):

@@ -3,7 +3,7 @@
 This checklist is intentionally separated from active project specs/docs.  
 It is scoped to implementing `docs/proposals/textgen-rehaul.md`.
 
-**Product direction — read first:** [`product-direction-and-scope.md`](product-direction-and-scope.md) (Textgen-first priority, lifecycle full rethink, planned Ollama removal as documentation-stage intent with code removal as follow-up, llama.cpp deferred).
+**Product direction — read first:** [`product-direction-and-scope.md`](product-direction-and-scope.md) (Textgen-first priority, lifecycle full rethink, **Ollama removed from pack v0.3.0**, llama.cpp deferred).
 
 **Note:** Rollout **phases** in `textgen-rehaul.md` (schema → manager → diagnostics → optional utilities) are a product rollout story; **task phase numbers here** (Phase 1–8) are implementation ordering. They are **not** 1:1 (e.g. proposal “Phase 4” optional utility nodes map to the optional subsection below, not necessarily “Phase 4” here).
 

@@ -295,3 +295,13 @@ System: Absolute vs Relative" entry above for the full details.
 **Addendum — Textgen 401 with key in ``oai_compat`` only:** Detection returns ``text_gen_webui`` but ``build_provider`` only read ``get_api_key("text_gen_webui")`` and ``get_admin_key("text_gen_webui")``, not ``providers.oai_compat``. Users who set a single key under ``oai_compat`` for the OAI-compat node got no credentials on the provider dict and on the model-list fetch. **Fix:** ``get_textgen_auth_keys()`` merges ``text_gen_webui`` and ``oai_compat`` (and mirrors a single secret onto both ``api_key`` and ``admin_key``).
 
 **Addendum — ``detected_backend`` stuck on Unknown:** The frontend maps any non-OK response to the label ``Unknown``. ``server/endpoints.py`` used one ``try`` for both ``from ..config`` and ``from ..detection``; if config import failed, ``detect_backend`` was set to ``None`` and the detect handler crashed when calling it → 500 → Unknown. **Fix:** import config and detection in separate ``try`` blocks; return HTTP 200 with ``generic`` when the handler degrades; load ``model_list`` only inside ``HAS_SERVER``. **Fix:** ``model_list`` tries ``from .detection`` then ``from detection import`` so it works as a package submodule (ComfyUI) and as a flat test import; same pattern for ``get_admin_key`` / ``get_api_key`` via ``.config`` then ``config``.
+
+## Options merge: ``options_in`` ignored in toggle builder
+
+**Date:** 2026-05-12  
+**Severity:** Medium — chained Options nodes dropped upstream keys  
+**What happened:** LM Studio / Textgen tests expected ``options_in`` to merge into the output dict; ``build_toggle_options`` accepted an ``options_in`` parameter but callers only passed ``kwargs``, so upstream dicts were discarded unless the third argument was passed explicitly.  
+**Root cause:** ``options_in`` was not read from ``kwargs`` when the positional argument was omitted.  
+**Fix:** When ``options_in`` is ``None``, use ``kwargs.get("options_in")`` if it is a dict, then merge toggled params on top.  
+**Prevention:** For helpers called as ``fn(params, kwargs)``, merge dict inputs from ``kwargs`` explicitly or document a single entrypoint; regression-test option chaining.
+

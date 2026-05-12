@@ -12,11 +12,11 @@ Current **lifecycle code** (Textgen/LM Studio lifecycle nodes, adapter load/unlo
 
 Expect a **full rethink** of lifecycle UX and architecture—not incremental polish on the existing proposal—before treating any lifecycle manager design as authoritative. The rehaul document may still **inform** a future design or may be **largely superseded** once the rethink lands; cross-links between these files stay explicit so readers do not merge them into one “approved spec” in their heads.
 
-## Ollama: planned removal from this pack
+## Ollama: removed from this pack (shipped)
 
-**Direction:** Remove **Ollama** as a supported backend from this node pack going forward. Other ComfyUI custom nodes already cover Ollama well; dropping it here reduces maintenance and scope.
+**Direction:** **Ollama** is not a supported backend in this node pack as of **v0.3.0** (2026-05-12). Other ComfyUI custom nodes cover native Ollama; this pack focuses on OAI-compat (LM Studio, Textgen, OpenAI, etc.). URL auto-detection may still label a host as `ollama` for the OAI provider indicator only.
 
-**This repository stage:** **Documentation and tracker only** for this change unless a separate task explicitly deletes code. A follow-up implementation task should remove the Ollama native adapter, Ollama-specific nodes, and related config/docs references when execution is scheduled. Until then, Ollama may still appear in code and older docs—treat that as **legacy**, not endorsement. See [`ollama-removal-plan.md`](ollama-removal-plan.md) for execution checklist (inventory, phases, migration, risks).
+**Execution:** See [`ollama-removal-plan.md`](ollama-removal-plan.md) (checklist completed) and `CHANGELOG.md` [0.3.0].
 
 ## llama.cpp: explicit deferral
 

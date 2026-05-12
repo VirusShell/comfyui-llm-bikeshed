@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
-from ..adapters import get_adapter
-from ..graph.introspection import has_downstream_gen_node
+try:
+    from ..adapters import get_adapter
+    from ..graph.introspection import has_downstream_gen_node
+except ImportError:
+    from adapters import get_adapter
+    from graph.introspection import has_downstream_gen_node
 
 
 def _build_messages(system_prompt: str, prompt: str) -> list[dict[str, str]]:

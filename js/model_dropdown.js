@@ -7,10 +7,6 @@ const PROVIDER_CONFIG = {
     showBackendLabel: true,
     defaultUrl: "http://localhost:1234",
   },
-  LLMProviderOllama: {
-    endpoint: "/llm-bikeshed/models/ollama",
-    defaultUrl: "http://localhost:11434",
-  },
 };
 
 /**

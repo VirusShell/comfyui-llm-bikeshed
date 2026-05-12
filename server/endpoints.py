@@ -16,7 +16,7 @@ except ImportError:
 logger = logging.getLogger("llm-bikeshed")
 
 if HAS_SERVER:
-    from ..model_list import _fetch_models_ollama, _sync_resolve_oai_compat_models
+    from ..model_list import _sync_resolve_oai_compat_models
 
     try:
         from ..config import get_api_key, load_config, write_api_key
@@ -47,19 +47,6 @@ if HAS_SERVER:
             _sync_resolve_oai_compat_models, url,
         )
         return web.json_response({"models": models, "backend": backend})
-
-    @PromptServer.instance.routes.post("/llm-bikeshed/models/ollama")
-    async def _endpoint_models_ollama(
-        request: web.Request,
-    ) -> web.Response:
-        """Return available models from an Ollama instance."""
-        data = await request.json()
-        url = data.get("url", "")
-        if not url:
-            return web.json_response({"models": []})
-
-        models = await asyncio.to_thread(_fetch_models_ollama, url)
-        return web.json_response({"models": models})
 
     @PromptServer.instance.routes.post("/llm-bikeshed/detect")
     async def _endpoint_detect_backend(

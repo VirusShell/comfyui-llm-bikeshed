@@ -6,6 +6,8 @@
 **Status:** Handoff-ready for Claude Code. Supersedes all prior concept docs and the original requirements.md.
 **Companion doc:** resolution_tracker.md (source of truth for item status)
 
+**Post–0.3.0 scope note:** Native **Ollama** is **not** implemented in this pack (D-3). Earlier text that lists Ollama as an in-pack backend or documents Ollama-specific nodes remains as **design history** unless a paragraph is explicitly refreshed; see `CHANGELOG.md` [0.3.0] and `docs/proposals/ollama-removal-plan.md`.
+
 ---
 
 ## Overview
@@ -26,7 +28,7 @@ Our project aims for multi-provider support with both a compact "quick start" ex
 
 ## Scope Decisions (Firm)
 
-**Supported local backends:** Ollama, LM Studio, text-generation-webui (oobabooga). These three all support model memory management (load/unload or TTL), which is critical for ComfyUI users sharing VRAM between LLM inference and Stable Diffusion. (A-16)
+**Supported local backends (in-pack, current):** LM Studio, text-generation-webui (oobabooga). Both support model memory management (TTL or explicit load/unload), which is critical for ComfyUI users sharing VRAM between LLM inference and Stable Diffusion. OpenAI Chat Completions uses the same OAI-compat adapter path. **Removed from pack (D-3):** native Ollama. (A-16)
 
 **Dropped backends:** vLLM and standalone llama-server (llama.cpp direct). Neither has a model unload mechanism via API. Note that llama.cpp the *engine* is still supported — both LM Studio and text-gen-webui use it under the hood as an inference backend. Users who want llama.cpp inference use it through those tools. (A-16)
 

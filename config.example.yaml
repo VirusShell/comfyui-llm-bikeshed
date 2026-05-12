@@ -3,10 +3,6 @@
 # config.yaml is gitignored and will not be shared with workflows.
 
 providers:
-  ollama:
-    url: "http://localhost:11434"
-    timeout: 120
-
   lm_studio:
     url: "http://localhost:1234"
     timeout: 120

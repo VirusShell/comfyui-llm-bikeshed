@@ -29,24 +29,6 @@ def lm_studio_provider() -> dict:
 
 
 @pytest.fixture()
-def ollama_provider() -> dict:
-    """Ollama provider dict with native adapter."""
-    return {
-        "backend": "ollama",
-        "adapter": "ollama_native",
-        "url": "http://localhost:11434",
-        "model": "llama3",
-        "timeout": 120,
-        "api_key": None,
-        "admin_key": None,
-        "memory": {
-            "keep_alive": "30s",
-            "ttl": None,
-        },
-    }
-
-
-@pytest.fixture()
 def text_gen_webui_provider() -> dict:
     """text-gen-webui provider dict with OAI-compat adapter."""
     return {
@@ -87,25 +69,6 @@ def mock_oai_response() -> MagicMock:
             "completion_tokens": 5,
             "total_tokens": 15,
         },
-    }
-    resp.raise_for_status = MagicMock()
-    return resp
-
-
-@pytest.fixture()
-def mock_ollama_response() -> MagicMock:
-    """Mock requests.Response for an Ollama /api/chat response."""
-    resp = MagicMock()
-    resp.status_code = 200
-    resp.json.return_value = {
-        "message": {
-            "role": "assistant",
-            "content": "Hello from Ollama!",
-        },
-        "done": True,
-        "total_duration": 1234567890,
-        "eval_count": 5,
-        "prompt_eval_count": 10,
     }
     resp.raise_for_status = MagicMock()
     return resp

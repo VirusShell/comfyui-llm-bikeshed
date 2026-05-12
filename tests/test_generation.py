@@ -124,6 +124,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
         with patch("nodes.generation.get_adapter", return_value=mock_adapter), \
              patch("nodes.generation.has_downstream_gen_node", return_value=False):
             text, meta_out = node.generate(
+                system_prompt="",
                 prompt="Hello",
                 provider=explicit_prov,
                 meta=meta_input,
@@ -145,6 +146,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
         with patch("nodes.generation.get_adapter", return_value=mock_adapter), \
              patch("nodes.generation.has_downstream_gen_node", return_value=False):
             text, meta_out = node.generate(
+                system_prompt="",
                 prompt="Hello",
                 provider=None,
                 meta=meta_input,
@@ -166,6 +168,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
         with patch("nodes.generation.get_adapter", return_value=mock_adapter), \
              patch("nodes.generation.has_downstream_gen_node", return_value=False):
             text, meta_out = node.generate(
+                system_prompt="",
                 prompt="Hello",
                 provider=provider,
                 options=explicit_opts,
@@ -189,6 +192,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
         with patch("nodes.generation.get_adapter", return_value=mock_adapter), \
              patch("nodes.generation.has_downstream_gen_node", return_value=False):
             text, meta_out = node.generate(
+                system_prompt="",
                 prompt="Hello",
                 provider=provider,
                 options=None,
@@ -201,7 +205,9 @@ class TestLLMGenerateAdvancedMetaPrecedence:
     def test_no_provider_no_meta_raises(self) -> None:
         node = LLMGenerateAdvanced()
         try:
-            node.generate(prompt="Hello", provider=None, meta=None)
+            node.generate(
+                system_prompt="", prompt="Hello", provider=None, meta=None,
+            )
             assert False, "Expected ValueError"
         except ValueError as exc:
             assert "No provider configured" in str(exc)

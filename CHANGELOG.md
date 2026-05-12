@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.2] - 2026-05-11
+## [0.3.0] - 2026-05-12
+
+### Removed
+
+- **Ollama as a first-class backend** — removed `OllamaAdapter` / `ollama_native`, `LLM Provider: Ollama`, `LLM Options: Ollama (Core)` and `(Extra)`, `POST /llm-bikeshed/models/ollama`, `PROVIDER_CONFIG.LLMProviderOllama` in `js/model_dropdown.js`, and `_fetch_models_ollama` plus the `providers.ollama` block from `config.example.yaml`. Workflows that still reference those node types will fail until rebuilt (use a dedicated Ollama pack or an OpenAI-compatible URL).
+
+### Fixed
+
+- **Options chaining** — `build_toggle_options` now reads `options_in` from `kwargs` so upstream options merge correctly for LM Studio and Textgen options nodes.
 
 ### Fixed
 

@@ -1,17 +1,17 @@
 # ComfyUI LLM Bikeshed
 
-ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Compatible** for OpenAI-style backends (LM Studio, Textgen, OpenAI, llama.cpp, etc.) with automatic detection at the URL, or **LLM Provider: Ollama** for native Ollama. API keys live in config or environment variables only.
+ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Compatible** for OpenAI-style backends (LM Studio, Textgen, OpenAI, llama.cpp, etc.) with automatic detection at the URL. API keys live in config or environment variables only.
 
-**Product direction:** See [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md) for current scope notes (Textgen-first, lifecycle model under review, planned removal of in-pack Ollama support — documentation stage; code removal is a follow-up task).
+**Product direction:** See [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md) for scope notes (Textgen-first, lifecycle model under review, llama.cpp deferred).
 
 ## Features
 
-- **2 Provider nodes** — OAI Compatible (auto-detected backend at URL) and Ollama
+- **1 Provider node** — OAI Compatible (auto-detected backend at URL, including OpenAI API when configured)
 - **2 Lifecycle nodes** (optional) — VRAM-aware LM Studio TTL/context or Textgen load/unload when wired into the OAI provider’s `lifecycle` input
 - **2 Generation nodes** — Basic (compact, inline params) and Advanced (modular, connection-driven)
-- **5 Options nodes** — per-backend inference parameter control (including OpenAI core sampling params)
+- **3 Options nodes** — LM Studio, Textgen, and OpenAI core sampling parameters
 - **2 Utility nodes** — Preset Loader and Load Text File
-- **VRAM-aware** — optional lifecycle nodes gate explicit model load/unload (Textgen, LM Studio); Ollama uses `keep_alive` on the provider
+- **VRAM-aware** — optional lifecycle nodes gate explicit model load/unload (Textgen, LM Studio)
 - **Secure** — API keys from config file or environment variables, never in workflow JSON
 - **Minimal dependencies** — only `pyyaml` and `requests` (no provider SDKs)
 
@@ -19,11 +19,12 @@ ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Comp
 
 - ComfyUI (V1 node spec)
 - Python 3.10+
-- At least one local LLM backend running:
-  - [Ollama](https://ollama.ai/) (default: `http://localhost:11434`)
+- At least one LLM backend running, for example:
   - [LM Studio](https://lmstudio.ai/) (default: `http://localhost:1234`)
   - [Textgen / text-generation-webui](https://github.com/oobabooga/text-generation-webui) (default: `http://localhost:5000`)
   - Optional: **OpenAI** (`https://api.openai.com`) — set `providers.openai.api_key` or `LLM_BIKESHED_OPENAI_API_KEY`; keys never stored in workflows
+
+Native **Ollama** (`/api/chat`) is not supported by this pack; use a dedicated Ollama-focused custom node pack, or an OpenAI-compatible gateway if your stack exposes `/v1/chat/completions`.
 
 ## Installation
 
@@ -57,10 +58,6 @@ ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Comp
 
    ```yaml
    providers:
-     ollama:
-       url: "http://localhost:11434"
-       timeout: 120
-
      lm_studio:
        url: "http://localhost:1234"
        timeout: 120
@@ -84,6 +81,8 @@ ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Comp
    ```
 
 3. `config.yaml` is gitignored — your keys and overrides stay local.
+
+   Legacy `providers.ollama` keys in an existing `config.yaml` are ignored by this pack (deep-merge preserves them; you may delete that block manually).
 
 ### API Key Resolution
 
@@ -112,11 +111,12 @@ Configure a backend connection. Each outputs an `LLM_PROVIDER` type.
 | Node | Role | Key settings |
 |------|------|----------------|
 | **LLM Provider: OAI Compatible** | OpenAI-style HTTP backends (detected at `url`) | `url`, `model` dropdown, optional `lifecycle` input — API keys from config/env per detected backend + `oai_compat` fallback |
-| **LLM Provider: Ollama** | Native Ollama | `url`, `model` dropdown, `keep_alive` |
 
 All provider nodes have:
-- Dynamic model dropdown (queries backend via PromptServer; refresh button). Initial fetch is deferred one microtask so saved workflow values apply before the list updates. For **Textgen**, the server asks **`/v1/internal/model/list`** first (same models as the Textgen UI), then falls back to **`/v1/models`** if needed.
+- Dynamic model dropdown (queries backend via PromptServer; refresh button). Initial fetch is deferred one microtask so saved workflow values apply before the list updates. For **Textgen**, the server asks **`GET /v1/internal/model/list`** first (same models as the Textgen UI), then falls back to **`GET /v1/models`** if needed.
 - `model_fallback` STRING input — overrides dropdown when connected (useful when backend is offline)
+
+The read-only **detected backend** label (OAI node only) can still show **Ollama** when URL fingerprinting matches Ollama’s `/api/version` shape; this pack does not ship Ollama-native nodes or routes—use another pack or an OAI-compatible path for generation.
 
 ### Lifecycle nodes (optional)
 
@@ -146,13 +146,10 @@ Configure inference parameters. All output `LLM_OPTIONS` type.
 
 | Node | Backend | Parameters | Pattern |
 |------|---------|-----------|---------|
-| **LLM Options: Ollama (Core)** | Ollama | temperature, top_k, top_p, seed, num_predict, num_ctx, stop | Sentinel values (-1 = model default) |
-| **LLM Options: Ollama (Extra)** | Ollama | mirostat, mirostat_eta, mirostat_tau, repeat_penalty, repeat_last_n, frequency_penalty, presence_penalty, tfs_z, typical_p, min_p | Boolean toggles (ON/OFF) |
 | **LLM Options: LM Studio** | LM Studio | temperature, top_p, max_tokens, seed, stop, top_k, repeat_penalty, presence_penalty, frequency_penalty | Boolean toggles (ON/OFF) |
 | **LLM Options: OpenAI** | OpenAI API | Core Chat Completions: temperature, top_p, max_tokens, max_completion_tokens, seed, stop, presence_penalty, frequency_penalty | Boolean toggles (ON/OFF) |
 | **LLM Options: Textgen** | text-generation-webui | temperature, top_p, max_tokens, seed, stop, top_k, min_p, repeat_penalty, presence_penalty, frequency_penalty, typical_p, tfs | Boolean toggles (ON/OFF) |
 
-- Ollama Extra chains into Ollama Core via `options_in` input.
 - Options nodes are always optional — disconnect them and the model uses its own defaults.
 - Unsupported parameters are silently dropped (logged at info level).
 
@@ -169,7 +166,7 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 
 ### Minimal Setup (Basic Generation)
 
-1. Add **LLM Provider: OAI Compatible** (point `url` at your LM Studio, Textgen, OpenAI-compatible server, etc.) or **LLM Provider: Ollama**
+1. Add **LLM Provider: OAI Compatible** (point `url` at your LM Studio, Textgen, OpenAI-compatible server, etc.)
 2. Add **LLM Generate (Basic)**
 3. Connect Provider output to Generate's `provider` input
 4. Type your prompt and system prompt
@@ -191,10 +188,8 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 
 ## Architecture
 
-- **Adapter pattern**: Two adapters handle all backends
-  - Ollama Native — `POST {url}/api/chat`
-  - OpenAI-Compatible — `POST {url}/v1/chat/completions`; optional lifecycle hooks for LM Studio (`/api/v1/models`, `ttl`) and Textgen (`/v1/internal/model/*`) when a matching lifecycle node is connected
-- **Backend detection** — `detection.py` plus `POST /llm-bikeshed/detect` for the indicator on the OAI Compatible provider
+- **Adapter pattern** — OpenAI-Compatible adapter: `POST {url}/v1/chat/completions`; optional lifecycle hooks for LM Studio (`/api/v1/models`, `ttl`) and Textgen (`/v1/internal/model/*`) when a matching lifecycle node is connected
+- **Backend detection** — `detection.py` plus `POST /llm-bikeshed/detect` for the indicator on the OAI Compatible provider (includes fingerprinting that may label a host as Ollama even though this pack does not run native Ollama chat)
 - **Synchronous HTTP** via `requests` (ComfyUI nodes run synchronously)
 - **Config merge-on-load**: `config.example.yaml` defaults deep-merged with user's `config.yaml`
 - **Frontend JS** for dynamic model dropdowns via PromptServer endpoints
@@ -207,6 +202,7 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 - Full OpenAI API surface (tools, streaming, JSON mode, etc.) — only core chat sampling params in v0; additional cloud providers (Anthropic, Gemini, etc.)
 - Streaming output
 - vLLM and standalone llama-server backends
+- Native Ollama in this pack (removed 0.3.0)
 
 ## License
 

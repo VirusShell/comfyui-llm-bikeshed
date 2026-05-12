@@ -212,18 +212,3 @@ def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str]:
                 url,
             )
     return models, backend
-
-
-def _fetch_models_ollama(url: str, timeout: int = 10) -> list[str]:
-    """Fetch available model names from an Ollama instance."""
-    try:
-        response = requests.get(f"{url}/api/tags", timeout=timeout)
-        response.raise_for_status()
-        data = response.json()
-        return [model["name"] for model in data.get("models", [])]
-    except requests.RequestException as e:
-        logger.info("Ollama model fetch failed (%s): %s", url, e)
-        return []
-    except (KeyError, TypeError, ValueError) as e:
-        logger.info("Ollama model response parse error: %s", e)
-        return []

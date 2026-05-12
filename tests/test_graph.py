@@ -15,7 +15,7 @@ from graph.introspection import (
 # Simple chain: provider -> generate
 PROMPT_SIMPLE: dict = {
     "1": {
-        "class_type": "LLMProvider_Ollama",
+        "class_type": "LLMProviderOAICompat",
         "inputs": {"host": "http://localhost:11434", "model": "llama3"},
     },
     "2": {
@@ -31,7 +31,7 @@ PROMPT_SIMPLE: dict = {
 # Provider feeding two generation nodes
 PROMPT_MULTI_DOWNSTREAM: dict = {
     "10": {
-        "class_type": "LLMProvider_Ollama",
+        "class_type": "LLMProviderOAICompat",
         "inputs": {"host": "http://localhost:11434"},
     },
     "11": {
@@ -47,7 +47,7 @@ PROMPT_MULTI_DOWNSTREAM: dict = {
 # Provider with no downstream connections
 PROMPT_NO_DOWNSTREAM: dict = {
     "20": {
-        "class_type": "LLMProvider_Ollama",
+        "class_type": "LLMProviderOAICompat",
         "inputs": {"host": "http://localhost:11434"},
     },
 }
@@ -55,7 +55,7 @@ PROMPT_NO_DOWNSTREAM: dict = {
 # Provider connected to a non-generation node only
 PROMPT_NON_GEN_DOWNSTREAM: dict = {
     "30": {
-        "class_type": "LLMProvider_Ollama",
+        "class_type": "LLMProviderOAICompat",
         "inputs": {"host": "http://localhost:11434"},
     },
     "31": {
@@ -67,7 +67,7 @@ PROMPT_NON_GEN_DOWNSTREAM: dict = {
 # Mixed: gen and non-gen downstream
 PROMPT_MIXED: dict = {
     "40": {
-        "class_type": "LLMProvider_Ollama",
+        "class_type": "LLMProviderOAICompat",
         "inputs": {},
     },
     "41": {

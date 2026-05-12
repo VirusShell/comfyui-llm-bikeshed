@@ -21,9 +21,9 @@ Generated: 2026-02-25
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| A-1 | Options node architecture | Decided | Per-provider Options nodes. Ollama uses Core/Extra split: Core has 7 common params with sentinel values (no toggles, compact), Extra has 10 advanced params with BOOLEAN toggles (optional, chains into Core via `options_in`). LM Studio and text-gen-webui use single nodes with toggles (may split later if too tall). See design review §3. |
+| A-1 | Options node architecture | Decided | Per-provider Options nodes for LM Studio, Textgen, and OpenAI (toggle pattern). **Superseded detail (D-3, 2026-05-12):** in-pack Ollama Core/Extra split removed with Ollama surface; see `docs/proposals/ollama-removal-plan.md`. |
 | A-2 | Base Options scope — which params are "universal enough" for the base node | Moot | Per-provider Options nodes chosen (A-1). Each node defines its own parameter set. Cross-provider mapping documented in `docs/reference/backend-api-parameters.md`. |
-| A-3 | Per-parameter enable/disable toggles | Decided | Hybrid approach. Ollama Core uses sentinel values (no toggles). Ollama Extra, LM Studio, and text-gen-webui Options use BOOLEAN toggles (P-9 confirmed reliable). Disabled = model default, enabled = override. |
+| A-3 | Per-parameter enable/disable toggles | Decided | BOOLEAN toggles on LM Studio, text-gen-webui, and OpenAI Options (P-9 confirmed reliable). **Moot (D-3):** hybrid “Ollama Core sentinels” language referred to removed nodes. |
 | A-4 | Options merge precedence when both Base and Ollama Options are used | Moot | Per-provider Options nodes chosen (A-1). No merge needed — one Options node type per provider. |
 | A-5 | Chat node scope — predetermined chains vs interactive with session state | Tabled | Deferred from v1 scope. Concept doc lists Chat under "What This Doesn't Cover (Yet)". Needs clear decision for post-v1. |
 | A-6 | Preset ↔ system prompt interaction | Decided | Separate Preset Loader node for v1. Known-working pattern (COMBO listing .txt files from `presets/` dir, output is STRING). Avoids JS widget interaction complexity. Inline COMBO→STRING approach is feasible but fragile on workflow load — future UX enhancement. |
@@ -35,13 +35,13 @@ Generated: 2026-02-25
 | A-12 | Structured output path per backend | Tabled | Structured Output node deferred from v1 scope. |
 | A-13 | Basic vs Advanced generation node split | Decided | Two nodes: Basic (inline params + presets, compact) and Advanced (connection-only config, modular). Both share adapter layer. Whether this could be a single node remains an option but two is the safe default. |
 | A-14 | Separate Provider nodes per provider vs single dropdown node | Decided | Separate nodes. Each has static widgets for its provider. All output same LLM_PROVIDER type. |
-| A-15 | Model memory management — unload deferral in generation chains | Decided | Use PROMPT hidden input reverse-indexing (P-10 confirmed). Generation node checks if its meta output connects to another generation node downstream. If yes, skip unload. If no, fire unload. Ollama/LM Studio handle this naturally via TTL reset. text-gen-webui uses this mechanism for explicit unload deferral. |
-| A-16 | Supported local backends | Decided | Ollama, LM Studio, text-generation-webui. Dropped vLLM and standalone llama-server (no unload API). llama.cpp supported indirectly through LM Studio and text-gen-webui. |
+| A-15 | Model memory management — unload deferral in generation chains | Decided | Use PROMPT hidden input reverse-indexing (P-10 confirmed). Generation node checks if its meta output connects to another generation node downstream. If yes, skip unload. If no, fire unload. LM Studio TTL behavior and text-gen-webui explicit unload deferral per this mechanism. |
+| A-16 | Supported local backends | Decided | **In-pack:** LM Studio, text-generation-webui (OpenAI API via same OAI-compat adapter). **Removed (D-3):** native Ollama. Dropped vLLM and standalone llama-server (no unload API). llama.cpp supported indirectly through LM Studio and text-gen-webui. |
 | A-17 | Cloud provider support | Tabled | Deferred from v1. Can be added later without breaking local-focused architecture. |
 | A-19 | text-gen-webui model loading before generation | Decided | Adapter must handle full lifecycle: check model status → load if needed → generate → unload (last node only). Load/unload use admin key if configured. FR-19. |
 | A-20 | Model selection priority (COMBO vs STRING fallback) | Decided | STRING `model_fallback` overrides COMBO dropdown. COMBO is convenience (auto-populated), STRING is override (offline fallback, connections). FR-21. |
 | A-21 | Load Text File utility node | Decided | Separate from Preset Loader. Reads `.txt` files from ComfyUI `input/` folder (configurable). Ships with pack so users don't need external node packs for text loading. FR-20. |
-| A-18 | keep_alive / ttl defaults and user configurability | Decided | User-assignable on Provider nodes. Ollama: `keep_alive`, default "30s". LM Studio: `ttl`, default 30 min (note: LM Studio's app default is 60 min, but our shorter default prioritizes VRAM reclamation). text-gen-webui: explicit unload, see A-15. |
+| A-18 | keep_alive / ttl defaults and user configurability | Decided | User-assignable on lifecycle (LM Studio TTL/context) and provider-adjacent settings where applicable. LM Studio: `ttl`, default tuned for VRAM (see README). text-gen-webui: explicit unload, see A-15. **Moot (D-3):** Ollama `keep_alive` on a dedicated provider node. |
 | A-22 | LM Studio explicit model load with context_length | Decided | Provider node has `context_length` INT widget (0 = use model default). Adapter calls `GET /api/v1/models` to check if model loaded with correct ctx, `POST /api/v1/models/load` with `context_length` if needed, `POST /api/v1/models/unload` with model name as `instance_id` when last in chain. Mirrors text-gen-webui lifecycle pattern. JIT bug (#1463) means explicit load is required for reliable ctx settings. |
 | A-23 | OpenAI API — Chat Completions core slice | Decided | Separate Provider (`backend: openai`) and Options nodes. Non-streaming `POST /v1/chat/completions` with core sampling allowlist (`temperature`, `top_p`, `max_tokens`, `max_completion_tokens`, `stop`, `seed`, penalties). If both token limits are set, `max_completion_tokens` wins. No local model load/unload or LM-only `ttl`. Model list via `GET /v1/models` (same shape as OAI). API keys only from `config.yaml` / env (`LLM_BIKESHED_OPENAI_API_KEY`), never workflow JSON. Tools, streaming, JSON mode, multimodal — deferred (see README out-of-scope). |
 | A-24 | Textgen lifecycle node requires a visible widget | Confirmed | ComfyUI often renders nodes with `INPUT_TYPES["required"] == {}` as title + output only. `LLM Lifecycle: Textgen` uses BOOLEAN `manage_model_memory` (default ON); OFF yields empty `{}` lifecycle dict (no VRAM management). |
@@ -53,7 +53,7 @@ Generated: 2026-02-25
 | # | Item | Status | Notes |
 |---|------|--------|-------|
 | P-1 | `OUTPUT_IS_LIST` behavior for STRING outputs | Tabled | Only needed for Image Describe batch output (deferred from v1). Documented in ComfyUI research (`05-backend-advanced.md`). |
-| P-2 | Dynamic COMBO widget behavior on workflow load with missing options | Decided | Use frontend JS + PromptServer endpoint for model lists (not backend INPUT_TYPES). Saved model name persists in `widgets_values`. JS populates COMBO from endpoint, shows fallback if backend offline. Follows comfyui-ollama pattern. |
+| P-2 | Dynamic COMBO widget behavior on workflow load with missing options | Decided | Use frontend JS + PromptServer endpoint for model lists (not backend INPUT_TYPES). Saved model name persists in `widgets_values`. JS populates COMBO from endpoint, shows fallback if backend offline. Ecosystem pattern for dynamic refresh COMBOs. |
 | P-3 | COMBO → text input dynamic widget switching via JS | Decided | Not needed. Use STRING input with `defaultInput: True` as manual fallback instead. COMBO-to-text switching is complex and fragile. |
 | P-4 | ComfyUI error display mechanisms | Confirmed | Exception in FUNCTION halts workflow (red outline, error notification). VALIDATE_INPUTS for pre-execution checks. Toast API for non-fatal warnings. Python logging for console output. |
 | P-5 | Config reload — caching behavior | Decided | Cache on module load. Provide `/llm-bikeshed/reload-config` PromptServer endpoint. Per-execution reload is unnecessary overhead. |
@@ -72,7 +72,7 @@ Generated: 2026-02-25
 | API-1 | Anthropic model list endpoint | Tabled | Cloud providers deferred (A-17). |
 | API-2 | Gemini model list endpoint | Tabled | Cloud providers deferred (A-17). |
 | API-3 | Cloud provider model list endpoints — API key requirements | Tabled | Cloud providers deferred (A-17). |
-| API-4 | Per-provider parameter allowlists | Confirmed | Full parameter tables documented in `docs/reference/backend-api-parameters.md`. Ollama: `additionalProperties: true`, unknown params silently ignored. LM Studio and text-gen-webui: unknown param handling needs empirical testing but allowlist approach mitigates risk. |
+| API-4 | Per-provider parameter allowlists | Confirmed | Full parameter tables documented in `docs/reference/backend-api-parameters.md`. LM Studio and text-gen-webui: unknown param handling needs empirical testing but allowlist approach mitigates risk. **Moot (D-3):** Ollama-specific `additionalProperties` note referred to removed adapter. |
 | API-5 | Anthropic structured output format | Tabled | Cloud providers deferred (A-17). |
 | API-6 | text-gen-webui internal model management endpoints | Confirmed | load/unload/list/info endpoints confirmed. Gated behind `--admin-key` (or `--api-key` if no admin key set). |
 | API-7 | text-gen-webui admin key handling | Confirmed | Supports separate `--admin-key` from `--api-key`. If admin-key not set, api-key is used for admin ops. Config should support both: `api_key` for generation, `admin_key` for model management. If only one configured, use it for both. |
@@ -100,9 +100,9 @@ Generated: 2026-02-25
 | # | Item | Status | Notes |
 |---|------|--------|-------|
 | S-1 | Phase 3-4 acceptance criteria — speculative vs firm | Moot | Old phasing model (4 phases with cloud + chat + structured) superseded. v1 scope narrowed to local backends with text gen only. |
-| S-2 | "v1" definition — what ships in first release | Decided | Provider nodes (3 backends) + Basic/Advanced generation nodes + per-provider Options nodes (with toggles) + adapter layer (Ollama Native + OAI-compat) + config system (config.yaml, API key resolution) + frontend JS (dynamic model dropdowns) + Preset Loader node (mechanism only, preset content authored separately). Not in v1: Image Describe, Chat, Structured Output, cloud providers, user-created presets. |
+| S-2 | "v1" definition — what ships in first release | Decided | **As of D-3 execution:** OAI Compatible provider + OpenAI path within same node; lifecycle nodes; Basic/Advanced generation; per-provider Options (LM Studio, Textgen, OpenAI); **single** OAI-compat adapter + config + JS dropdowns + Preset Loader. **Removed:** in-pack Ollama native surface. Not in v1: Image Describe, Chat, Structured Output, extra cloud providers, user-created presets. |
 | S-3 | API key security verification test | Decided | Add explicit test: export workflow JSON, search for API key substrings, confirm zero matches. |
-| S-4 | Local backend scope | Decided | Ollama, LM Studio, text-generation-webui. |
+| S-4 | Local backend scope | Decided | LM Studio, text-generation-webui. Native Ollama removed from pack (D-3). |
 | S-5 | Cloud provider scope | Decided (tabled) | Deferred entirely from v1. |
 
 ---
@@ -111,9 +111,9 @@ Generated: 2026-02-25
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| AA-1 | System prompts work identically across local backends | Confirmed | All three local backends use `messages` array with `role: "system"`. Ollama native API uses it in `messages`. OAI-compat backends use it in `messages`. Cloud differences (Anthropic top-level, Gemini system_instruction) are tabled with cloud scope. |
+| AA-1 | System prompts work identically across local backends | Confirmed | LM Studio / text-gen-webui / OpenAI Chat use `messages` array with `role: "system"`. Cloud differences (Anthropic top-level, Gemini system_instruction) are tabled with cloud scope. **Moot (D-3):** in-pack Ollama native path. |
 | AA-2 | `requests` blocking calls work in ComfyUI node FUNCTION methods | Confirmed | Matches ecosystem pattern. |
-| AA-3 | Per-provider parameter allowlists sufficient | Confirmed | Ollama ignores unknowns (`additionalProperties: true`). LM Studio/text-gen-webui need empirical testing but allowlist mitigates risk. See API-4. |
+| AA-3 | Per-provider parameter allowlists sufficient | Confirmed | LM Studio/text-gen-webui need empirical testing but allowlist mitigates risk. See API-4. **Moot (D-3):** Ollama “ignores unknowns” note. |
 | AA-4 | YAML config in pack directory is right pattern | Assumed | Common ecosystem convention. No authoritative standard but no contrary evidence either. |
 | AA-5 | IMAGE tensor format consistent across sources | Confirmed (with caveats) | [B,H,W,C] documented. Defensive code needed for squeezed tensors. |
 | AA-6 | Dynamic model dropdowns stable across ComfyUI versions | Assumed | comfyui-ollama and others do it. Cross-version stability unverified but widely used pattern. |
@@ -128,7 +128,7 @@ Intent is spelled out in [`docs/proposals/product-direction-and-scope.md`](propo
 |---|------|--------|-------|
 | D-1 | Textgen-first delivery priority | Proposed | Align engineering attention with Textgen + shared core before broadening surface area. |
 | D-2 | Lifecycle UX and architecture rethink | Proposed | Existing lifecycle code and `textgen-rehaul` lifecycle manager design are not treated as validated user UX; expect a full rethink before major investment. |
-| D-3 | Remove Ollama from this pack | Proposed | Narrow scope; other packs cover Ollama. **Code removal** is a **follow-up** task—see direction doc and [`proposals/ollama-removal-plan.md`](proposals/ollama-removal-plan.md); tracker A-16 and related rows remain historical until reconciled. |
+| D-3 | Remove Ollama from this pack | Decided | **Shipped 2026-05-12** — native adapter, provider/options nodes, `/llm-bikeshed/models/ollama`, shipped `providers.ollama` example removed; see [`ollama-removal-plan.md`](proposals/ollama-removal-plan.md) and `CHANGELOG.md` [0.3.0]. URL detection may still return backend id `ollama` for OAI-compat labeling only. |
 | D-4 | Dedicated llama.cpp integration | Tabled | After Textgen and core generation are solid; indirect use via LM Studio / Textgen unchanged. |
 
 ---
@@ -144,4 +144,5 @@ Intent is spelled out in [`docs/proposals/product-direction-and-scope.md`](propo
 | 2026-03-09 | Resolved remaining open items: S-2 (v1 scope confirmed), I-4 (no retry, fail immediately with logging), A-7 (`presets/` dir with README placeholder), A-8 (tabled, designed separately, research JoyCaption patterns later). Added I-7 (config migration — merge on load, user values always win). **All items now resolved, decided, confirmed, moot, or tabled. Zero unresolved items remain.** |
 | 2026-03-10 | Design review update. Added A-19 (text-gen-webui model load before generation), A-20 (model selection priority — STRING fallback overrides COMBO), A-21 (Load Text File utility node). Updated A-1 (Ollama Core/Extra split — sentinel values for common, toggles for advanced) and A-3 (hybrid: sentinels for Ollama Core, toggles everywhere else). Updated requirements.md with FR-19, FR-20, FR-21, US-14, new ACs for model fallback priority and auth-first model list endpoints. max_tokens default raised to 1024. |
 | 2026-05-12 | Added **Proposed** status key entry and Proposed direction table (D-1–D-4) pointing to `docs/proposals/product-direction-and-scope.md` (Textgen-first, lifecycle rethink, Ollama removal intent, llama.cpp deferral). |
+| 2026-05-12 | **D-3 executed:** removed in-pack Ollama (adapter, nodes, `/models/ollama`, config example); semver **0.3.0**; tracker rows reconciled. See `docs/proposals/ollama-removal-plan.md`. |
 | 2026-05-12 | Linked D-3 execution checklist: `docs/proposals/ollama-removal-plan.md`. |

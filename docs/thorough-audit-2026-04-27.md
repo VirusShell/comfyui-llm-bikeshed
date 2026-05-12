@@ -7,7 +7,7 @@ This document **scopes** what was reviewed, **records methodology**, and **lists
 | Area | In scope | Out of scope (this pass) |
 |------|-----------|---------------------------|
 | Graph introspection / `skip_unload` | `graph/introspection.py`, all callers in `nodes/generation.py` | Live ComfyUI with Reroute / subgraphs (manual QA) |
-| Adapters / HTTP | `adapters/base.py`, `adapters/oai_compat.py`, `adapters/ollama.py` | Load testing, real WAN latency |
+| Adapters / HTTP | `adapters/base.py`, `adapters/oai_compat.py` | Load testing, real WAN latency |
 | Model list UX | `js/model_dropdown.js`, `server/endpoints.py` routes | Cross-version ComfyUI matrix (manual) |
 | Reference vs code | `docs/reference/backend-api-parameters.md`, resolution tracker | Full OpenAPI scrape of every backend |
 | Automated tests | `tests/`, `pyproject.toml` | CI pipeline configuration |

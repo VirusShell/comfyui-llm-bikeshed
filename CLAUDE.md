@@ -13,12 +13,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ComfyUI custom node pack that connects workflows to **Ollama**, **LM Studio**, **Textgen** (text-generation-webui), and optional **OpenAI** Chat Completions (keys via config/env only). Scope is strictly LLM text generation: no image/video/music/speech generation. Additional cloud APIs beyond OpenAI core chat remain out of scope until explicitly added.
+ComfyUI custom node pack that connects workflows to **LM Studio**, **Textgen** (text-generation-webui), and optional **OpenAI** Chat Completions (keys via config/env only). The **LLM Provider: OAI Compatible** node auto-detects the backend at a URL (LM Studio, Textgen, OpenAI, llama.cpp, generic OAI, etc.); fingerprinting may still label a host as Ollama for UI purposes, but this pack does **not** ship native Ollama nodes or `/api/chat` integration—use another pack for that. Scope is strictly LLM text generation: no image/video/music/speech generation. Additional cloud APIs beyond OpenAI core chat remain out of scope until explicitly added.
 
 **Current status:** Pre-implementation (design phase). Authoritative docs:
 - `docs/text_gen_processing_concept.md` — node architecture and design decisions
 - `docs/resolution_tracker.md` — source of truth for open questions, assumptions, and confirmed decisions
-- `docs/proposals/product-direction-and-scope.md` — **non-authoritative** roadmap signals (Textgen-first, lifecycle rethink, planned Ollama removal as docs-stage intent with code removal follow-up, llama.cpp deferred). Reconcile older tracker rows (e.g. A-16) when implementation proceeds.
+- `docs/proposals/product-direction-and-scope.md` — **non-authoritative** roadmap signals (Textgen-first, lifecycle rethink, **Ollama removed from pack as of 0.3.0**, llama.cpp deferred). Reconcile older tracker rows (e.g. A-16) when implementation proceeds.
 
 Old docs (`docs/old/CONCEPT.md`, `docs/old/RESEARCH_BRIEF.md`) are superseded — do not reference them for current decisions.
 
@@ -45,14 +45,16 @@ Additional verified patterns in project memory: `comfyui-node-standards.md` (wid
 
 ## Architecture
 
-### Supported Backends (A-16, firm)
+### Supported Backends (A-16, firm — post D-3)
 
 | Backend | API | Model Memory | Notes |
 |---------|-----|-------------|-------|
-| Ollama | Native (`/api/chat`, `/api/tags`) | `keep_alive` per-request, default "30s" | Full access to Ollama-specific params via native adapter |
 | LM Studio | OAI-compat (`/v1/chat/completions`, `/v1/models`) | `ttl` per-request, default 30s | JIT loading + Auto-Evict complement TTL |
 | Textgen (text-generation-webui) | OAI-compat + internal API (`/v1/internal/model/*`) | Explicit unload via API | Requires admin key (config/env only) |
 | OpenAI API | OAI-compat (`/v1/chat/completions`, `/v1/models`) | No local VRAM lifecycle | Core sampling params only; keys config/env only |
+| Generic / other OAI hosts | OAI-compat | Varies | Passthrough allowlist behavior |
+
+**Removed from this pack (D-3):** Native **Ollama** (`/api/chat`) provider, options nodes, and adapter — use ecosystem Ollama packs or an OAI-compatible gateway.
 
 **Dropped:** vLLM and standalone llama-server — no model unload API. llama.cpp the engine is still supported indirectly through LM Studio and Textgen.
 
@@ -60,13 +62,13 @@ Additional verified patterns in project memory: `comfyui-node-standards.md` (wid
 
 ### Adapter Pattern
 
-Two adapters cover all supported backends:
-- **Ollama Native** — `POST {url}/api/chat`
-- **OpenAI-Compatible** — `POST {url}/v1/chat/completions` (OpenAI API, LM Studio, Textgen)
+A single **OpenAI-Compatible** adapter covers all supported generation backends:
+
+- **OpenAI-Compatible** — `POST {url}/v1/chat/completions` (OpenAI API, LM Studio, Textgen, llama.cpp server exposing OAI, etc.)
 
 All API calls use `requests` (synchronous HTTP). No provider SDKs (`openai`, `anthropic`, `google-genai`). PromptServer endpoints for model lists use `asyncio.to_thread()` to avoid blocking ComfyUI's event loop.
 
-Each adapter handles: parameter allowlist filtering (drops unsupported params, logs at info level), parameter name mapping (e.g., `max_tokens` → `num_predict` for Ollama), response extraction, and error reporting with backend name, URL, HTTP status, and response body.
+Each adapter handles: parameter allowlist filtering (drops unsupported params, logs at info level), parameter name mapping where backends differ, response extraction, and error reporting with backend name, URL, HTTP status, and response body.
 
 ### Node Design
 
@@ -84,7 +86,7 @@ Whether these are two nodes or one node with optional breakout connections is no
 
 ### VRAM is Shared (Core Requirement)
 
-ComfyUI workflows share the same GPU for diffusion and LLM inference. Model memory management is not optional — short TTL/keep_alive defaults prioritize VRAM reclamation so Stable Diffusion can use the GPU immediately after LLM generation completes. Chain-aware unload deferral for text-gen-webui is an open research item (A-15, P-10).
+ComfyUI workflows share the same GPU for diffusion and LLM inference. Model memory management is not optional — short TTL defaults on LM Studio and explicit Textgen unload prioritize VRAM reclamation so Stable Diffusion can use the GPU immediately after LLM generation completes. Chain-aware unload deferral for text-gen-webui is an open research item (A-15, P-10).
 
 ## Key Design Constraints
 

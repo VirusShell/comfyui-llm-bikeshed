@@ -1,6 +1,6 @@
 # Ollama removal — execution plan
 
-**Status:** Checklist for follow-up code work. Aligns with product direction ([`product-direction-and-scope.md`](product-direction-and-scope.md) § Ollama) and tracker **D-3** ([`resolution_tracker.md`](../resolution_tracker.md)).
+**Status:** Executed 2026-05-12 (code + docs). Aligns with product direction ([`product-direction-and-scope.md`](product-direction-and-scope.md) § Ollama) and tracker **D-3** ([`resolution_tracker.md`](../resolution_tracker.md)).
 
 ## 1. Goal / non-goals
 
@@ -38,20 +38,20 @@
 
 **Phase A — Tests & docs (can land before or with code)**
 
-- [ ] Update README, CHANGELOG, CLAUDE.md for post-Ollama surface.
-- [ ] Add/adjust automated tests (when present) for import graph and missing node types.
-- [ ] Grep whole repo for `ollama`, `Ollama`, `ollama_native`, `LLMProviderOllama`, `/models/ollama`.
+- [x] Update README, CHANGELOG, CLAUDE.md for post-Ollama surface.
+- [x] Add/adjust automated tests (when present) for import graph and missing node types.
+- [x] Grep whole repo for `ollama`, `Ollama`, `ollama_native`, `LLMProviderOllama`, `/models/ollama`.
 
 **Phase B — Code removal**
 
-- [ ] Remove nodes, adapter, endpoint, `_fetch_models_ollama`, JS provider entry, `config.example.yaml` block, `__init__.py` mappings.
-- [ ] Run ComfyUI load smoke (or minimal `python -c` import of pack) to catch leftover imports.
-- [ ] Bump **semver** minor or major per project policy; breaking change for saved workflows using Ollama nodes.
+- [x] Remove nodes, adapter, endpoint, `_fetch_models_ollama`, JS provider entry, `config.example.yaml` block, `__init__.py` mappings.
+- [x] Run ComfyUI load smoke (or minimal `python -c` import of pack) to catch leftover imports.
+- [x] Bump **semver** minor or major per project policy; breaking change for saved workflows using Ollama nodes.
 
 **Phase C — Tracker / direction**
 
-- [ ] Promote **D-3** to **Decided** once removal ships; update **A-16**, **S-2**, **S-4**, etc., so “supported backends” matches code.
-- [ ] Optional: short log row in tracker § Log linking this file.
+- [x] Promote **D-3** to **Decided** once removal ships; update **A-16**, **S-2**, **S-4**, etc., so “supported backends” matches code.
+- [x] Optional: short log row in tracker § Log linking this file.
 
 ## 4. User migration
 
