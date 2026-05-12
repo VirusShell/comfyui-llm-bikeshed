@@ -16,7 +16,7 @@ Expect a **full rethink** of lifecycle UX and architecture—not incremental pol
 
 **Direction:** Remove **Ollama** as a supported backend from this node pack going forward. Other ComfyUI custom nodes already cover Ollama well; dropping it here reduces maintenance and scope.
 
-**This repository stage:** **Documentation and tracker only** for this change unless a separate task explicitly deletes code. A follow-up implementation task should remove the Ollama native adapter, Ollama-specific nodes, and related config/docs references when execution is scheduled. Until then, Ollama may still appear in code and older docs—treat that as **legacy**, not endorsement.
+**This repository stage:** **Documentation and tracker only** for this change unless a separate task explicitly deletes code. A follow-up implementation task should remove the Ollama native adapter, Ollama-specific nodes, and related config/docs references when execution is scheduled. Until then, Ollama may still appear in code and older docs—treat that as **legacy**, not endorsement. See [`ollama-removal-plan.md`](ollama-removal-plan.md) for execution checklist (inventory, phases, migration, risks).
 
 ## llama.cpp: explicit deferral
 

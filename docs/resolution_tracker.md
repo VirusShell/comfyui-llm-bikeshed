@@ -128,7 +128,7 @@ Intent is spelled out in [`docs/proposals/product-direction-and-scope.md`](propo
 |---|------|--------|-------|
 | D-1 | Textgen-first delivery priority | Proposed | Align engineering attention with Textgen + shared core before broadening surface area. |
 | D-2 | Lifecycle UX and architecture rethink | Proposed | Existing lifecycle code and `textgen-rehaul` lifecycle manager design are not treated as validated user UX; expect a full rethink before major investment. |
-| D-3 | Remove Ollama from this pack | Proposed | Narrow scope; other packs cover Ollama. **Code removal** is a **follow-up** task—see direction doc; tracker A-16 and related rows remain historical until reconciled. |
+| D-3 | Remove Ollama from this pack | Proposed | Narrow scope; other packs cover Ollama. **Code removal** is a **follow-up** task—see direction doc and [`proposals/ollama-removal-plan.md`](proposals/ollama-removal-plan.md); tracker A-16 and related rows remain historical until reconciled. |
 | D-4 | Dedicated llama.cpp integration | Tabled | After Textgen and core generation are solid; indirect use via LM Studio / Textgen unchanged. |
 
 ---
@@ -144,3 +144,4 @@ Intent is spelled out in [`docs/proposals/product-direction-and-scope.md`](propo
 | 2026-03-09 | Resolved remaining open items: S-2 (v1 scope confirmed), I-4 (no retry, fail immediately with logging), A-7 (`presets/` dir with README placeholder), A-8 (tabled, designed separately, research JoyCaption patterns later). Added I-7 (config migration — merge on load, user values always win). **All items now resolved, decided, confirmed, moot, or tabled. Zero unresolved items remain.** |
 | 2026-03-10 | Design review update. Added A-19 (text-gen-webui model load before generation), A-20 (model selection priority — STRING fallback overrides COMBO), A-21 (Load Text File utility node). Updated A-1 (Ollama Core/Extra split — sentinel values for common, toggles for advanced) and A-3 (hybrid: sentinels for Ollama Core, toggles everywhere else). Updated requirements.md with FR-19, FR-20, FR-21, US-14, new ACs for model fallback priority and auth-first model list endpoints. max_tokens default raised to 1024. |
 | 2026-05-12 | Added **Proposed** status key entry and Proposed direction table (D-1–D-4) pointing to `docs/proposals/product-direction-and-scope.md` (Textgen-first, lifecycle rethink, Ollama removal intent, llama.cpp deferral). |
+| 2026-05-12 | Linked D-3 execution checklist: `docs/proposals/ollama-removal-plan.md`. |
