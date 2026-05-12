@@ -2,11 +2,13 @@
 
 ## Status & scope
 
+**Research authority:** Implementation and future lifecycle work **must not contradict** findings in [`docs/research/textgen-lifecycle-verified.md`](../research/textgen-lifecycle-verified.md) without updating that research file with new upstream sources (routes, auth split, response shapes).
+
 **Design stance:** Lifecycle content in this document—the proposed policy schema, runtime manager, rollout phases, and related adapter behavior—is **not** validated as the correct long-term product design. It can conflict with common mental models for how model memory should behave in ComfyUI graphs. A **full rethink** of lifecycle UX and architecture is expected before locking anything in; see [`product-direction-and-scope.md`](product-direction-and-scope.md).
 
 Until that rethink, treat implementation work on a Textgen lifecycle **manager** and policy-driven schema as **on hold** or **experimental**—useful as exploration, not as committed roadmap.
 
-**Research-backed slice (2026-05-12):** Verified Textgen HTTP/auth behavior against upstream `oobabooga/textgen` is summarized in [`docs/research/textgen-lifecycle-verified.md`](../research/textgen-lifecycle-verified.md). Implemented in code: correct **API vs admin Bearer** usage for `GET /v1/internal/model/info` vs load/unload; normalization of idle `model_name`; model refresh API + UI label surfacing **currently loaded** model for Textgen. **Still deferred:** policy manager, idle timers, traffic reduction for repeated `model/info`, and any change to the binary lifecycle node beyond clarifications grounded in further product decisions.
+**Research-backed slice (2026-05-12):** Verified Textgen HTTP/auth behavior against upstream `oobabooga/textgen` is summarized in [`docs/research/textgen-lifecycle-verified.md`](../research/textgen-lifecycle-verified.md). Implemented in code: correct **API vs admin Bearer** usage for `GET /v1/internal/model/info` vs load/unload; normalization of idle `model_name`; model refresh API + UI for **detected backend** and **loaded model** on the OAI-compat provider. **Still deferred:** policy manager, idle timers, traffic reduction for repeated `model/info`, and any change to the binary lifecycle node beyond clarifications grounded in further product decisions.
 
 Sections that are only **tangentially** tied to lifecycle (for example diagnostics, optional utility nodes, or traffic-reduction ideas) still carry **uncertainty** wherever they assume a particular lifecycle core; they may survive a redesign in another form, or they may need revision once the lifecycle story is clearer.
 
@@ -62,7 +64,7 @@ Chain-awareness is derived from ComfyUI `PROMPT` reverse-indexing via hidden inp
 ## Design goals
 
 1. Support multiple user behaviors with one coherent system
-2. Preserve backward compatibility for existing workflows
+2. Preserve **data and graph** compatibility where practical; breaking misleading UX is acceptable when documented (migration notes, CHANGELOG)
 3. Keep graph behavior readable and explicit
 4. Retain ComfyUI chain-awareness (`skip_unload`) as a first-class signal
 5. Avoid unnecessary API traffic and reduce VRAM thrash
@@ -255,20 +257,24 @@ Rationale:
 
 ## Open decisions to finalize before implementation
 
-1. Should `idle_seconds=0` be allowed and interpreted as immediate unload?
-2. Should `after_idle` timer be process-local only (simple) or persisted across reloads (likely unnecessary)?
-3. Should lifecycle manager state be shared across adapters/modules or scoped to `OAICompatAdapter` only?
-4. Should strict policies (`require_preloaded`, `error_if_other_model_loaded`) be exposed in Basic UX, or gated behind an advanced toggle?
+Stakeholder / review input (2026-05-12) — fold into design before treating lifecycle manager work as committed:
+
+1. **`idle_seconds`:** Clarify semantics for `0` vs `-1` (if ever allowed): e.g. is `0` “immediate unload after idle check” or invalid? Prefer documenting one convention and rejecting ambiguous values in the node validator.
+2. **`after_idle` scope:** Spell out that unload timers are **process-local** (this ComfyUI Python process): wall-clock since the last adapter call here; ComfyUI or queue restarts cancel the timer but **do not** unload Textgen — VRAM may still hold the model until Textgen policy, an explicit unload, or another client acts.
+3. **Manager scope vs detection:** Per-endpoint manager keying (normalized URL + backend id) should stay aligned with how the pack already fingerprints Textgen vs generic OAI at the same port; document that URL identity is server identity for a single loaded model, and that two graphs with different lifecycle policies on the same URL remain a product tension (see risk table #1 / follow-up on `lifecycle_source_id`).
+4. **`require_preloaded`:** Do **not** treat as the default happy path — it is a strict / automation mode. Prefer documenting it as an edge policy or anti-pattern for casual graphs unless the UX makes the failure mode obvious.
+5. **`error_if_other_model_loaded`:** Critique stands — easy to misconfigure vs `auto_switch`; if it stays in the schema, tooltips and errors must say *which* model was loaded vs *which* was requested, and when to use `auto_switch` instead.
+6. **Basic vs Advanced generation nodes:** Any lifecycle policy surface that is easy to get wrong (`require_preloaded`, strict switch policies, idle tuning) should default to **Advanced** or behind an explicit “expert” expander; Basic should keep VRAM-first defaults and minimal knobs.
 
 ## Success criteria
 
 This rehaul is successful when:
 
-1. Existing workflows continue working unchanged
-2. Users can select memory behavior intentionally without code changes
-3. Iterative prompt workflows can opt into `after_idle` and show fewer expensive model reloads
-4. VRAM-first workflows still unload aggressively when desired
-5. Logs clearly explain lifecycle decisions during execution
+1. **Honest evolution:** “No regressions” is a **migration and communication** goal (CHANGELOG, porting notes), not a veto on replacing UX that was wrong or misleading. Prefer one-time user-visible fixes over preserving broken indicators “because it shipped.”
+2. **Intent without code forks:** Users can steer memory behavior via **node controls and documented config**, not by editing the adapter or maintaining private branches — including clear defaults and opt-ins (`after_idle`, `never`, etc.).
+3. **Chain + meta stay legible:** `skip_unload`, meta passthrough, and lifecycle policy interact in ways we **document with explicit precedence** (what wins when policy and chain hints disagree). Success is not “behaves like stock ComfyUI” for every knob; it is “operators can predict the next run from the graph + docs.”
+4. **VRAM posture is explicit:** Aggressive reclaim vs “hold warm model” is a **documented trade-off** (defaults, tooltips, logs), not something inferred only from timing side effects.
+5. **Observability:** Lifecycle decisions are explained in logs, and **log verbosity is configurable** (see commented `logging` proposal in [`config.example.yaml`](../../config.example.yaml); wiring TBD — goal is debuggable sessions without recompiling).
 
 ---
 

@@ -2,6 +2,10 @@
 # Copy this file to config.yaml and adjust as needed.
 # config.yaml is gitignored and will not be shared with workflows.
 
+# Optional (not implemented yet): tune pack logging without code changes.
+# logging:
+#   level: "info"   # proposed: info | debug — applies once wired in Python logging setup
+
 providers:
   lm_studio:
     url: "http://localhost:1234"
@@ -16,13 +20,20 @@ providers:
   text_gen_webui:
     url: "http://localhost:5000"
     timeout: 120
-    # api_key: same as Textgen --api-key (chat + GET /v1/internal/model/info).
-    # admin_key: same as Textgen --admin-key (GET /v1/internal/model/list, load, unload).
+    # Textgen (oobabooga) may use two secrets (see docs/research/textgen-lifecycle-verified.md):
+    #   api_key  — matches Textgen --api-key: Bearer for chat (POST /v1/chat/completions)
+    #              and for GET /v1/internal/model/info when Textgen enforces a key.
+    #   admin_key — matches Textgen --admin-key: Bearer for GET /v1/internal/model/list
+    #              and POST /v1/internal/model/load|unload when Textgen enforces it.
+    # If only one flag is set in Textgen, put the same value in both fields here.
     # api_key: "your-api-key-here"
     # admin_key: "your-admin-key-here"
 
   oai_compat:
     timeout: 120
-    # If you only use LLM Provider: OAI Compatible, keys here are used for
-    # OpenAI-style backends and also as fallback when the URL is Textgen.
+    # Keys for the "LLM Provider: OAI Compatible" node when the pasted URL needs auth.
+    # They are tried for generic OAI /v1/models and chat like other providers.
+    # For a Textgen URL, these merge with providers.text_gen_webui (see get_textgen_auth_keys):
+    # use text_gen_webui.* for Textgen-specific secrets when possible; use oai_compat when
+    # you only configure this block (single place for chat + model list refresh on that host).
     # api_key: "your-api-key-here"

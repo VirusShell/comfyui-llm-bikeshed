@@ -4,7 +4,7 @@
 
 ## Textgen-first priority
 
-Engineering and UX attention should favor **text-generation-webui (Textgen)** integration and shared generation/core features until that path feels solid. Other backends remain in scope where they already exist, but **expanding** surface area (new lifecycle policies, new provider-specific features) should default to deferral unless it directly supports Textgen or shared adapters.
+Engineering and UX attention should favor **text-generation-webui (Textgen)** integration and shared generation/core features until that path feels solid. A 2026-05 pass tightened provider refresh latency (parallel backend probes, parallel Textgen list + model/info) and fixed OAI-compat UI state for **detected backend** and **loaded model** readouts; further lifecycle work remains deferred per below.
 
 ## Lifecycle: full rethink (do not assume current designs)
 

@@ -54,12 +54,12 @@ The route is registered with `check_key` only; there is **no** route-level guard
 - Exact error codes and messages from `chat/completions` when no weights are loaded (may vary by loader and version).
 - Whether older forks (pre-rename `text-generation-webui`) used identical `Depends` mapping; **this pack should target current `oobabooga/textgen` behavior** and treat older blogs/wiki pages as non-authoritative.
 
-## Audit vs this repository (2026-05-12)
+## Audit vs this repository
 
-| Area | Mismatch |
-|------|-----------|
-| `adapters/oai_compat.py` | `_ensure_model_loaded` used **admin-priority** headers for `GET /v1/internal/model/info`; upstream requires **API key** for that route when `--api-key` is set. |
-| `adapters/oai_compat.py` docstring for `_auth_headers` | Claimed one key covers chat and internal routes — **false** for list/load/unload vs info when keys differ. |
-| `config/__init__.py` (`get_textgen_auth_keys` docstring) | Same misleading “internal routes” wording. |
-| `config.example.yaml` | Implied `api_key` drives internal model list — upstream **`model/list` is admin-gated** when `--admin-key` is set. |
-| UX | Model dropdown showed installable names (`internal/model/list`) but not **VRAM / currently loaded** name; `model/info` exposes that when `api_key` is configured. |
+**Historical (2026-05-12):** The table below recorded gaps before alignment; current code uses **API** bearer for `GET /v1/internal/model/info` and chat, **admin** bearer for `internal/model/list` and load/unload in `adapters/oai_compat.py`; `get_textgen_auth_keys` / `config.example.yaml` document the split; model list resolution uses `model/info` for the loaded label when an API key is available.
+
+| Area | Was (fixed) |
+|------|-------------|
+| `adapters/oai_compat.py` | `_ensure_model_loaded` briefly used admin-priority for `model/info` — **fixed:** `info_headers` from `_auth_headers`, load/unload from `_admin_headers`. |
+| Docstrings / example config | Wording implied one key for all internal routes — **fixed** to distinguish API vs admin gates. |
+| UX | **Addressed:** loaded model and backend readouts on the OAI-compat provider (`loaded_model` JSON + `model_dropdown.js` widgets `detected_backend`, `loaded_model_status`); PromptServer path uses parallel backend probes and parallel Textgen internal list + `model/info` to cut first-paint latency. |
