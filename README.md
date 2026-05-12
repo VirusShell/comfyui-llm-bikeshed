@@ -1,17 +1,17 @@
 # ComfyUI LLM Bikeshed
 
-ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Compatible** for OpenAI-style backends (LM Studio, Textgen, OpenAI, llama.cpp, etc.) with automatic detection at the URL. API keys live in config or environment variables only.
+ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Compatible** for OpenAI-style backends with automatic detection at the URL (LM Studio, OpenAI, llama.cpp, etc.). Use **LLM Provider: Textgen** for [oobabooga Textgen](https://github.com/oobabooga/text-generation-webui) (fixed backend, integrated VRAM controls, Textgen-only model list). API keys live in config or environment variables only.
 
 **Product direction:** See [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md) for scope notes (Textgen-first, lifecycle model under review, llama.cpp deferred).
 
 ## Features
 
-- **1 Provider node** — OAI Compatible (auto-detected backend at URL, including OpenAI API when configured)
-- **2 Lifecycle nodes** (optional) — VRAM-aware LM Studio TTL/context or Textgen load/unload when wired into the OAI provider’s `lifecycle` input
+- **2 Provider nodes** — **OAI Compatible** (auto-detected backend at URL) and **Textgen** (dedicated Textgen URL, `manage_model_memory` on-node, model list without fingerprinting)
+- **2 Lifecycle nodes** (optional, legacy for Textgen when using OAI provider) — VRAM-aware LM Studio TTL/context or separate Textgen load/unload when wired into the OAI provider’s `lifecycle` input
 - **2 Generation nodes** — Basic (compact, inline params) and Advanced (modular, connection-driven)
 - **3 Options nodes** — LM Studio, Textgen, and OpenAI core sampling parameters
 - **2 Utility nodes** — Preset Loader and Load Text File
-- **VRAM-aware** — optional lifecycle nodes gate explicit model load/unload (Textgen, LM Studio)
+- **VRAM-aware** — **Textgen:** enable **Manage model memory** on **LLM Provider: Textgen** (or connect **LLM Lifecycle: Textgen** to **OAI Compatible**) so the adapter loads before chat and unloads after the last generation in a chain. **LM Studio:** optional lifecycle TTL
 - **Secure** — API keys from config file or environment variables, never in workflow JSON
 - **Minimal dependencies** — only `pyyaml` and `requests` (no provider SDKs)
 
@@ -21,7 +21,7 @@ ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Comp
 - Python 3.10+
 - At least one LLM backend running, for example:
   - [LM Studio](https://lmstudio.ai/) (default: `http://localhost:1234`)
-  - [Textgen / text-generation-webui](https://github.com/oobabooga/text-generation-webui) (default: `http://localhost:5000`) — verified HTTP/auth for internal model routes is summarized in [`docs/research/textgen-lifecycle-verified.md`](docs/research/textgen-lifecycle-verified.md).
+  - [Textgen / text-generation-webui](https://github.com/oobabooga/text-generation-webui) (default: `http://localhost:5000`) — verified HTTP/auth for internal model routes is summarized in [`docs/research/textgen-lifecycle-verified.md`](docs/research/textgen-lifecycle-verified.md). **VRAM / model memory today:** see the same doc (appendix) and the short summary under [Architecture](#architecture).
   - Optional: **OpenAI** (`https://api.openai.com`) — set `providers.openai.api_key` or `LLM_BIKESHED_OPENAI_API_KEY`; keys never stored in workflows
 
 Native **Ollama** (`/api/chat`) is not supported by this pack; use a dedicated Ollama-focused custom node pack, or an OpenAI-compatible gateway if your stack exposes `/v1/chat/completions`.
@@ -111,21 +111,29 @@ Configure a backend connection. Each outputs an `LLM_PROVIDER` type.
 | Node | Role | Key settings |
 |------|------|----------------|
 | **LLM Provider: OAI Compatible** | OpenAI-style HTTP backends (detected at `url`) | `url`, `model` dropdown, optional `lifecycle` input — API keys from config/env per detected backend + `oai_compat` fallback |
+| **LLM Provider: Textgen** | oobabooga Textgen only (`text_gen_webui` + `oai_compat` adapter) | `url` (default `http://localhost:5000`), `model`, **`manage_model_memory`** (ON = same lifecycle as **LLM Lifecycle: Textgen** — load/unload around generation), optional `model_fallback` — keys via `get_textgen_auth_keys()` |
 
-All provider nodes have:
-- Dynamic model dropdown (queries backend via PromptServer; refresh button). Initial fetch is deferred one microtask so saved workflow values apply before the list updates. For **Textgen**, the server asks **`GET /v1/internal/model/list`** first (same models as the Textgen UI), then falls back to **`GET /v1/models`** if needed.
+For **Textgen**, queuing a generation with **Manage model memory** ON on **LLM Provider: Textgen** loads the selected model automatically (no separate “load model” control). On **LLM Provider: OAI Compatible**, when a refresh detects **Textgen** at the URL, **Load model** appears next to **Refresh Models** and calls `POST /llm-bikeshed/textgen/load-model` (Comfy resolves admin/API keys from config only). Use **Refresh Models** to refresh the dropdown and the read-only **loaded** line.
+
+**Migration:** Replace **LLM Provider: OAI Compatible** + **LLM Lifecycle: Textgen** with **LLM Provider: Textgen** (`manage_model_memory` ON) for the same VRAM behavior and simpler graphs.
+
+All provider nodes share:
+
+- Dynamic model dropdown (queries backend via PromptServer; **Refresh Models** button). The first auto-fetch is **debounced** (~600ms) so rapid node creation does not duplicate requests or flood logs when the default URL is offline. **Textgen** lists use **`GET /v1/internal/model/list`** first (same models as the Textgen UI), then fall back to **`GET /v1/models`** if needed. The dedicated Textgen provider calls **`POST /llm-bikeshed/models/textgen`** (skips multi-backend detection for speed and quieter logs). **OAI Compatible** only: after a fetch shows Textgen, **Load model** triggers **`POST /llm-bikeshed/textgen/load-model`** (server-side keys).
 - `model_fallback` STRING input — overrides dropdown when connected (useful when backend is offline)
 
 The read-only **detected backend** label (OAI node only) can still show **Ollama** when URL fingerprinting matches Ollama’s `/api/version` shape; this pack does not ship Ollama-native nodes or routes—use another pack or an OAI-compatible path for generation.
 
 ### Lifecycle nodes (optional)
 
-Use only with **LLM Provider: OAI Compatible**. Connect the `lifecycle` output to the provider’s optional `lifecycle` input to turn on explicit VRAM management for **LM Studio** or **Textgen** when that backend is detected. Without a lifecycle connection, the adapter does not run local load/unload.
+Use with **LLM Provider: OAI Compatible** when you want LM Studio TTL or a **separate** Textgen lifecycle widget. **LLM Lifecycle: Textgen** remains supported for old graphs but is **legacy** if you use **LLM Provider: Textgen** — that provider includes the same `manage_model_memory` behavior on-node.
+
+Without a lifecycle connection on **OAI Compatible** (and with **Manage model memory** OFF on **LLM Provider: Textgen**), the adapter does not run local Textgen load/unload.
 
 | Node | When to use | Widgets |
 |------|-------------|---------|
 | **LLM Lifecycle: LM Studio** | Detected backend is LM Studio | `ttl`, `context_length` |
-| **LLM Lifecycle: Textgen** | Detected backend is Textgen | `manage_model_memory` (ON = enable load/unload; OFF = same as no lifecycle node). A widget is required so ComfyUI draws the node body reliably. |
+| **LLM Lifecycle: Textgen** | **Legacy** when using **OAI Compatible** at a Textgen URL; prefer **LLM Provider: Textgen** with **Manage model memory** for new workflows | `manage_model_memory` (ON = enable load/unload; OFF = same as no lifecycle node) |
 
 ### Generation Nodes
 
@@ -166,11 +174,12 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 
 ### Minimal Setup (Basic Generation)
 
-1. Add **LLM Provider: OAI Compatible** (point `url` at your LM Studio, Textgen, OpenAI-compatible server, etc.)
-2. Add **LLM Generate (Basic)**
-3. Connect Provider output to Generate's `provider` input
-4. Type your prompt and system prompt
-5. Queue the workflow
+1. Add **LLM Provider: Textgen** (or **OAI Compatible** for mixed backends), point `url` at Textgen (default `http://localhost:5000`)
+2. Leave **Manage model memory** ON on **LLM Provider: Textgen** so the model loads when you queue the graph (or connect **LLM Lifecycle: Textgen** → **OAI Compatible** if you still use the generic provider)
+3. Add **LLM Generate (Basic)**
+4. Connect Provider output to Generate's `provider` input
+5. Type your prompt and system prompt
+6. Queue the workflow
 
 ### Advanced Setup (Modular Generation)
 
@@ -188,8 +197,9 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 
 ## Architecture
 
-- **Adapter pattern** — OpenAI-Compatible adapter: `POST {url}/v1/chat/completions`; optional lifecycle hooks for LM Studio (`/api/v1/models`, `ttl`) and Textgen (`/v1/internal/model/*`) when a matching lifecycle node is connected
-- **Backend detection** — `detection.py` plus `POST /llm-bikeshed/detect` for the indicator on the OAI Compatible provider (includes fingerprinting that may label a host as Ollama even though this pack does not run native Ollama chat)
+- **VRAM / model memory (current behavior)** — **Textgen:** model list and loaded label use internal HTTP (`GET /v1/internal/model/list`, `GET /v1/internal/model/info`); generation uses `POST {url}/v1/chat/completions`; with **Manage model memory** ON (dedicated Textgen provider or lifecycle wired to OAI Compatible), the adapter calls `POST {url}/v1/internal/model/load` / `unload` around generation. **OAI Compatible** at a Textgen URL can also load from the provider UI via **`POST /llm-bikeshed/textgen/load-model`** (no keys in the workflow JSON). Chain-aware unload deferral uses **`skip_unload`** on generation nodes. **LM Studio:** TTL/context via the LM Studio lifecycle node. **Ollama** is not supported natively in this pack. **Still open:** lifecycle UX long-term; see [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md).
+- **Adapter pattern** — OpenAI-Compatible adapter: `POST {url}/v1/chat/completions`; optional lifecycle hooks for LM Studio (`/api/v1/models`, `ttl`) and Textgen (`/v1/internal/model/*`) when lifecycle is present on the provider (integrated on **LLM Provider: Textgen** when **Manage model memory** is ON, or via **LLM Lifecycle** → **OAI Compatible**)
+- **Backend detection** — `detection.py` plus `POST /llm-bikeshed/detect` for the indicator on the OAI Compatible provider; **LLM Provider: Textgen** uses `POST /llm-bikeshed/models/textgen` (no fingerprinting) for the model dropdown
 - **Synchronous HTTP** via `requests` (ComfyUI nodes run synchronously)
 - **Config merge-on-load**: `config.example.yaml` defaults deep-merged with user's `config.yaml`
 - **Frontend JS** for dynamic model dropdowns via PromptServer endpoints

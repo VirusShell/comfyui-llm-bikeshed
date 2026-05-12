@@ -6,8 +6,19 @@ const PROVIDER_CONFIG = {
     /** When true, show read-only detected_backend from the same response as models. */
     showBackendLabel: true,
     defaultUrl: "http://localhost:1234",
+    /** Textgen-only: PromptServer load route + Load model button */
+    showLoadModelButton: true,
+  },
+  LLMProviderTextGenWebUI: {
+    endpoint: "/llm-bikeshed/models/textgen",
+    showBackendLabel: true,
+    defaultUrl: "http://localhost:5000",
+    showLoadModelButton: false,
   },
 };
+
+/** Debounce first auto-fetch so duplicate nodeCreated does not double-hit the backend. */
+const INITIAL_FETCH_DEBOUNCE_MS = 600;
 
 /**
  * Fetch model list from a backend endpoint.
@@ -118,6 +129,50 @@ function markNodeDirty(node) {
   }
 }
 
+function normalizeModelId(s) {
+  return String(s ?? "").trim().toLowerCase();
+}
+
+function syncLoadModelButton(loadBtn, backend, loadedModel, modelWidget) {
+  if (!loadBtn) {
+    return;
+  }
+  const isTextgen = backend === "text_gen_webui";
+  loadBtn.hidden = !isTextgen;
+  if (!isTextgen) {
+    loadBtn.disabled = true;
+    return;
+  }
+  const sel = modelWidget.value;
+  const bad = !sel || PLACEHOLDER_VALUES.has(sel);
+  let loadedNorm = null;
+  if (loadedModel !== undefined && loadedModel !== null) {
+    const t = String(loadedModel).trim();
+    if (t) {
+      loadedNorm = normalizeModelId(t);
+    }
+  }
+  const selNorm = normalizeModelId(sel);
+  const match = loadedNorm !== null && selNorm === loadedNorm;
+  loadBtn.disabled = bad || match;
+}
+
+function maybeToast(message, severity) {
+  const add = app.extensionManager?.toast?.add;
+  if (typeof add !== "function") {
+    return;
+  }
+  try {
+    add({ severity, message });
+  } catch {
+    try {
+      add({ type: severity === "success" ? "success" : "error", content: message });
+    } catch {
+      /* optional UI */
+    }
+  }
+}
+
 function applyProviderStatus(node, backendWidget, loadedWidget, backend, loadedModel) {
   if (backendWidget) {
     backendWidget.value = formatBackendName(backend);
@@ -137,7 +192,8 @@ app.registerExtension({
       return;
     }
 
-    const { endpoint, defaultUrl, showBackendLabel } = config;
+    const { endpoint, defaultUrl, showBackendLabel, showLoadModelButton = false } =
+      config;
 
     // Find the model and url widgets
     const modelWidget = node.widgets?.find((w) => w.name === "model");
@@ -166,21 +222,47 @@ app.registerExtension({
       );
     }
 
+    let lastBackend = null;
+    let lastLoadedModel = undefined;
+    let loadModelBtn = null;
+
     /** @param {unknown} [initialSavedModel] if set, restore COMBO to this after fetch */
     const runFetch = (url, initialSavedModel) => {
       fetchModels(endpoint, url).then(({ models, backend, loadedModel }) => {
+        lastBackend = backend;
+        lastLoadedModel = loadedModel;
         const saved =
           initialSavedModel !== undefined ? initialSavedModel : modelWidget.value;
         updateModelWidget(modelWidget, models, saved);
         applyProviderStatus(node, backendWidget, loadedModelWidget, backend, loadedModel);
+        syncLoadModelButton(loadModelBtn, backend, loadedModel, modelWidget);
       });
     };
 
-    // Defer fetch until after workflow/widget restore so COMBO keeps saved model id.
-    queueMicrotask(() => {
-      const currentUrl = urlWidget?.value || defaultUrl;
-      runFetch(currentUrl, modelWidget.value);
-    });
+    if (showLoadModelButton) {
+      const origModelCb = modelWidget.callback;
+      modelWidget.callback = function (...args) {
+        if (origModelCb) {
+          origModelCb.apply(this, args);
+        }
+        syncLoadModelButton(loadModelBtn, lastBackend, lastLoadedModel, modelWidget);
+      };
+    }
+
+    let initialFetchTimer = null;
+    const scheduleInitialFetch = () => {
+      if (initialFetchTimer !== null) {
+        clearTimeout(initialFetchTimer);
+      }
+      initialFetchTimer = setTimeout(() => {
+        initialFetchTimer = null;
+        const currentUrl = urlWidget?.value || defaultUrl;
+        runFetch(currentUrl, modelWidget.value);
+      }, INITIAL_FETCH_DEBOUNCE_MS);
+    };
+
+    // Defer + debounce fetch until after workflow/widget restore so COMBO keeps saved model id.
+    scheduleInitialFetch();
 
     // Debounce timer for URL change detection
     let detectTimer = null;
@@ -218,5 +300,38 @@ app.registerExtension({
       markNodeDirty(node);
       runFetch(url, undefined);
     });
+
+    if (showLoadModelButton) {
+      loadModelBtn = node.addWidget(
+        "button",
+        "Load model",
+        null,
+        async () => {
+          const url = urlWidget?.value || defaultUrl;
+          const model = modelWidget.value;
+          if (!model || PLACEHOLDER_VALUES.has(model)) {
+            return;
+          }
+          try {
+            const response = await app.api.fetchApi("/llm-bikeshed/textgen/load-model", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url, model }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (data.ok) {
+              maybeToast("Model load started", "success");
+              runFetch(url, undefined);
+            } else {
+              maybeToast(data.error || "Load model failed", "error");
+            }
+          } catch (e) {
+            maybeToast(String(e), "error");
+          }
+        },
+      );
+      loadModelBtn.hidden = true;
+      loadModelBtn.disabled = true;
+    }
   },
 });

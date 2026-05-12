@@ -16,7 +16,11 @@ except ImportError:
 logger = logging.getLogger("llm-bikeshed")
 
 if HAS_SERVER:
-    from ..model_list import _sync_resolve_oai_compat_models
+    from ..model_list import (
+        _sync_resolve_oai_compat_models,
+        _sync_resolve_textgen_models,
+        sync_textgen_load_model,
+    )
 
     try:
         from ..config import get_api_key, load_config, write_api_key
@@ -52,7 +56,54 @@ if HAS_SERVER:
             payload["loaded_model"] = loaded_model
         return web.json_response(payload)
 
-    @PromptServer.instance.routes.post("/llm-bikeshed/detect")
+    @PromptServer.instance.routes.post("/llm-bikeshed/models/textgen")
+    async def _endpoint_models_textgen(
+        request: web.Request,
+    ) -> web.Response:
+        """List models for Textgen only (skips multi-backend ``detect_backend``)."""
+        data = await request.json()
+        url = data.get("url", "")
+        if not url:
+            return web.json_response(
+                {"models": [], "backend": "text_gen_webui", "loaded_model": None},
+            )
+        models, backend, loaded_model = await asyncio.to_thread(
+            _sync_resolve_textgen_models, url,
+        )
+        return web.json_response(
+            {
+                "models": models,
+                "backend": backend,
+                "loaded_model": loaded_model,
+            },
+        )
+
+    @PromptServer.instance.routes.post("/llm-bikeshed/textgen/load-model")
+    async def _endpoint_textgen_load_model(
+        request: web.Request,
+    ) -> web.Response:
+        """Load a model on Textgen via ``POST /v1/internal/model/load``.
+
+        Body: ``{"url": "...", "model": "..."}`` only. Keys from
+        ``get_textgen_auth_keys()`` / config (same model as
+        ``/llm-bikeshed/models/oai-compat``).
+        """
+        try:
+            data = await request.json()
+        except (json.JSONDecodeError, TypeError, ValueError, OSError):
+            return web.json_response(
+                {"ok": False, "error": "invalid JSON"}, status=400,
+            )
+        url = (data.get("url") or "").strip()
+        model = data.get("model", "")
+        if not url:
+            return web.json_response(
+                {"ok": False, "error": "url required"}, status=400,
+            )
+        ok, err = await asyncio.to_thread(sync_textgen_load_model, url, str(model))
+        if ok:
+            return web.json_response({"ok": True})
+        return web.json_response({"ok": False, "error": err or "unknown"})
     async def _endpoint_detect_backend(
         request: web.Request,
     ) -> web.Response:
