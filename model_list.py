@@ -58,6 +58,44 @@ def _model_names_from_textgen_internal_list(data: dict) -> list[str]:
     return [str(x) for x in names if x]
 
 
+def _normalize_textgen_loaded_model_name(name: object) -> str | None:
+    """Return a displayable loaded-model name, or None if VRAM is idle."""
+    if name is None:
+        return None
+    s = str(name).strip()
+    if not s or s.lower() == "none":
+        return None
+    return s
+
+
+def _fetch_textgen_loaded_model_from_info(
+    url: str,
+    api_key: str | None = None,
+    timeout: int = 10,
+) -> str | None:
+    """``GET /v1/internal/model/info`` — upstream gates this with Textgen ``--api-key``."""
+    url = normalize_oai_base_url(url)
+    endpoint = f"{url.rstrip('/')}/v1/internal/model/info"
+    if not api_key:
+        return None
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
+    try:
+        response = requests.get(endpoint, headers=headers, timeout=timeout)
+        if not response.ok:
+            return None
+        data = response.json()
+        if not isinstance(data, dict):
+            return None
+        return _normalize_textgen_loaded_model_name(data.get("model_name"))
+    except requests.RequestException:
+        return None
+    except (TypeError, ValueError, KeyError):
+        return None
+
+
 def _fetch_models_text_gen_internal(
     url: str,
     admin_key: str | None = None,
@@ -153,11 +191,14 @@ def _fetch_models_oai_compat(
         return []
 
 
-def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str]:
+def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str, str | None]:
     """Resolve model IDs and backend id for the OAI-compat dropdown.
 
     Returns:
-        (model_ids, backend) where backend matches ``detection.detect_backend``.
+        ``(model_ids, backend, loaded_model)`` where ``backend`` matches
+        ``detection.detect_backend``. For Textgen, ``loaded_model`` is parsed from
+        ``GET /v1/internal/model/info`` when an API key is available; otherwise
+        ``None``.
     """
     try:
         from .config import get_api_key, get_textgen_auth_keys
@@ -171,16 +212,17 @@ def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str]:
     api_key_prelim = get_api_key("oai_compat") if get_api_key else None
     backend = detect_backend(url, api_key=api_key_prelim)
 
+    tk, ak = None, None
+    if get_textgen_auth_keys is not None:
+        tk, ak = get_textgen_auth_keys()
+
     if backend == "text_gen_webui":
-        if get_textgen_auth_keys is None:
-            tk, ak = None, None
-        else:
-            tk, ak = get_textgen_auth_keys()
         internal = _fetch_models_text_gen_internal(
             url, admin_key=ak, api_key=tk,
         )
         if internal:
-            return internal, backend
+            loaded = _fetch_textgen_loaded_model_from_info(url, api_key=tk)
+            return internal, backend, loaded
 
     try:
         models = _fetch_models_oai_compat(url)
@@ -211,4 +253,7 @@ def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str]:
                 "ComfyUI host (providers.text_gen_webui or oai_compat)",
                 url,
             )
-    return models, backend
+    if backend == "text_gen_webui":
+        loaded = _fetch_textgen_loaded_model_from_info(url, api_key=tk)
+        return models, backend, loaded
+    return models, backend, None

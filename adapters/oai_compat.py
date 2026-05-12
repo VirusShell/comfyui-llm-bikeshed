@@ -197,10 +197,11 @@ class OAICompatAdapter:
         return text
 
     def _auth_headers(self, provider: dict) -> dict[str, str]:
-        """Build headers with api_key.
+        """Build headers for routes gated by Textgen ``--api-key`` (e.g. chat).
 
-        text-generation-webui uses one ``--api-key`` for chat and internal routes.
-        Users may store it only as ``admin_key`` in config; fall back so chat works.
+        On Textgen, ``GET /v1/internal/model/info`` is also API-key gated (not
+        admin). If only ``admin_key`` is set in config, Bearer admin is wrong
+        for that route when the server also has a distinct ``--api-key``.
         """
         key = provider.get("api_key")
         if provider.get("backend") == "text_gen_webui":
@@ -210,7 +211,7 @@ class OAICompatAdapter:
         return {}
 
     def _admin_headers(self, provider: dict) -> dict[str, str]:
-        """Build headers with admin key (falls back to api_key)."""
+        """Build headers for Textgen internal list/load/unload (``--admin-key``)."""
         key = provider.get("admin_key") or provider.get("api_key")
         if key:
             return {"Authorization": f"Bearer {key}"}
@@ -307,17 +308,25 @@ class OAICompatAdapter:
     def _ensure_model_loaded(self, provider: dict, model: str) -> None:
         """Check if correct model is loaded on text-gen-webui, load if needed."""
         url = provider["url"]
-        headers = self._admin_headers(provider)
+        info_headers = self._auth_headers(provider)
+        load_headers = self._admin_headers(provider)
         timeout = provider.get("timeout", 120)
 
         # Check currently loaded model.
         try:
             info_resp = requests.get(
                 f"{url}/v1/internal/model/info",
-                headers=headers,
+                headers=info_headers,
                 timeout=timeout,
             )
-            current = info_resp.json().get("model_name", "")
+            if not info_resp.ok:
+                raise requests.HTTPError(response=info_resp)
+            raw = info_resp.json().get("model_name", "")
+            current = (
+                None
+                if raw is None
+                else (None if str(raw).strip().lower() in ("", "none") else str(raw))
+            )
             if current == model:
                 return  # Already loaded
         except requests.RequestException:
@@ -329,7 +338,7 @@ class OAICompatAdapter:
             load_url,
             "text_gen_webui",
             json={"model_name": model},
-            headers=headers,
+            headers=load_headers,
             timeout=timeout,
         )
         _raise_on_error(load_resp, "text_gen_webui", load_url)

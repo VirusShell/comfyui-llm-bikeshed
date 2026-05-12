@@ -6,6 +6,8 @@
 
 Until that rethink, treat implementation work on a Textgen lifecycle **manager** and policy-driven schema as **on hold** or **experimental**—useful as exploration, not as committed roadmap.
 
+**Research-backed slice (2026-05-12):** Verified Textgen HTTP/auth behavior against upstream `oobabooga/textgen` is summarized in [`docs/research/textgen-lifecycle-verified.md`](../research/textgen-lifecycle-verified.md). Implemented in code: correct **API vs admin Bearer** usage for `GET /v1/internal/model/info` vs load/unload; normalization of idle `model_name`; model refresh API + UI label surfacing **currently loaded** model for Textgen. **Still deferred:** policy manager, idle timers, traffic reduction for repeated `model/info`, and any change to the binary lifecycle node beyond clarifications grounded in further product decisions.
+
 Sections that are only **tangentially** tied to lifecycle (for example diagnostics, optional utility nodes, or traffic-reduction ideas) still carry **uncertainty** wherever they assume a particular lifecycle core; they may survive a redesign in another form, or they may need revision once the lifecycle story is clearer.
 
 ## Why this proposal exists

@@ -540,6 +540,7 @@ class TestTextGenWebuiAllowlistFiltering:
 def _model_info_response(model_name: str) -> MagicMock:
     """Create a mock GET response for /v1/internal/model/info."""
     resp = MagicMock()
+    resp.ok = True
     resp.json.return_value = {"model_name": model_name}
     return resp
 
@@ -710,6 +711,64 @@ class TestTextGenWebuiModelLifecycle:
         assert len(load_payloads) == 1
         assert load_payloads[0]["model_name"] == "my-model"
 
+    def test_text_gen_webui_get_info_uses_api_key_load_unload_use_admin(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """Upstream gates model/info with --api-key and load/unload with --admin-key."""
+        get_auth: list[str | None] = []
+        post_pairs: list[tuple[str, str | None]] = []
+
+        def fake_get(url, **kwargs):
+            get_auth.append((kwargs.get("headers") or {}).get("Authorization"))
+            return _model_info_response("other-model")
+
+        def fake_post(url, **kwargs):
+            post_pairs.append(
+                (url, (kwargs.get("headers") or {}).get("Authorization")),
+            )
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.get", fake_get)
+        monkeypatch.setattr("requests.post", fake_post)
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert get_auth == ["Bearer test-api-key"]
+        load_auth = [a for u, a in post_pairs if "/v1/internal/model/load" in u]
+        unload_auth = [a for u, a in post_pairs if "/v1/internal/model/unload" in u]
+        assert load_auth == ["Bearer test-admin-key"]
+        assert unload_auth == ["Bearer test-admin-key"]
+
+    def test_text_gen_webui_loads_when_info_model_name_is_none_string(
+        self, text_gen_webui_provider, mock_oai_response, monkeypatch
+    ):
+        """Idle VRAM reports model_name 'None' — treat as unloaded."""
+        post_urls: list[str] = []
+
+        def fake_post(url, **kwargs):
+            post_urls.append(url)
+            return mock_oai_response
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr(
+            "requests.get",
+            lambda *a, **kw: _model_info_response("None"),
+        )
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            text_gen_webui_provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert any("/v1/internal/model/load" in u for u in post_urls)
+
 
 # ---------------------------------------------------------------------------
 # OAI-compat adapter — text-gen-webui path: admin key headers
@@ -717,12 +776,12 @@ class TestTextGenWebuiModelLifecycle:
 
 
 class TestTextGenWebuiAdminHeaders:
-    """Admin key is used for internal model management endpoints."""
+    """Admin key is used for Textgen load/unload; API key for model/info and chat."""
 
-    def test_text_gen_webui_admin_key_used_for_model_info(
+    def test_text_gen_webui_api_key_used_for_model_info(
         self, text_gen_webui_provider, mock_oai_response, monkeypatch
     ):
-        """Model info GET uses admin_key, not api_key."""
+        """Model info GET uses api_key (Textgen ``check_key``), not admin_key."""
         get_headers: dict = {}
 
         def fake_get(*args, **kwargs):
@@ -739,7 +798,7 @@ class TestTextGenWebuiAdminHeaders:
             {},
         )
 
-        assert get_headers["Authorization"] == "Bearer test-admin-key"
+        assert get_headers["Authorization"] == "Bearer test-api-key"
 
     def test_text_gen_webui_admin_key_used_for_load(
         self, text_gen_webui_provider, mock_oai_response, monkeypatch

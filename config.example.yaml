@@ -16,7 +16,8 @@ providers:
   text_gen_webui:
     url: "http://localhost:5000"
     timeout: 120
-    # Same as Textgen --api-key (used for chat + /v1/internal/model/list).
+    # api_key: same as Textgen --api-key (chat + GET /v1/internal/model/info).
+    # admin_key: same as Textgen --admin-key (GET /v1/internal/model/list, load, unload).
     # api_key: "your-api-key-here"
     # admin_key: "your-admin-key-here"
 

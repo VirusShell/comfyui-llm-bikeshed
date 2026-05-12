@@ -91,12 +91,13 @@ def get_admin_key(provider: str) -> str | None:
 
 
 def get_textgen_auth_keys() -> tuple[str | None, str | None]:
-    """Resolve ``api_key`` and ``admin_key`` for text-generation-webui.
+    """Resolve ``api_key`` and ``admin_key`` for oobabooga/textgen.
 
-    The server uses one ``--api-key`` for OpenAI-style and internal routes.
-    Users often store that secret only under ``providers.oai_compat`` while the
-    OAI-compat node still detects ``text_gen_webui`` — without falling back,
-    chat and model-list requests send no credentials (HTTP 401).
+    Textgen uses ``--api-key`` for chat and ``GET /v1/internal/model/info``,
+    and ``--admin-key`` for ``GET /v1/internal/model/list`` and load/unload.
+    Config often stores one secret under ``oai_compat`` while the node URL is
+    Textgen — we mirror both provider slots and duplicate a single configured
+    key to both tuple entries when only one is set so list + chat keep working.
     """
     tg_api = get_api_key("text_gen_webui")
     tg_admin = get_admin_key("text_gen_webui")

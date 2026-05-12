@@ -43,10 +43,13 @@ if HAS_SERVER:
         if not url:
             return web.json_response({"models": [], "backend": "generic"})
 
-        models, backend = await asyncio.to_thread(
+        models, backend, loaded_model = await asyncio.to_thread(
             _sync_resolve_oai_compat_models, url,
         )
-        return web.json_response({"models": models, "backend": backend})
+        payload = {"models": models, "backend": backend}
+        if backend == "text_gen_webui":
+            payload["loaded_model"] = loaded_model
+        return web.json_response(payload)
 
     @PromptServer.instance.routes.post("/llm-bikeshed/detect")
     async def _endpoint_detect_backend(

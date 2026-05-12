@@ -1,0 +1,65 @@
+# Textgen (oobabooga/textgen) lifecycle-related API — verified from upstream
+
+**Date:** 2026-05-12  
+**Scope:** HTTP routes used by this pack for Textgen model memory and model listing, plus auth split. Sources are **upstream application code** on GitHub (`oobabooga/textgen`, formerly “text-generation-webui” lineage), not third-party wikis.
+
+## Sources (authoritative)
+
+| Topic | URL |
+|--------|-----|
+| FastAPI route registration and `Depends` for each path | https://github.com/oobabooga/textgen/blob/main/modules/api/script.py |
+| Current model payload helpers | https://github.com/oobabooga/textgen/blob/main/modules/api/models.py |
+| Response shapes (`ModelInfoResponse`, `LoadModelRequest`) | https://github.com/oobabooga/textgen/blob/main/modules/api/typing.py |
+
+## Confirmed behavior
+
+### Authentication: `--api-key` vs `--admin-key`
+
+In `modules/api/script.py`, `verify_api_key` compares `Authorization: Bearer …` to `shared.args.api_key`. `verify_admin_key` compares to `shared.args.admin_key`. If the corresponding flag is unset, the check is a no-op (no key required).
+
+- **Chat and most “user” OAI-style routes** use `dependencies=check_key` → **API key** when configured. Example: `POST /v1/chat/completions` (`check_key`).
+- **`GET /v1/internal/model/info`** uses `dependencies=check_key` → **API key** when configured (not the admin key).
+- **`GET /v1/internal/model/list`**, **`POST /v1/internal/model/load`**, **`POST /v1/internal/model/unload`** use `dependencies=check_admin_key` → **admin key** when configured.
+
+**Implication:** If a user sets **different** values for `--api-key` and `--admin-key`, clients must send the **API** bearer token for `model/info` and chat, and the **admin** bearer token for internal list/load/unload. Sending only the admin key on `model/info` fails when an API key is set and differs.
+
+### `GET /v1/internal/model/info`
+
+Handler returns `OAImodels.get_current_model_info()`, which (in `models.py`) includes at least `model_name` (from `shared.model_name`), plus `lora_names` and `loader`. This is suitable for discovering **which model is currently loaded** (subject to `model_name` representing “none” when idle — see unknowns).
+
+### `GET /v1/internal/model/list`
+
+Returns `{"model_names": [...] }` from `list_models()` — names available on disk / in the UI catalog, **not** the same as “loaded right now.”
+
+### `POST /v1/internal/model/load`
+
+Body is a `LoadModelRequest`: required **`model_name`** (string); optional `args`, `instruction_template`, `instruction_template_str`. Implementation calls `unload_model()` before loading the requested checkpoint.
+
+### `POST /v1/internal/model/unload`
+
+Calls `unload_model()`; returns `500` with detail `"Failed to unload the model."` on exception.
+
+### `GET /v1/models` (OpenAI-style list)
+
+`list_models_openai_format()` returns OpenAI-style `data`: if `shared.model_name` is set and not the string `'None'`, it returns one entry for that id; **otherwise `data` is an empty list**. So the OAI model list reflects **loaded** model only (often empty when nothing is loaded), unlike `internal/model/list`.
+
+## Partially confirmed / operational
+
+### `POST /v1/chat/completions` when no model is loaded
+
+The route is registered with `check_key` only; there is **no** route-level guard in `script.py` that rejects chat when idle. Actual behavior when `shared.model` is missing depends on the generation stack (`modules/api/completions.py` / `generate_reply`), which this note does **not** fully trace — treat “exact HTTP status and error JSON when idle” as **runtime-dependent** until reproduced on a live instance.
+
+## Unknown / version-sensitive
+
+- Exact error codes and messages from `chat/completions` when no weights are loaded (may vary by loader and version).
+- Whether older forks (pre-rename `text-generation-webui`) used identical `Depends` mapping; **this pack should target current `oobabooga/textgen` behavior** and treat older blogs/wiki pages as non-authoritative.
+
+## Audit vs this repository (2026-05-12)
+
+| Area | Mismatch |
+|------|-----------|
+| `adapters/oai_compat.py` | `_ensure_model_loaded` used **admin-priority** headers for `GET /v1/internal/model/info`; upstream requires **API key** for that route when `--api-key` is set. |
+| `adapters/oai_compat.py` docstring for `_auth_headers` | Claimed one key covers chat and internal routes — **false** for list/load/unload vs info when keys differ. |
+| `config/__init__.py` (`get_textgen_auth_keys` docstring) | Same misleading “internal routes” wording. |
+| `config.example.yaml` | Implied `api_key` drives internal model list — upstream **`model/list` is admin-gated** when `--admin-key` is set. |
+| UX | Model dropdown showed installable names (`internal/model/list`) but not **VRAM / currently loaded** name; `model/info` exposes that when `api_key` is configured. |

@@ -13,7 +13,7 @@ const PROVIDER_CONFIG = {
  * Fetch model list from a backend endpoint.
  * @param {string} endpoint - The PromptServer route path.
  * @param {string} url - The backend base URL to query.
- * @returns {Promise<{ models: string[], backend: string | null }>}
+ * @returns {Promise<{ models: string[], backend: string | null, loadedModel: string | null | undefined }>}
  */
 async function fetchModels(endpoint, url) {
   try {
@@ -23,16 +23,36 @@ async function fetchModels(endpoint, url) {
       body: JSON.stringify({ url }),
     });
     if (!response.ok) {
-      return { models: [], backend: null };
+      return { models: [], backend: null, loadedModel: undefined };
     }
     const data = await response.json();
+    let loadedModel = undefined;
+    if (Object.prototype.hasOwnProperty.call(data, "loaded_model")) {
+      loadedModel =
+        data.loaded_model === null || data.loaded_model === undefined
+          ? null
+          : String(data.loaded_model);
+    }
     return {
       models: data.models || [],
       backend: data.backend !== undefined ? data.backend : null,
+      loadedModel,
     };
   } catch {
-    return { models: [], backend: null };
+    return { models: [], backend: null, loadedModel: undefined };
   }
+}
+
+/** Backend label with optional Textgen VRAM line from ``loaded_model``."""
+function formatBackendLabel(backend, loadedModel) {
+  const base = BACKEND_LABELS[backend] || backend;
+  if (backend !== "text_gen_webui" || loadedModel === undefined) {
+    return base;
+  }
+  if (loadedModel) {
+    return `${base} · loaded: ${loadedModel}`;
+  }
+  return `${base} · loaded: —`;
 }
 
 /**
@@ -117,10 +137,10 @@ app.registerExtension({
       const savedModel = modelWidget.value || null;
       const currentUrl = urlWidget?.value || defaultUrl;
 
-      fetchModels(endpoint, currentUrl).then(({ models, backend }) => {
+      fetchModels(endpoint, currentUrl).then(({ models, backend, loadedModel }) => {
         updateModelWidget(modelWidget, models, savedModel);
         if (showBackendLabel && backendWidget && backend != null) {
-          backendWidget.value = BACKEND_LABELS[backend] || backend;
+          backendWidget.value = formatBackendLabel(backend, loadedModel);
         }
         node.setDirtyCanvas(true);
       });
@@ -141,10 +161,10 @@ app.registerExtension({
           backendWidget.value = "detecting...";
         }
         detectTimer = setTimeout(() => {
-          fetchModels(endpoint, value).then(({ models, backend }) => {
+          fetchModels(endpoint, value).then(({ models, backend, loadedModel }) => {
             updateModelWidget(modelWidget, models, modelWidget.value);
             if (showBackendLabel && backendWidget && backend != null) {
-              backendWidget.value = BACKEND_LABELS[backend] || backend;
+              backendWidget.value = formatBackendLabel(backend, loadedModel);
             }
             node.setDirtyCanvas(true);
           });
@@ -158,10 +178,10 @@ app.registerExtension({
       if (showBackendLabel && backendWidget) {
         backendWidget.value = "detecting...";
       }
-      fetchModels(endpoint, url).then(({ models, backend }) => {
+      fetchModels(endpoint, url).then(({ models, backend, loadedModel }) => {
         updateModelWidget(modelWidget, models, modelWidget.value);
         if (showBackendLabel && backendWidget && backend != null) {
-          backendWidget.value = BACKEND_LABELS[backend] || backend;
+          backendWidget.value = formatBackendLabel(backend, loadedModel);
         }
         node.setDirtyCanvas(true);
       });

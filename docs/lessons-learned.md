@@ -292,6 +292,8 @@ System: Absolute vs Relative" entry above for the full details.
 
 **Addendum (same day):** Textgen enforces the same ``--api-key`` on ``/v1/chat/completions`` and internal routes, but the provider node stored that secret under ``admin_key`` while chat only sent ``api_key``, producing HTTP 401 on generate. ``_auth_headers`` now falls back to ``admin_key`` for ``text_gen_webui`` (still preferring ``api_key`` when both are set).
 
+**Addendum — 2026-05-12 correction:** Upstream ``oobabooga/textgen`` splits auth by route: ``GET /v1/internal/model/info`` uses the **API** key; ``GET /v1/internal/model/list`` and model load/unload use the **admin** key when each flag is set. The blanket “same key on chat and internal routes” line above is **not** accurate for current Textgen — see ``docs/research/textgen-lifecycle-verified.md`` and the lessons-learned entry “Textgen API vs admin Bearer by HTTP route”.
+
 **Addendum — Textgen 401 with key in ``oai_compat`` only:** Detection returns ``text_gen_webui`` but ``build_provider`` only read ``get_api_key("text_gen_webui")`` and ``get_admin_key("text_gen_webui")``, not ``providers.oai_compat``. Users who set a single key under ``oai_compat`` for the OAI-compat node got no credentials on the provider dict and on the model-list fetch. **Fix:** ``get_textgen_auth_keys()`` merges ``text_gen_webui`` and ``oai_compat`` (and mirrors a single secret onto both ``api_key`` and ``admin_key``).
 
 **Addendum — ``detected_backend`` stuck on Unknown:** The frontend maps any non-OK response to the label ``Unknown``. ``server/endpoints.py`` used one ``try`` for both ``from ..config`` and ``from ..detection``; if config import failed, ``detect_backend`` was set to ``None`` and the detect handler crashed when calling it → 500 → Unknown. **Fix:** import config and detection in separate ``try`` blocks; return HTTP 200 with ``generic`` when the handler degrades; load ``model_list`` only inside ``HAS_SERVER``. **Fix:** ``model_list`` tries ``from .detection`` then ``from detection import`` so it works as a package submodule (ComfyUI) and as a flat test import; same pattern for ``get_admin_key`` / ``get_api_key`` via ``.config`` then ``config``.
@@ -305,3 +307,11 @@ System: Absolute vs Relative" entry above for the full details.
 **Fix:** When ``options_in`` is ``None``, use ``kwargs.get("options_in")`` if it is a dict, then merge toggled params on top.  
 **Prevention:** For helpers called as ``fn(params, kwargs)``, merge dict inputs from ``kwargs`` explicitly or document a single entrypoint; regression-test option chaining.
 
+## Textgen API vs admin Bearer by HTTP route (upstream split)
+
+**Date:** 2026-05-12  
+**Severity:** Medium — wrong header on ``GET /v1/internal/model/info`` when ``--api-key`` and ``--admin-key`` differ breaks “already loaded” detection and can force redundant loads  
+**What happened:** ``OAICompatAdapter._ensure_model_loaded`` sent admin-priority ``Authorization`` to ``/v1/internal/model/info``. Comments implied one Textgen secret covered chat and all ``/v1/internal/*`` routes.  
+**Root cause:** Assumption from informal docs without reading ``oobabooga/textgen`` ``modules/api/script.py``, where ``model/info`` uses ``check_key`` (API key) and ``model/list``, ``model/load``, ``model/unload`` use ``check_admin_key``.  
+**Fix:** Use ``_auth_headers`` for ``model/info`` and ``_admin_headers`` for load/unload; extend model refresh to call ``model/info`` for Textgen and show the loaded name in the UI; record citations in ``docs/research/textgen-lifecycle-verified.md``.  
+**Prevention:** For “OpenAI-compatible” servers with extra internal routes, verify each route’s ``Depends`` in source; add tests with **distinct** API and admin bearer values when both exist.
