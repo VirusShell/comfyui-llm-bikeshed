@@ -26,7 +26,7 @@ It is scoped to implementing `docs/proposals/textgen-rehaul.md`.
   - [ ] `idle_seconds` (INT)
   - [ ] `load_policy` (COMBO)
   - [ ] `switch_policy` (COMBO)
-- [ ] Ensure ComfyUI rendering reliability is preserved (at least one required widget remains).
+- [ ] UX: lifecycle node purpose is obvious (labels/help/README as needed); do not add dummy widgets only to avoid an empty-looking node—real controls should be named and documented as product behavior, not rendering hacks.
 - [ ] Keep LM Studio lifecycle node unchanged unless shared helpers are introduced.
 
 ## Phase 2 - Adapter Lifecycle Policy Parsing

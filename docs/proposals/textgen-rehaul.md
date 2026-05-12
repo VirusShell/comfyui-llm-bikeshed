@@ -105,7 +105,9 @@ Behavioral intent:
 
 UI notes:
 
-- Keep at least one required widget to avoid empty-node rendering issues in ComfyUI
+- Lifecycle nodes should **communicate purpose** clearly: node titles, tooltips/help text, and (where useful) README copy so operators know what the node does without inferring from widget chrome alone.
+- ComfyUI legitimately supports purpose-built nodes with **no visible widgets** when the role is obvious; an empty-looking node is a **product clarity** problem, not a platform defect to paper over with a dummy control. **Avoid** adding a BOOLEAN or other widget solely to force a “body” on the card—prefer real labels and documentation instead.
+- When a BOOLEAN (or similar) **is** the real product control—for example a master enable—name and document it as that control, not as a rendering workaround inherited from older lifecycle UX.
 - Choose defaults that prioritize VRAM reclamation; expose `after_idle` as an explicit iteration-session opt-in
 
 ## Adapter/runtime design
