@@ -4,11 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from graph.introspection import (
-    GENERATION_CLASS_TYPES,
-    find_downstream_nodes,
-    has_downstream_gen_node,
-)
+from graph.introspection import find_downstream_nodes, has_downstream_gen_node
 
 
 class TestFindDownstreamNodes(unittest.TestCase):

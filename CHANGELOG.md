@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **`example_workflows/`** — minimal template JSON files for basic generation, advanced options chaining, and Textgen.
+- **`LICENSE`** — MIT license file (matches README and pyproject).
+- **GitHub Actions CI** — `.github/workflows/test.yml` runs `pytest` and `ruff check` on push/PR.
+
+### Changed
+
+- **Ruff cleanup** — fixed line length, unused import, and import sorting issues across the codebase.
 
 ## [0.3.0] - 2026-05-12
 

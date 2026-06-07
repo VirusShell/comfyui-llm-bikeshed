@@ -33,6 +33,10 @@ Tracked UX/polish improvements that aren't blocking v1 but should be addressed.
   Current v1 uses a separate Preset Loader node (known-working). An inline COMBO that populates system_prompt directly would be better UX but is fragile on workflow load. Deferred to post-v1.
   *(Resolution tracker A-6; concept doc lines 105-113)*
 
+## Future / research
+
+- **Cooperative interrupt for reasoning models (llama.cpp)** — llama.cpp can interrupt long reasoning chains without killing the full inference session; evaluate whether generation nodes should expose a cancel/stop path for chained reasoning without unloading the model.
+
 ## Completed
 
 *(none yet)*

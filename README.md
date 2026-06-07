@@ -1,5 +1,7 @@
 # ComfyUI LLM Bikeshed
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Compatible** for OpenAI-style backends with automatic detection at the URL (LM Studio, OpenAI, llama.cpp, etc.). Use **LLM Provider: Textgen** for [oobabooga Textgen](https://github.com/oobabooga/text-generation-webui) (fixed backend, integrated VRAM controls, Textgen-only model list). API keys live in config or environment variables only.
 
 **Product direction:** See [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md) for scope notes (Textgen-first, lifecycle model under review, llama.cpp deferred).
@@ -210,4 +212,6 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+When you create the GitHub repository, update the `Repository` URL in `pyproject.toml` (`[project.urls]`) to match your fork.

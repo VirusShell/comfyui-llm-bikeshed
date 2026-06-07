@@ -4,10 +4,20 @@ version = "0.3.0"
 description = "ComfyUI custom nodes for local LLM text generation"
 license = "MIT"
 requires-python = ">=3.10"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "pyyaml>=6.0",
     "requests>=2.28.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/YOUR_USERNAME/comfyui-llm-bikeshed"
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0", "ruff>=0.4.0"]
@@ -16,6 +26,7 @@ dev = ["pytest>=7.0", "ruff>=0.4.0"]
 testpaths = ["tests"]
 
 [tool.comfy]
+# PublisherId = ""  # Comfy Registry ID; fill when publishing to registry
 PublisherId = ""
 DisplayName = "LLM Bikeshed"
 Icon = ""

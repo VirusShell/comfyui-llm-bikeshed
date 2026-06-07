@@ -343,7 +343,9 @@ def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str, str | Non
     return models, backend, None
 
 
-def sync_textgen_load_model(url: str, model: str, timeout: int = 120) -> tuple[bool, str | None]:
+def sync_textgen_load_model(
+    url: str, model: str, timeout: int = 120
+) -> tuple[bool, str | None]:
     """POST ``/v1/internal/model/load`` on Textgen (admin Bearer from config).
 
     Returns ``(True, None)`` on HTTP success, else ``(False, error_message)``.

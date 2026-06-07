@@ -30,6 +30,7 @@ config.yaml
 
 # Documentation
 docs/old/
+docs/blargh.md
 
 # Reference screenshots
 docs/Screenshot-*.png

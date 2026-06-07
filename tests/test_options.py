@@ -6,7 +6,6 @@ from nodes.options_base import PARAM_NAME_MAP
 from nodes.options_lm_studio import LLMOptionsLMStudio
 from nodes.options_text_gen_webui import LLMOptionsTextGenWebUI
 
-
 # ===========================================================================
 # LM Studio Options (toggle pattern)
 # ===========================================================================
