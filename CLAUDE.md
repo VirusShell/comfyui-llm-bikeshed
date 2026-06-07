@@ -8,6 +8,11 @@
 > - A workaround was needed for ComfyUI behavior not covered in docs
 >
 > Each entry needs: date, severity, what happened, root cause, fix, and how to prevent it next time. If unsure whether something qualifies, add it — too many entries is better than a missing one.
+>
+> **Research provenance:** Before relying on external claims (issues, wikis, docs), read `docs/research/provenance-and-reverification.md` — undated citations are not verified fact.
+> **Cancel / interrupt status:** Shipped vs planned host-stop and cleanup work is tracked in `docs/research/cancel-interrupt-status.md` (separate from the provenance audit).
+>
+> **Cancel / interrupt status:** For what is shipped vs planned for ComfyUI Cancel during generation, read `docs/research/cancel-interrupt-status.md` — do not re-derive from chat or old issue citations.
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
