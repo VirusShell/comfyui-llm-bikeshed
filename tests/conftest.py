@@ -26,8 +26,6 @@ def lm_studio_provider() -> dict:
         "url": "http://localhost:1234",
         "model": "test-model",
         "timeout": 120,
-        "api_key": None,
-        "admin_key": None,
         "lifecycle": {
             "type": "lm_studio",
             "ttl": 30,
@@ -37,7 +35,16 @@ def lm_studio_provider() -> dict:
 
 
 @pytest.fixture()
-def text_gen_webui_provider() -> dict:
+def patch_textgen_auth(monkeypatch):
+    """Default Textgen credentials for adapter HTTP tests."""
+    monkeypatch.setattr(
+        "adapters.oai_compat.resolve_provider_auth",
+        lambda _p: ("test-api-key", "test-admin-key"),
+    )
+
+
+@pytest.fixture()
+def text_gen_webui_provider(patch_textgen_auth) -> dict:
     """text-gen-webui provider dict with OAI-compat adapter."""
     return {
         "backend": "text_gen_webui",
@@ -45,8 +52,6 @@ def text_gen_webui_provider() -> dict:
         "url": "http://localhost:5000",
         "model": "my-model",
         "timeout": 120,
-        "api_key": "test-api-key",
-        "admin_key": "test-admin-key",
         "lifecycle": {
             "type": "text_gen_webui",
         },

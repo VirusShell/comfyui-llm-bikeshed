@@ -1,0 +1,79 @@
+{
+  "last_node_id": 2,
+  "last_link_id": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LLMProviderTextGenWebUI",
+      "pos": [80, 120],
+      "size": [340, 150],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "provider",
+          "type": "LLM_PROVIDER",
+          "links": [1],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LLMProviderTextGenWebUI"
+      },
+      "widgets_values": [
+        "http://127.0.0.1:5000",
+        "(refresh to load)",
+        true
+      ]
+    },
+    {
+      "id": 2,
+      "type": "LLMGenerate",
+      "pos": [500, 120],
+      "size": [360, 280],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "provider",
+          "type": "LLM_PROVIDER",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "meta",
+          "type": "LLM_META",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LLMGenerate"
+      },
+      "widgets_values": [
+        0.7,
+        512,
+        -1,
+        "",
+        "Summarize the benefits of local LLM inference in three bullet points."
+      ]
+    }
+  ],
+  "links": [
+    [1, 1, 0, 2, 0, "LLM_PROVIDER"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

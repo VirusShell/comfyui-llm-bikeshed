@@ -91,8 +91,6 @@ class TestLMStudioAllowlistFiltering:
             "url": "http://localhost:1234",
             "model": "test-model",
             "timeout": 120,
-            "api_key": None,
-            "admin_key": None,
             "lifecycle": None,
         }
 
@@ -185,8 +183,6 @@ class TestLMStudioTTL:
             "url": "http://localhost:1234",
             "model": "test-model",
             "timeout": 120,
-            "api_key": None,
-            "admin_key": None,
             "lifecycle": {"type": "lm_studio", "ttl": ttl, "context_length": None},
         }
 
@@ -314,15 +310,13 @@ class TestLMStudioTTL:
 class TestLMStudioAuthHeaders:
     """Auth header behavior for LM Studio backend."""
 
-    def _lm_studio_provider(self, api_key: str | None = None) -> dict:
+    def _lm_studio_provider(self) -> dict:
         return {
             "backend": "lm_studio",
             "adapter": "oai_compat",
             "url": "http://localhost:1234",
             "model": "test-model",
             "timeout": 120,
-            "api_key": api_key,
-            "admin_key": None,
             "lifecycle": None,
         }
 
@@ -337,10 +331,14 @@ class TestLMStudioAuthHeaders:
             return mock_oai_response
 
         monkeypatch.setattr("adapters.base.requests.post", fake_post)
+        monkeypatch.setattr(
+            "adapters.oai_compat.resolve_provider_auth",
+            lambda _p: (None, None),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
-            self._lm_studio_provider(api_key=None),
+            self._lm_studio_provider(),
             [{"role": "user", "content": "hi"}],
             {},
         )
@@ -359,10 +357,14 @@ class TestLMStudioAuthHeaders:
             return mock_oai_response
 
         monkeypatch.setattr("adapters.base.requests.post", fake_post)
+        monkeypatch.setattr(
+            "adapters.oai_compat.resolve_provider_auth",
+            lambda _p: ("sk-test-123", None),
+        )
 
         adapter = OAICompatAdapter()
         adapter.generate(
-            self._lm_studio_provider(api_key="sk-test-123"),
+            self._lm_studio_provider(),
             [{"role": "user", "content": "hi"}],
             {},
         )
@@ -386,8 +388,6 @@ class TestLMStudioPayloadStructure:
             "url": "http://localhost:1234",
             "model": "test-model",
             "timeout": 120,
-            "api_key": None,
-            "admin_key": None,
             "lifecycle": None,
         }
 
@@ -865,7 +865,10 @@ class TestTextGenWebuiAdminHeaders:
                 gen_headers.append(kwargs.get("headers", {}))
             return mock_oai_response
 
-        text_gen_webui_provider["api_key"] = None
+        monkeypatch.setattr(
+            "adapters.oai_compat.resolve_provider_auth",
+            lambda _p: (None, "test-admin-key"),
+        )
         monkeypatch.setattr("requests.post", fake_post)
         monkeypatch.setattr(
             "requests.get",
@@ -892,7 +895,10 @@ class TestTextGenWebuiAdminHeaders:
             get_headers.update(kwargs.get("headers", {}))
             return _model_info_response("my-model")
 
-        text_gen_webui_provider["admin_key"] = None
+        monkeypatch.setattr(
+            "adapters.oai_compat.resolve_provider_auth",
+            lambda _p: ("test-api-key", None),
+        )
         monkeypatch.setattr("requests.post", lambda url, **kw: mock_oai_response)
         monkeypatch.setattr("requests.get", fake_get)
 

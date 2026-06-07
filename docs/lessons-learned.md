@@ -342,3 +342,12 @@ System: Absolute vs Relative" entry above for the full details.
 **Root cause:** Same dual-context pattern already handled in ``nodes/generation.py`` (Comfy loads the repo as a subpackage; tests add ``nodes`` on ``sys.path``).  
 **Fix:** Wrap provider imports in ``try: relative except ImportError: absolute`` like ``generation.py``.  
 **Prevention:** Any new ``nodes/*.py`` that pytest imports directly should use the try/except import pattern or be tested only via the pack root package.
+
+## Credentials in ComfyUI execution outputs (not workflow JSON)
+
+**Date:** 2026-06-06  
+**Severity:** Critical — API keys visible in execution history / WebSocket payloads  
+**What happened:** Provider nodes embedded ``api_key`` and ``admin_key`` in the ``LLM_PROVIDER`` dict returned as a node output. ComfyUI serializes workflow widget values to disk (already avoided for keys), but **runtime node outputs** are also exposed via execution history and WebSocket updates — a separate leak surface.  
+**Root cause:** Keys were resolved at provider-build time and carried through the graph in the provider dict for adapter convenience.  
+**Fix:** Provider dicts carry only non-secret fields; ``config.auth.resolve_provider_auth`` resolves credentials at HTTP time in adapters; ``public_provider()`` strips any legacy secret keys from ``LLM_META`` outputs. Removed unauthenticated ``POST /llm-bikeshed/set-key``.  
+**Prevention:** Never put secrets in any ComfyUI node output type; grep for ``api_key`` / ``admin_key`` in provider construction and meta dicts; resolve auth only at the HTTP boundary.

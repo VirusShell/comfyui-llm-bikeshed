@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Credentials no longer in execution outputs** — `LLM_PROVIDER` and `LLM_META` dicts no longer embed `api_key` / `admin_key`. Adapters resolve secrets from `config.yaml` / env at HTTP time via `config.auth.resolve_provider_auth`.
+- **Removed unauthenticated `POST /llm-bikeshed/set-key`** — API keys must be set in `config.yaml` or environment variables; no runtime config writes from the browser.
+
+### Removed
+
+- **`write_api_key`** and **`POST /llm-bikeshed/set-key`** — unused by the frontend; posed an unauthenticated config write risk.
+- **`POST /llm-bikeshed/reload-config`** — unused by the frontend; restart ComfyUI (or call `reload_config()` from Python) after editing `config.yaml`.
+
+### Added
+
+- **`example_workflows/`** — minimal template JSON files for basic generation, advanced options chaining, and Textgen.
+
 ## [0.3.0] - 2026-05-12
 
 ### Removed

@@ -45,7 +45,10 @@ class LLMPresetLoader:
         """Read preset file content and return as string."""
         if preset == "(no presets found)":
             return ("",)
-        filepath = os.path.join(_PRESETS_DIR, preset)
+        safe_name = os.path.basename(preset)
+        filepath = os.path.join(_PRESETS_DIR, safe_name)
+        if os.path.commonpath([filepath, _PRESETS_DIR]) != _PRESETS_DIR:
+            raise ValueError(f"Invalid preset path: {preset!r}")
         with open(filepath, encoding="utf-8") as f:
             content = f.read()
         return (content,)
@@ -81,7 +84,10 @@ class LLMLoadTextFile:
         """Read text file content and return as string."""
         if file == "(no .txt files found)":
             return ("",)
-        filepath = os.path.join(_INPUT_DIR, file)
+        safe_name = os.path.basename(file)
+        filepath = os.path.join(_INPUT_DIR, safe_name)
+        if os.path.commonpath([filepath, _INPUT_DIR]) != _INPUT_DIR:
+            raise ValueError(f"Invalid file path: {file!r}")
         with open(filepath, encoding="utf-8") as f:
             content = f.read()
         return (content,)

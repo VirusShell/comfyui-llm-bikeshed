@@ -59,27 +59,6 @@ def get_api_key(provider: str) -> str | None:
     return os.environ.get(f"LLM_BIKESHED_{provider.upper()}_API_KEY")
 
 
-def write_api_key(provider: str, api_key: str) -> None:
-    """Write an API key to config.yaml and reload the config cache.
-
-    Creates config.yaml if it doesn't exist. Sets
-    ``providers.{provider}.api_key`` to the given value.
-    """
-    global _config
-    user_path = os.path.join(_pack_dir, "config.yaml")
-    user_cfg = _load_yaml(user_path) or {}
-
-    providers = user_cfg.setdefault("providers", {})
-    providers.setdefault(provider, {})["api_key"] = api_key
-
-    with open(user_path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(user_cfg, f, default_flow_style=False)
-
-    _config = None
-    load_config()
-    logger.info("API key written for provider '%s'", provider)
-
-
 def get_admin_key(provider: str) -> str | None:
     """Resolve admin key: admin_key -> api_key -> env var -> None."""
     cfg = get_config()

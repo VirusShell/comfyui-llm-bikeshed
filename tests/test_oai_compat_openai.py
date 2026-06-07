@@ -28,7 +28,6 @@ class TestOpenAIBackend(unittest.TestCase):
             "backend": "openai",
             "url": "https://api.openai.com",
             "model": "gpt-4o-mini",
-            "api_key": "sk-test",
             "timeout": 30,
             "lifecycle": None,
         }
@@ -37,13 +36,19 @@ class TestOpenAIBackend(unittest.TestCase):
         mock_resp.json.return_value = {
             "choices": [{"message": {"content": "hello"}}],
         }
-        with patch("adapters.oai_compat._safe_post", return_value=mock_resp) as m_post:
-            with patch("adapters.oai_compat.requests.get") as m_get:
-                out = adapter.generate(
-                    provider,
-                    [{"role": "user", "content": "hi"}],
-                    {"temperature": 0.7},
-                )
+        with patch(
+            "adapters.oai_compat.resolve_provider_auth",
+            return_value=("sk-test", None),
+        ):
+            with patch(
+                "adapters.oai_compat._safe_post", return_value=mock_resp,
+            ) as m_post:
+                with patch("adapters.oai_compat.requests.get") as m_get:
+                    out = adapter.generate(
+                        provider,
+                        [{"role": "user", "content": "hi"}],
+                        {"temperature": 0.7},
+                    )
         self.assertEqual(out, "hello")
         m_get.assert_not_called()
         self.assertEqual(m_post.call_count, 1)

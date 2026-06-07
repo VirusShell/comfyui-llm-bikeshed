@@ -211,3 +211,32 @@ class TestLLMGenerateAdvancedMetaPrecedence:
             assert False, "Expected ValueError"
         except ValueError as exc:
             assert "No provider configured" in str(exc)
+
+
+class TestMetaSecretStripping:
+    """LLM_META outputs must not carry api_key or admin_key."""
+
+    def test_basic_generate_strips_secrets_from_meta(self) -> None:
+        node = LLMGenerate()
+        provider = {
+            "adapter": "oai_compat",
+            "url": "http://localhost:1234",
+            "api_key": "leaked",
+            "admin_key": "also-leaked",
+        }
+        mock_adapter = MagicMock()
+        mock_adapter.generate.return_value = "text"
+
+        with patch("nodes.generation.get_adapter", return_value=mock_adapter), \
+             patch("nodes.generation.has_downstream_gen_node", return_value=False):
+            _, meta = node.generate(
+                provider=provider,
+                prompt="Hello",
+                system_prompt="",
+                temperature=0.7,
+                max_tokens=1024,
+                seed=-1,
+            )
+
+        assert "api_key" not in meta["provider"]
+        assert "admin_key" not in meta["provider"]

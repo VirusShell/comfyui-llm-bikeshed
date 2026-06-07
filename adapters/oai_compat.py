@@ -8,6 +8,11 @@ import requests
 
 from .base import _is_json_safe, _raise_on_error, _safe_get, _safe_post
 
+try:
+    from ..config.auth import resolve_provider_auth
+except ImportError:
+    from config.auth import resolve_provider_auth
+
 logger = logging.getLogger("llm-bikeshed")
 
 # Per-backend parameter allowlists — only these are forwarded to the API.
@@ -203,16 +208,18 @@ class OAICompatAdapter:
         admin). If only ``admin_key`` is set in config, Bearer admin is wrong
         for that route when the server also has a distinct ``--api-key``.
         """
-        key = provider.get("api_key")
+        api_key, admin_key = resolve_provider_auth(provider)
+        key = api_key
         if provider.get("backend") == "text_gen_webui":
-            key = key or provider.get("admin_key")
+            key = api_key or admin_key
         if key:
             return {"Authorization": f"Bearer {key}"}
         return {}
 
     def _admin_headers(self, provider: dict) -> dict[str, str]:
         """Build headers for Textgen internal list/load/unload (``--admin-key``)."""
-        key = provider.get("admin_key") or provider.get("api_key")
+        api_key, admin_key = resolve_provider_auth(provider)
+        key = admin_key or api_key
         if key:
             return {"Authorization": f"Bearer {key}"}
         return {}

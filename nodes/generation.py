@@ -4,9 +4,11 @@ from __future__ import annotations
 
 try:
     from ..adapters import get_adapter
+    from ..config.auth import public_provider
     from ..graph.introspection import has_downstream_gen_node
 except ImportError:
     from adapters import get_adapter
+    from config.auth import public_provider
     from graph.introspection import has_downstream_gen_node
 
 
@@ -101,7 +103,7 @@ class LLMGenerate:
         messages = _build_messages(system_prompt, prompt)
         text = adapter.generate(provider, messages, options, skip_unload)
 
-        meta: dict = {"provider": provider, "options": options}
+        meta: dict = {"provider": public_provider(provider), "options": options}
         return (text, meta)
 
 
@@ -173,5 +175,8 @@ class LLMGenerateAdvanced:
             resolved_provider, messages, resolved_options, skip_unload
         )
 
-        meta_out: dict = {"provider": resolved_provider, "options": resolved_options}
+        meta_out: dict = {
+            "provider": public_provider(resolved_provider),
+            "options": resolved_options,
+        }
         return (text, meta_out)

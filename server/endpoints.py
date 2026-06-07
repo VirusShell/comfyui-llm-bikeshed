@@ -22,11 +22,9 @@ if HAS_SERVER:
     )
 
     try:
-        from ..config import get_api_key, load_config, write_api_key
+        from ..config import get_api_key
     except ImportError:
         get_api_key = None  # type: ignore[assignment]
-        load_config = None  # type: ignore[assignment]
-        write_api_key = None  # type: ignore[assignment]
 
     try:
         from ..detection import detect_backend
@@ -106,27 +104,3 @@ if HAS_SERVER:
             logger.exception("detect_backend failed for url=%r", url)
             backend = "generic"
         return web.json_response({"backend": backend})
-
-    @PromptServer.instance.routes.post("/llm-bikeshed/set-key")
-    async def _endpoint_set_key(request: web.Request) -> web.Response:
-        """Store an API key in config.yaml for the given provider."""
-        data = await request.json()
-        provider = data.get("provider", "")
-        api_key = data.get("api_key", "")
-        if not provider:
-            return web.json_response(
-                {"error": "provider required"}, status=400,
-            )
-
-        if write_api_key is not None:
-            await asyncio.to_thread(write_api_key, provider, api_key)
-        return web.json_response({"status": "ok"})
-
-    @PromptServer.instance.routes.post("/llm-bikeshed/reload-config")
-    async def _endpoint_reload_config(
-        request: web.Request,
-    ) -> web.Response:
-        """Reload configuration from disk."""
-        if load_config is not None:
-            await asyncio.to_thread(load_config)
-        return web.json_response({"status": "ok"})

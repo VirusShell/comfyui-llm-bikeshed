@@ -46,6 +46,8 @@ Native **Ollama** (`/api/chat`) is not supported by this pack; use a dedicated O
 
 3. Restart ComfyUI. Nodes appear under the **LLM Bikeshed** category.
 
+Example workflows are in [`example_workflows/`](example_workflows/) — load them from ComfyUI's template browser or via **Load** to get started quickly.
+
 ## Configuration
 
 1. Copy the example config:
@@ -93,14 +95,6 @@ Keys are resolved in this order (first match wins):
 3. None (local backends typically need no key)
 
 API keys never appear in workflow JSON — Provider nodes have no key widget.
-
-### Config Reload
-
-Config can be reloaded without restarting ComfyUI via the PromptServer endpoint:
-
-```
-POST /llm-bikeshed/reload-config
-```
 
 ## Nodes
 

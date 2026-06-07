@@ -3,10 +3,10 @@
 import logging
 
 try:
-    from ..config import get_api_key, get_config, get_textgen_auth_keys
+    from ..config import get_api_key, get_config
     from ..detection import detect_backend, normalize_oai_base_url
 except ImportError:
-    from config import get_api_key, get_config, get_textgen_auth_keys
+    from config import get_api_key, get_config
     from detection import detect_backend, normalize_oai_base_url
 
 logger = logging.getLogger("llm-bikeshed")
@@ -91,23 +91,12 @@ class LLMProviderOAICompat:
             or 120
         )
 
-        # Credentials (Textgen: single password, often stored under oai_compat)
-        if backend == "text_gen_webui":
-            api_key, admin_key = get_textgen_auth_keys()
-        else:
-            api_key = get_api_key(backend)
-            if not api_key and backend in ("generic", "openai"):
-                api_key = get_api_key("oai_compat")
-            admin_key = None
-
         provider = {
             "backend": backend,
             "adapter": "oai_compat",
             "url": url.rstrip("/"),
             "model": resolved_model,
             "timeout": timeout,
-            "api_key": api_key,
-            "admin_key": admin_key,
             "lifecycle": lifecycle,
         }
         return (provider,)
@@ -168,8 +157,6 @@ class LLMProviderTextGenWebUI:
             or providers_cfg.get("oai_compat", {}).get("timeout")
             or 120
         )
-        api_key, admin_key = get_textgen_auth_keys()
-
         lifecycle: dict | None = (
             {"type": "text_gen_webui"} if manage_model_memory else None
         )
@@ -180,8 +167,6 @@ class LLMProviderTextGenWebUI:
             "url": url.rstrip("/"),
             "model": resolved_model,
             "timeout": timeout,
-            "api_key": api_key,
-            "admin_key": admin_key,
             "lifecycle": lifecycle,
         }
         return (provider,)
