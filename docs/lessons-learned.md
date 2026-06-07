@@ -272,6 +272,17 @@ System: Absolute vs Relative" entry above for the full details.
 **Fix:** Add a BOOLEAN widget (e.g. `manage_model_memory`, default ON). When OFF, return an empty dict `{}` for `LLM_LIFECYCLE` so the adapter treats it as no lifecycle (falsy).  
 **Prevention:** Never ship a node with an empty `required` and `optional` widget set; add a minimal control or a static label-style widget if a “presence only” node is required.
 
+## ComfyUI Cancel Does Not Stop Blocking HTTP Automatically
+
+**Date:** 2026-06-03  
+**Severity:** High — user Cancel leaves LLM inference running on the host until timeout or manual unload  
+**What happened:** Generation nodes call blocking `requests.post()` for `/v1/chat/completions`. ComfyUI's Cancel button sets a global flag via `comfy.model_management.interrupt_current_processing()` but does not terminate in-flight HTTP; the worker thread blocks until the backend responds.  
+**Root cause:** ComfyUI expects custom nodes to poll `processing_interrupted()` or call `throw_exception_if_processing_interrupted()` during long work. Synchronous HTTP has no built-in hook.  
+**Fix:** `adapters/interrupt.py` runs requests in a daemon thread with `stream=True`, polls the ComfyUI flag every 250ms on the main thread, and closes the response/session on interrupt so the blocked read aborts and `InterruptProcessingException` propagates. Outside ComfyUI (tests), `_safe_post` / `_safe_get` use direct `requests` calls so existing mocks still work.  
+**Prevention:** Any new long-running adapter I/O must use `interruptible_request()` or equivalent polling — not bare `requests.post()`. Server-side inference may continue briefly after client abort (LM Studio/Textgen/OpenAI non-streaming); document that cancel stops the ComfyUI node, not necessarily GPU work instantly.
+
+---
+
 ## Imported helper module missing from repository
 
 **Date:** 2026-05-11  

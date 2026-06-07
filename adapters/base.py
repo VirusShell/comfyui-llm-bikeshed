@@ -7,6 +7,12 @@ from typing import Protocol
 
 import requests
 
+from .interrupt import (
+    check_before_request,
+    comfy_interrupt_available,
+    interruptible_request,
+)
+
 
 class LLMAdapter(Protocol):
     """Protocol for LLM backend adapters."""
@@ -51,16 +57,21 @@ def _sanitize_payload(obj: object) -> object:
     return obj
 
 
-def _safe_post(
+def _request_with_errors(
+    method: str,
     url: str,
     backend: str,
     **kwargs: object,
 ) -> requests.Response:
-    """Send POST request with structured error handling for timeout/connection."""
-    if "json" in kwargs and kwargs["json"] is not None:
-        kwargs["json"] = _sanitize_payload(kwargs["json"])
+    """Send HTTP request with interrupt, timeout, and connection error handling."""
     try:
-        return requests.post(url, **kwargs)  # type: ignore[arg-type]
+        if comfy_interrupt_available():
+            resp = interruptible_request(method, url, **kwargs)  # type: ignore[arg-type]
+        elif method.upper() == "GET":
+            resp = requests.get(url, **kwargs)  # type: ignore[arg-type]
+        else:
+            resp = requests.post(url, **kwargs)  # type: ignore[arg-type]
+        return resp
     except requests.Timeout:
         raise RuntimeError(
             f"[llm-bikeshed] {backend} request timed out at {url}"
@@ -69,3 +80,32 @@ def _safe_post(
         raise RuntimeError(
             f"[llm-bikeshed] {backend} is offline or unreachable at {url}"
         ) from None
+
+
+def _safe_get(
+    url: str,
+    backend: str,
+    **kwargs: object,
+) -> requests.Response:
+    """Send GET request with interrupt; connection errors propagate to caller."""
+    check_before_request()
+    if comfy_interrupt_available():
+        return interruptible_request("GET", url, **kwargs)  # type: ignore[arg-type]
+    try:
+        return requests.get(url, **kwargs)  # type: ignore[arg-type]
+    except requests.Timeout:
+        raise RuntimeError(
+            f"[llm-bikeshed] {backend} request timed out at {url}"
+        ) from None
+
+
+def _safe_post(
+    url: str,
+    backend: str,
+    **kwargs: object,
+) -> requests.Response:
+    """Send POST request with interrupt and structured error handling."""
+    if "json" in kwargs and kwargs["json"] is not None:
+        kwargs["json"] = _sanitize_payload(kwargs["json"])
+    check_before_request()
+    return _request_with_errors("POST", url, backend, **kwargs)

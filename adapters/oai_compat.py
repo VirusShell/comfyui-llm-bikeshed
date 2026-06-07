@@ -6,7 +6,7 @@ import logging
 
 import requests
 
-from .base import _is_json_safe, _raise_on_error, _safe_post
+from .base import _is_json_safe, _raise_on_error, _safe_get, _safe_post
 
 logger = logging.getLogger("llm-bikeshed")
 
@@ -230,8 +230,9 @@ class OAICompatAdapter:
 
         # Check current state via /api/v1/models.
         try:
-            resp = requests.get(
+            resp = _safe_get(
                 f"{url}/api/v1/models",
+                "lm_studio",
                 headers=headers,
                 timeout=timeout,
             )
@@ -316,8 +317,9 @@ class OAICompatAdapter:
 
         # Check currently loaded model.
         try:
-            info_resp = requests.get(
+            info_resp = _safe_get(
                 f"{url}/v1/internal/model/info",
+                "text_gen_webui",
                 headers=info_headers,
                 timeout=timeout,
             )
