@@ -191,7 +191,14 @@ class TestLMStudioTTL:
         resp = MagicMock()
         resp.ok = True
         resp.json.return_value = {
-            "data": [{"id": model, "loaded_instances": [{"config": {}}]}],
+            "models": [
+                {
+                    "key": model,
+                    "loaded_instances": [
+                        {"id": model, "config": {}},
+                    ],
+                }
+            ],
         }
         return resp
 
@@ -300,6 +307,113 @@ class TestLMStudioTTL:
 
         # max(60*10, 300) = 600
         assert gen_payloads[0]["ttl"] == 600
+
+
+# ---------------------------------------------------------------------------
+# OAI-compat adapter — LM Studio path: load / unload lifecycle
+# ---------------------------------------------------------------------------
+
+
+class TestLMStudioLoadUnload:
+    """LM Studio REST API model check and unload instance_id resolution."""
+
+    def _lm_studio_provider(self) -> dict:
+        return {
+            "backend": "lm_studio",
+            "adapter": "oai_compat",
+            "url": "http://localhost:1234",
+            "model": "publisher/model",
+            "timeout": 120,
+            "lifecycle": {
+                "type": "lm_studio",
+                "ttl": 30,
+                "context_length": None,
+            },
+        }
+
+    def test_skips_load_when_rest_models_key_already_loaded(
+        self, mock_oai_response, monkeypatch
+    ):
+        """GET /api/v1/models with models[].key skips POST /models/load."""
+        post_urls: list[str] = []
+
+        def fake_get(url, **kwargs):
+            resp = MagicMock()
+            resp.ok = True
+            resp.json.return_value = {
+                "models": [
+                    {
+                        "key": "publisher/model",
+                        "loaded_instances": [
+                            {"id": "publisher/model", "config": {}},
+                        ],
+                    }
+                ],
+            }
+            return resp
+
+        def fake_post(url, **kwargs):
+            post_urls.append(url)
+            return mock_oai_response
+
+        monkeypatch.setattr("adapters.base.requests.get", fake_get)
+        monkeypatch.setattr("adapters.base.requests.post", fake_post)
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            self._lm_studio_provider(),
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert not any("/api/v1/models/load" in u for u in post_urls)
+        assert any("/v1/chat/completions" in u for u in post_urls)
+
+    def test_unload_uses_loaded_instance_id_not_model_key(
+        self, mock_oai_response, monkeypatch
+    ):
+        """Unload sends loaded_instances[].id when it differs from model key."""
+        unload_payloads: list[dict] = []
+
+        def fake_get(url, **kwargs):
+            resp = MagicMock()
+            resp.ok = True
+            if "/api/v1/models" in url:
+                resp.json.return_value = {
+                    "models": [
+                        {
+                            "key": "publisher/model",
+                            "loaded_instances": [
+                                {
+                                    "id": "publisher/model:2",
+                                    "config": {},
+                                },
+                            ],
+                        }
+                    ],
+                }
+            return resp
+
+        def fake_post(url, **kwargs):
+            if "/api/v1/models/unload" in url:
+                unload_payloads.append(kwargs.get("json", {}))
+                resp = MagicMock()
+                resp.ok = True
+                return resp
+            return mock_oai_response
+
+        monkeypatch.setattr("adapters.base.requests.get", fake_get)
+        monkeypatch.setattr("adapters.base.requests.post", fake_post)
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            self._lm_studio_provider(),
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert unload_payloads
+        assert unload_payloads[0]["instance_id"] == "publisher/model:2"
 
 
 # ---------------------------------------------------------------------------

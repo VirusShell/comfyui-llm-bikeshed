@@ -76,6 +76,41 @@ NAME_MAPS: dict[str, dict[str, str]] = {
 }
 
 
+def _iter_lm_studio_model_entries(body: dict) -> list[tuple[str, list[dict]]]:
+    """Parse ``GET /api/v1/models`` JSON into (model_key, loaded_instances) pairs.
+
+    LM Studio REST API uses ``models[].key`` (see ``lm-studio-lifecycle-verified.md``).
+    Accept OpenAI-shaped ``data[].id`` as a fallback for older mocks/tests.
+    """
+    entries: list[tuple[str, list[dict]]] = []
+    models = body.get("models")
+    if isinstance(models, list):
+        for item in models:
+            if not isinstance(item, dict):
+                continue
+            key = item.get("key")
+            if key is None:
+                continue
+            instances = item.get("loaded_instances")
+            entries.append(
+                (str(key), instances if isinstance(instances, list) else [])
+            )
+        return entries
+    data = body.get("data")
+    if isinstance(data, list):
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            mid = item.get("id")
+            if mid is None:
+                continue
+            instances = item.get("loaded_instances")
+            entries.append(
+                (str(mid), instances if isinstance(instances, list) else [])
+            )
+    return entries
+
+
 def _dedupe_openai_token_limits(params: dict) -> None:
     """OpenAI accepts max_tokens or max_completion_tokens; keep one if both set.
 
@@ -177,13 +212,16 @@ class OAICompatAdapter:
         # Send request.
         endpoint = f"{url.rstrip('/')}/v1/chat/completions"
         timeout = provider.get("timeout", 120)
-        response = _safe_post(
-            endpoint,
-            backend,
-            json=payload,
-            headers=headers,
-            timeout=timeout,
-        )
+        post_kwargs: dict = {
+            "json": payload,
+            "headers": headers,
+            "timeout": timeout,
+        }
+        if backend == "text_gen_webui":
+            post_kwargs["on_interrupt"] = lambda: self._stop_generation_textgen(
+                provider
+            )
+        response = _safe_post(endpoint, backend, **post_kwargs)
 
         _raise_on_error(response, backend, endpoint)
 
@@ -225,6 +263,32 @@ class OAICompatAdapter:
         return {}
 
     # ── LM Studio model management ──────────────────────────────────
+    # See docs/research/lm-studio-lifecycle-verified.md
+
+    def _resolve_lm_studio_instance_id(
+        self, provider: dict, model: str
+    ) -> str | None:
+        """Return loaded ``instance_id`` for *model*, or None if not loaded."""
+        url = provider["url"]
+        headers = self._auth_headers(provider)
+        timeout = provider.get("timeout", 120)
+        try:
+            resp = _safe_get(
+                f"{url}/api/v1/models",
+                "lm_studio",
+                headers=headers,
+                timeout=timeout,
+            )
+            if not resp.ok:
+                return None
+            for key, instances in _iter_lm_studio_model_entries(resp.json()):
+                if key != model or not instances:
+                    continue
+                inst_id = instances[0].get("id")
+                return str(inst_id) if inst_id is not None else None
+        except requests.RequestException:
+            return None
+        return None
 
     def _ensure_model_loaded_lm_studio(
         self, provider: dict, model: str, lifecycle: dict | None = None
@@ -244,10 +308,9 @@ class OAICompatAdapter:
                 timeout=timeout,
             )
             if resp.ok:
-                for m in resp.json().get("data", []):
-                    if m.get("id") != model:
+                for key, instances in _iter_lm_studio_model_entries(resp.json()):
+                    if key != model:
                         continue
-                    instances = m.get("loaded_instances", [])
                     if not instances:
                         break  # Model known but not loaded
                     # Model is loaded — check context_length if we care.
@@ -263,7 +326,12 @@ class OAICompatAdapter:
                         inst_cfg.get("context_length"),
                         desired_ctx,
                     )
-                    self._unload_model_lm_studio(provider, model)
+                    inst_id = instances[0].get("id")
+                    self._unload_model_lm_studio(
+                        provider,
+                        model,
+                        instance_id=str(inst_id) if inst_id is not None else None,
+                    )
                     break
         except requests.RequestException:
             pass  # Proceed to load attempt
@@ -289,14 +357,28 @@ class OAICompatAdapter:
         )
         _raise_on_error(load_resp, "lm_studio", load_url)
 
-    def _unload_model_lm_studio(self, provider: dict, model: str) -> None:
-        """Unload model from LM Studio."""
+    def _unload_model_lm_studio(
+        self,
+        provider: dict,
+        model: str,
+        *,
+        instance_id: str | None = None,
+    ) -> None:
+        """Unload model from LM Studio.
+
+        Uses bare ``requests.post`` (not interruptible) — post-generation cleanup
+        after ComfyUI already unblocked; same pattern as Textgen unload.
+        """
         url = provider["url"]
         headers = self._auth_headers(provider)
+        resolved = instance_id or self._resolve_lm_studio_instance_id(
+            provider, model
+        )
+        unload_id = resolved or model
         try:
             requests.post(
                 f"{url}/api/v1/models/unload",
-                json={"instance_id": model},
+                json={"instance_id": unload_id},
                 headers=headers,
                 timeout=30,
             )
@@ -353,6 +435,22 @@ class OAICompatAdapter:
             timeout=timeout,
         )
         _raise_on_error(load_resp, "text_gen_webui", load_url)
+
+    def _stop_generation_textgen(self, provider: dict) -> None:
+        """Ask Textgen to stop in-flight generation (ComfyUI Cancel).
+
+        Uses ``POST /v1/internal/stop-generation`` (API key when configured).
+        See ``docs/research/textgen-lifecycle-verified.md``.
+        """
+        url = provider["url"]
+        headers = self._auth_headers(provider)
+        stop_url = f"{url.rstrip('/')}/v1/internal/stop-generation"
+        try:
+            requests.post(stop_url, headers=headers, timeout=5)
+        except requests.RequestException as exc:
+            logger.warning(
+                "Textgen stop-generation failed at %s: %s", stop_url, exc
+            )
 
     def _unload_model_text_gen_webui(self, provider: dict) -> None:
         """Unload current model from text-gen-webui."""

@@ -101,6 +101,54 @@ class TestInterruptibleRequest:
         assert isinstance(result.get("exc"), InterruptProcessingException)
         assert closed["value"] is True
 
+    def test_calls_on_interrupt_callback(self, mock_comfy_interrupt, monkeypatch):
+        started = threading.Event()
+        called = {"value": False}
+
+        class SlowResponse:
+            def close(self) -> None:
+                pass
+
+            def iter_content(self, chunk_size: int = 8192):
+                started.set()
+                while True:
+                    time.sleep(0.05)
+                    yield b""
+
+        def slow_request(self, method, url, **kwargs):
+            kwargs.setdefault("stream", True)
+            return SlowResponse()
+
+        monkeypatch.setattr(
+            interrupt_mod.requests.Session, "request", slow_request, raising=False
+        )
+
+        def on_interrupt() -> None:
+            called["value"] = True
+
+        result: dict[str, object] = {}
+
+        def run() -> None:
+            try:
+                interruptible_request(
+                    "POST",
+                    "http://example.com/v1/chat/completions",
+                    on_interrupt=on_interrupt,
+                    timeout=30,
+                )
+            except BaseException as exc:
+                result["exc"] = exc
+
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
+        assert started.wait(timeout=2.0)
+
+        mock_comfy_interrupt["interrupted"] = True
+        thread.join(timeout=2.0)
+
+        assert isinstance(result.get("exc"), InterruptProcessingException)
+        assert called["value"] is True
+
     def test_safe_post_uses_direct_requests_outside_comfy(
         self, monkeypatch, mock_oai_response
     ):

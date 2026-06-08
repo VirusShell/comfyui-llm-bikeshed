@@ -62,6 +62,7 @@ def interruptible_request(
     url: str,
     *,
     poll_interval: float = 0.25,
+    on_interrupt: Callable[[], None] | None = None,
     **kwargs: Any,
 ) -> requests.Response:
     """Run a blocking HTTP request that responds to ComfyUI cancel.
@@ -99,6 +100,11 @@ def interruptible_request(
     while not done.wait(timeout=poll_interval):
         if is_processing_interrupted():
             cancelled = True
+            if on_interrupt is not None:
+                try:
+                    on_interrupt()
+                except Exception:
+                    pass  # Best-effort host stop; cancel must still propagate.
             resp = holder.get("response")
             if resp is not None:
                 resp.close()
