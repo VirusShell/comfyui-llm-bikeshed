@@ -148,6 +148,7 @@ Keep provenance fresh in these locations when re-verifying (edit in place; do no
 | Document | Update when |
 |----------|-------------|
 | `docs/research/textgen-lifecycle-verified.md` | Textgen routes, auth, or load/unload behavior changes |
+| `docs/research/lm-studio-lifecycle-verified.md` | LM Studio TTL, load/unload, or REST list API changes |
 | `docs/reference/backend-api-parameters.md` | Parameter allowlists or backend differences change |
 | `docs/resolution_tracker.md` | Promoting Assumed → Confirmed, or flagging Contaminated |
 | `docs/lessons-learned.md` | Non-obvious runtime fixes (mandatory per `CLAUDE.md`) |

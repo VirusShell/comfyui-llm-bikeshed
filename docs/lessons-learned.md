@@ -351,3 +351,12 @@ System: Absolute vs Relative" entry above for the full details.
 **Root cause:** Keys were resolved at provider-build time and carried through the graph in the provider dict for adapter convenience.  
 **Fix:** Provider dicts carry only non-secret fields; ``config.auth.resolve_provider_auth`` resolves credentials at HTTP time in adapters; ``public_provider()`` strips any legacy secret keys from ``LLM_META`` outputs. Removed unauthenticated ``POST /llm-bikeshed/set-key``.  
 **Prevention:** Never put secrets in any ComfyUI node output type; grep for ``api_key`` / ``admin_key`` in provider construction and meta dicts; resolve auth only at the HTTP boundary.
+
+## LM Studio lifecycle check used OpenAI list shape, not REST API
+
+**Date:** 2026-06-07  
+**Severity:** Medium — load/unload lifecycle silently skipped or mis-targeted unload  
+**What happened:** Tier 1 provenance audit found ``_ensure_model_loaded_lm_studio`` parsed ``GET /api/v1/models`` as OpenAI-style ``data[].id``. LM Studio REST API returns ``models[].key`` and ``loaded_instances[].id``. Unit tests mocked the wrong shape, so the bug was masked. Unload sent ``instance_id: model`` instead of resolving ``loaded_instances[].id``.  
+**Root cause:** Conflation of OAI ``GET /v1/models`` (``data`` array) with LM Studio REST ``GET /api/v1/models`` (``models`` array). Tests copied the OAI mock shape.  
+**Fix:** ``_iter_lm_studio_model_entries()`` parses REST ``models[].key``; ``_resolve_lm_studio_instance_id()`` for unload; research note ``docs/research/lm-studio-lifecycle-verified.md``.  
+**Prevention:** When a backend has both OAI-compat and native REST routes, verify response JSON shape against upstream REST docs, not OAI examples; mock tests must match the route actually called.

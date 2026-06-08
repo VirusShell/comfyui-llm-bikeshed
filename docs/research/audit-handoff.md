@@ -48,20 +48,21 @@ Work top-down; update **Status** as you verify. All items start **Pending**.
 
 | Area | Files / cross-check | Status |
 |------|---------------------|--------|
-| Interrupt polling + HTTP abort | `adapters/interrupt.py` | Pending |
-| Safe request routing | `adapters/base.py` | Pending |
-| Generation + lifecycle HTTP | `adapters/oai_compat.py` | Pending |
-| Lifecycle nodes | `nodes/lifecycle.py` | Pending |
-| Textgen routes / auth / load-unload | Cross-check [`textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md) | Pending |
-| Cancel host-stop (Textgen `stop-generation`) | See [`cancel-interrupt-status.md`](cancel-interrupt-status.md) | Pending |
+| Interrupt polling + HTTP abort | `adapters/interrupt.py` | **Verified** — shipped `1006400`; code read 2026-06-07 |
+| Safe request routing | `adapters/base.py` | **Verified** — `_safe_post`/`_safe_get` via `interruptible_request` when Comfy hooks present |
+| Generation + lifecycle HTTP | `adapters/oai_compat.py` | **Verified** — Textgen stop-generation wired; LM Studio REST parse + instance_id unload fixed (see `lm-studio-lifecycle-verified.md`) |
+| Lifecycle nodes | `nodes/lifecycle.py` | **Verified** — outputs match adapter `provider["lifecycle"]` contract |
+| Textgen routes / auth / load-unload | Cross-check [`textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md) | **Verified** — stop-generation added 2026-06-07; auth split confirmed |
+| LM Studio TTL / load / unload | [`lm-studio-lifecycle-verified.md`](lm-studio-lifecycle-verified.md) | **Verified** (docs read 2026-06-07); code drift fixed; live QA **[VERIFY]** |
+| Cancel host-stop (Textgen `stop-generation`) | See [`cancel-interrupt-status.md`](cancel-interrupt-status.md) | **Partial** — wired; empirical QA pending |
 
 ---
 
 ## First 3 tasks (ordered)
 
-1. **Wire + verify Textgen stop-generation on interrupt** — host-side inference stop when ComfyUI Cancel fires; update `cancel-interrupt-status.md` when done.
-2. **Re-verify LM Studio TTL / load / unload claims in `oai_compat.py`** — against upstream docs or source at pinned commit; fix code or research note if drift.
-3. **Scan `resolution_tracker.md` Decided / Assumed rows for Tier 1 scope** — flag `[VERIFY]` where evidence is docs-only or undated; do **not** promote to Confirmed without empirical or upstream proof.
+1. ~~**Wire + verify Textgen stop-generation on interrupt**~~ — **Done (2026-06-07):** upstream code read + wired in `oai_compat.py` / `interrupt.py`; live empirical QA still open.
+2. ~~**Re-verify LM Studio TTL / load / unload claims in `oai_compat.py`**~~ — **Done (2026-06-07):** upstream docs read; REST `models[].key` parse + `instance_id` unload fixed; research note [`lm-studio-lifecycle-verified.md`](lm-studio-lifecycle-verified.md); live empirical QA still open.
+3. ~~**Scan `resolution_tracker.md` Decided / Assumed rows for Tier 1 scope**~~ — **Done (2026-06-07):** surgical `[VERIFY]` flags on A-15, A-18, A-19, A-22, API-6; API-6 note corrected for Textgen auth split.
 
 ---
 
@@ -91,5 +92,6 @@ Work top-down; update **Status** as you verify. All items start **Pending**.
 | [provenance-and-reverification.md](provenance-and-reverification.md) | Provenance standard + tier definitions |
 | [cancel-interrupt-status.md](cancel-interrupt-status.md) | Cancel/interrupt shipped vs gaps |
 | [textgen-lifecycle-verified.md](textgen-lifecycle-verified.md) | Textgen upstream evidence model |
+| [lm-studio-lifecycle-verified.md](lm-studio-lifecycle-verified.md) | LM Studio TTL / load / unload evidence model |
 | [resolution_tracker.md](../resolution_tracker.md) | Project decisions (status ≠ proof) |
 | [thorough-audit-2026-04-27.md](../thorough-audit-2026-04-27.md) | April static review (separate) |

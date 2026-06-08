@@ -23,6 +23,12 @@ In `modules/api/script.py`, `verify_api_key` compares `Authorization: Bearer …
 
 **Implication:** If a user sets **different** values for `--api-key` and `--admin-key`, clients must send the **API** bearer token for `model/info` and chat, and the **admin** bearer token for internal list/load/unload. Sending only the admin key on `model/info` fails when an API key is set and differs.
 
+### `POST /v1/internal/stop-generation`
+
+Calls `stop_everything_event()` (sets `shared.stop_everything = True`), which the generation loop checks during both streaming and non-streaming inference. Registered with `dependencies=check_key` → **API key** when configured (same gate as chat).
+
+**Access date:** 2026-06-07 — verified by reading `modules/api/script.py` and `modules/text_generation.py` on `oobabooga/textgen` `main`.
+
 ### `GET /v1/internal/model/info`
 
 Handler returns `OAImodels.get_current_model_info()`, which (in `models.py`) includes at least `model_name` (from `shared.model_name`), plus `lora_names` and `loader`. This is suitable for discovering **which model is currently loaded** (subject to `model_name` representing “none” when idle — see unknowns).
@@ -72,7 +78,8 @@ This is a snapshot of **what actually runs over the network** for VRAM-related b
   - **List / loaded hint:** `GET /v1/internal/model/list` (admin bearer when required), `GET /v1/internal/model/info` (API bearer when required) — used by the model dropdown and `loaded_model_status`.
   - **Load before chat:** `POST {url}/v1/internal/model/load` is invoked by the **OpenAI-compatible adapter** when the provider has Textgen lifecycle enabled (**Manage model memory** on **LLM Provider: Textgen**, or **LLM Lifecycle: Textgen** → **OAI Compatible**), not via a separate PromptServer “load” button.
   - **Generation:** `POST {url}/v1/chat/completions` (OAI-compat).
+  - **Cancel / stop inference:** on ComfyUI Cancel during chat, adapter calls `POST /v1/internal/stop-generation` (API bearer when required) before aborting the client read.
   - **Explicit unload / chain policy:** when Textgen lifecycle is enabled on the provider (**Manage model memory** on **LLM Provider: Textgen**, or **LLM Lifecycle: Textgen** wired to **OAI Compatible** and ON), the adapter uses `POST /v1/internal/model/unload` (and load when needed) per adapter logic; generation nodes support **`skip_unload`** so only the last node in a chain triggers unload when that design is in use.
-- **LM Studio:** TTL / context and related behavior are driven by the **LM Studio lifecycle** node and adapter paths (not the Textgen internal routes above).
+- **LM Studio:** TTL / context and related behavior are driven by the **LM Studio lifecycle** node and adapter paths — see [`lm-studio-lifecycle-verified.md`](lm-studio-lifecycle-verified.md) (not the Textgen internal routes above).
 - **Ollama:** This pack does **not** ship native Ollama nodes or `/api/chat`; use another pack or an OAI-compatible gateway.
 - **What we still need (honest):** Product direction treats heavy **lifecycle manager** UX as under review (`docs/proposals/product-direction-and-scope.md`). Today you have: optional lifecycle nodes, integrated Textgen provider, adapter hooks, and `skip_unload` — not necessarily the final mental model for “VRAM management” in Comfy graphs.
