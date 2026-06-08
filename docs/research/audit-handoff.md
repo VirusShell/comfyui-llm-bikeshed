@@ -2,7 +2,8 @@
 
 **Created:** 2026-06-07  
 **Branch:** `research/audit-and-cancel-tracking`  
-**Context:** Assessment `f0aad497` found a gap — fresh agents need a single kickoff doc, not chat history.
+**Context:** Assessment `f0aad497` found a gap — fresh agents need a single kickoff doc, not chat history.  
+**Fresh chat:** copy-paste prompt in [`fresh-context-audit-prompt.md`](fresh-context-audit-prompt.md) (below-the-line block).
 
 ---
 
