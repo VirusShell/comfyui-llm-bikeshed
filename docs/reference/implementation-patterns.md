@@ -281,6 +281,8 @@ def get_api_key(provider: str) -> str | None:
 
 ## Sources
 
-- Research findings from `specs/comfyui-llm-bikeshed/research.md`
-- ComfyUI custom node research at `D:\ai\tmp\comfyui-custom-nodes-research\`
+- Research findings from `specs/comfyui-llm-bikeshed/research.md` (gitignored Ralph spec)
+- `docs/reference/comfyui-platform-findings.md` — project-verified platform behavior
+- [ComfyUI custom nodes (official docs)](https://docs.comfy.org/custom-nodes/)
+- Off-repo Feb 2026 doc mirror — inventory only: `docs/research/external-comfyui-reference-corpus.md`
 - Ecosystem analysis of comfyui-ollama and comfyui-ollama-describer

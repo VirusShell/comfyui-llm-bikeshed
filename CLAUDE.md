@@ -11,9 +11,9 @@
 >
 > **Research provenance:** Before relying on external claims (issues, wikis, docs), read `docs/research/provenance-and-reverification.md` — undated citations are not verified fact.
 >
-> **Tier 1 audit kickoff:** Operational handoff for runtime re-verification is in `docs/research/audit-handoff.md` (branch `research/audit-and-cancel-tracking`).
+> **Provenance audit kickoff:** Project-wide re-verification (tracker, research notes, reference docs, citation freshness) is in `docs/research/audit-handoff.md` (branch `research/audit-and-cancel-tracking`). Fresh chat: `docs/research/fresh-context-audit-prompt.md`.
 >
-> **Cancel / interrupt status:** Shipped vs planned ComfyUI Cancel behavior is in `docs/research/cancel-interrupt-status.md` (separate from the provenance audit) — do not re-derive from chat or old issue citations.
+> **Cancel / interrupt status:** Shipped vs gaps in `docs/research/cancel-interrupt-status.md`. Live cancel QA protocol (subsidiary, human-run) in `docs/research/cancel-empirical-qa-handoff.md` — separate from the provenance audit; do not re-derive from chat or old issue citations.
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -31,24 +31,13 @@ Old docs (`docs/old/CONCEPT.md`, `docs/old/RESEARCH_BRIEF.md`) are superseded �
 
 ## ComfyUI Custom Node Reference
 
-Comprehensive research on ComfyUI custom node development standards is at `D:\ai\tmp\comfyui-custom-nodes-research\`. Consult these files for implementation-level detail:
+**In-repo (authoritative for this pack):**
 
-| File | Covers |
-|------|--------|
-| `01-overview.md` | Architecture, node categories (server-only, client-only, connected) |
-| `02-getting-started.md` | Scaffolding, registration, `NODE_CLASS_MAPPINGS`, first node walkthrough |
-| `03-backend-properties.md` | All class properties (`INPUT_TYPES`, `RETURN_TYPES`, `IS_CHANGED`, `VALIDATE_INPUTS`, etc.) |
-| `04-backend-datatypes.md` | Primitive types, tensor shapes (IMAGE `[B,H,W,C]`, LATENT, MASK), custom types |
-| `05-backend-advanced.md` | Lazy evaluation, node expansion, data lists, hidden inputs, flexible inputs, node replacement |
-| `06-javascript-extensions.md` | Frontend hooks, extension registration, UI APIs (settings, sidebar, toast, dialog) |
-| `07-v3-migration.md` | V3 schema API (`io.ComfyNode`, `define_schema()`), V1→V3 property mapping |
-| `08-node-docs-templates-subgraphs.md` | Node help pages, workflow templates, subgraph blueprints |
-| `09-registry-publishing.md` | Registry, `pyproject.toml`, publishing workflow, security prohibitions |
-| `10-snippets-examples.md` | Image/mask/noise handling patterns, context menu patterns |
-| `11-i18n-and-context-menu-migration.md` | Localization, deprecated prototype hijacking → official hooks |
-| `LEDGER.md` | Master index with coverage tracking and confidence ratings |
+- `docs/reference/comfyui-platform-findings.md` — platform behavior used in design (P-9, P-10, COMBO, errors)
+- `docs/reference/implementation-patterns.md` — copy-paste node patterns
+- `docs/the-archive/` — timestamped evidence captures
 
-Additional verified patterns in project memory: `comfyui-node-standards.md` (widget system, rendering pipeline, layout constants, anti-patterns).
+**External corpus (off-repo, stale pointer):** A Feb 2026 scratch mirror of official ComfyUI custom-node docs lived outside this repo. Status, file list, and disposition options are in **`docs/research/external-comfyui-reference-corpus.md`** (DOC-1). Do not add new hardcoded paths to it; prefer [docs.comfy.org/custom-nodes](https://docs.comfy.org/custom-nodes/) or in-repo reference docs.
 
 ## Architecture
 

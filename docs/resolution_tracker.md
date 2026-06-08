@@ -52,7 +52,7 @@ Generated: 2026-02-25
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| P-1 | `OUTPUT_IS_LIST` behavior for STRING outputs | Tabled | Only needed for Image Describe batch output (deferred from v1). Documented in ComfyUI research (`05-backend-advanced.md`). |
+| P-1 | `OUTPUT_IS_LIST` behavior for STRING outputs | Tabled | Only needed for Image Describe batch output (deferred from v1). Documented in external ComfyUI reference corpus (`05-backend-advanced.md`; see `docs/research/external-comfyui-reference-corpus.md`). |
 | P-2 | Dynamic COMBO widget behavior on workflow load with missing options | Decided | Use frontend JS + PromptServer endpoint for model lists (not backend INPUT_TYPES). Saved model name persists in `widgets_values`. JS populates COMBO from endpoint, shows fallback if backend offline. Ecosystem pattern for dynamic refresh COMBOs. |
 | P-3 | COMBO → text input dynamic widget switching via JS | Decided | Not needed. Use STRING input with `defaultInput: True` as manual fallback instead. COMBO-to-text switching is complex and fragile. |
 | P-4 | ComfyUI error display mechanisms | Confirmed | Exception in FUNCTION halts workflow (red outline, error notification). VALIDATE_INPUTS for pre-execution checks. Toast API for non-fatal warnings. Python logging for console output. |
@@ -81,7 +81,14 @@ Generated: 2026-02-25
 
 ---
 
-## Infrastructure & Tooling
+## Documentation & reference corpus
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| DOC-1 | Off-repo ComfyUI custom-node reference corpus (`D:\ai\tmp\comfyui-custom-nodes-research\`) | Unresolved | Feb 2026 scratch mirror of official docs; not in git; partially superseded by `docs/reference/` and `docs/the-archive/`. Inventory and disposition options in `docs/research/external-comfyui-reference-corpus.md`. Hardcoded path removed from `CLAUDE.md` and `implementation-patterns.md` (2026-06-08). Pending owner decision: vendor, drop, or hybrid. |
+| DOC-2 | `comfyui-node-standards.md` ("project memory") | Unresolved | Referenced in old agent guidance; file never committed to repo or external corpus. Do not cite until located or rewritten. |
+
+---
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
@@ -147,3 +154,6 @@ Intent is spelled out in [`docs/proposals/product-direction-and-scope.md`](propo
 | 2026-05-12 | **D-3 executed:** removed in-pack Ollama (adapter, nodes, `/models/ollama`, config example); semver **0.3.0**; tracker rows reconciled. See `docs/proposals/ollama-removal-plan.md`. |
 | 2026-05-12 | Linked D-3 execution checklist: `docs/proposals/ollama-removal-plan.md`. |
 | 2026-06-07 | Tier 1 provenance audit: LM Studio lifecycle REST parse + instance_id unload fixed; `[VERIFY]` flags on A-15, A-18, A-19, A-22; API-6 note corrected; research notes `lm-studio-lifecycle-verified.md`, `audit-handoff.md` checklist complete. |
+| 2026-06-08 | Documented off-repo ComfyUI reference corpus (DOC-1, DOC-2); added `docs/research/external-comfyui-reference-corpus.md`; removed hardcoded `D:\ai\tmp\` pointers from `CLAUDE.md` and `implementation-patterns.md`. |
+| 2026-06-08 | Tier 1 audit session (fresh-context prompt): code re-read confirmed no drift since 2026-06-07; empirical QA protocol added to `audit-handoff.md`; `[VERIFY]` on A-15, A-18, A-19, A-22 unchanged (no empirical runs). |
+| 2026-06-08 | **Audit reframe:** Tier 1 redefined as project-wide provenance sweep (tracker contamination, research claim inventory, reference/concept vs code, citation freshness). Empirical Textgen/LM Studio cancel QA demoted to optional subsidiary track. `audit-handoff.md`, `fresh-context-audit-prompt.md`, `provenance-and-reverification.md` §5 updated. Systematic Tier 1.1 tracker audit **pending**. |

@@ -15,9 +15,9 @@ During June 2026 work on cooperative cancel / interrupt handling, an agent cited
 
 **What this doc is not:** a claim that the codebase or all decisions are wrong, or a complete re-verification checklist.
 
-### Operational kickoff (Tier 1 audit)
+### Operational kickoff (project-wide audit)
 
-For **hands-on Tier 1 re-verification** (branch, checklist, first tasks, Gitea workflow), start with [`audit-handoff.md`](audit-handoff.md). This document remains the **provenance rules** reference; the handoff doc is the **execution** entry point.
+For **hands-on provenance re-verification** (branch, Tier 1 checklist, next tasks, Gitea workflow), start with [`audit-handoff.md`](audit-handoff.md). **Tier 1 is the project-wide provenance sweep** (tracker, research notes, reference docs, citation freshness) — not empirical cancel QA. This document remains the **provenance rules** reference; the handoff doc is the **execution** entry point.
 
 ---
 
@@ -100,27 +100,30 @@ Every external claim that influences code or a `Decided` tracker row should be t
 
 ## 5. Re-verification priority tiers
 
-Framework only — not a full audit list. Work top-down when time allows; do not block all shipping on completing Tier 3.
+Framework only — full checklists live in [`audit-handoff.md`](audit-handoff.md). Work top-down; do not block urgent fixes on completing Tier 3.
 
 | Tier | Focus | Why first | Examples |
 |------|--------|-----------|----------|
-| **1 — Runtime behavior** | Adapters, lifecycle, cancel/interrupt, load/unload | Direct user impact; wrong behavior wastes VRAM or hangs queues | `adapters/*`, lifecycle nodes, interrupt polling |
-| **2 — API & detection** | Parameter allowlists, model list paths, backend fingerprinting | Silent wrong params or empty dropdowns | `backend-api-parameters.md`, `model_list.py`, provider detection |
-| **3 — Design backlog** | Proposals, QoL items, non-shipped architecture | Lower immediate risk if not implemented | `docs/proposals/*`, open tracker `Unresolved` rows |
+| **1 — Project-wide provenance** | Claim inventory, tracker audit, reference/concept vs code, citation freshness | Wrong upstream claims invalidate **any** downstream code or `Decided` row | `resolution_tracker.md`, `docs/research/*.md`, `docs/reference/*.md`, `lessons-learned.md` URLs |
+| **2 — Runtime code paths** | Adapters, lifecycle, interrupt wiring vs upstream | Direct user impact once provenance for those cites is sound | `adapters/*`, lifecycle nodes, `cancel-interrupt-status.md` (shipped vs gaps) |
+| **3 — Design backlog** | Proposals, QoL, non-shipped architecture | Lower risk if not implemented | `docs/proposals/*`, `Unresolved` tracker rows |
 
-When touching Tier 1 code, re-verify **that path** even if the wider audit is incomplete.
+**Subsidiary (optional):** Empirical cancel QA on live Textgen/LM Studio — human-run; protocol in [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md) (see [`audit-handoff.md`](audit-handoff.md) quick links). **Not Tier 1** and not the default session goal.
+
+When touching Tier 2 code, re-verify **that path's sources** even if the wider Tier 1 sweep is incomplete.
 
 ---
 
 ## 6. For agents / new context
 
-1. **Read this document first** when resuming research-heavy work or citing GitHub/issues/docs.
-2. **Do not treat `Decided` in `resolution_tracker.md` as verified fact** — check provenance or re-verify before extending behavior.
-3. **Mark uncertain work `[VERIFY]`** in specs/tasks when evidence is docs-only or undated.
-4. **Before changing Textgen paths or auth**, read and update `docs/research/textgen-lifecycle-verified.md` if upstream changed.
-5. **Prefer primary sources:** upstream `script.py` / API routes over blog posts; ComfyUI source or reproducible run over old issues.
-6. **Update provenance when you verify:** add access date and commit; move claims from “assumed” to “confirmed” in the research note, not only in chat.
-7. **Do not expand scope** by declaring unrelated decisions invalid — audit the area you touch.
+1. **Read [`audit-handoff.md`](audit-handoff.md) first** for fresh audit sessions — start with **Tier 1 provenance** (tracker sweep, claim inventory), not empirical cancel QA.
+2. **Read this document** when citing GitHub/issues/docs or extending research-derived behavior.
+3. **Do not treat `Decided` in `resolution_tracker.md` as verified fact** — check provenance or re-verify before extending behavior.
+4. **Mark uncertain work `[VERIFY]`** in specs/tasks when evidence is docs-only or undated.
+5. **Before changing Textgen paths or auth**, read and update `docs/research/textgen-lifecycle-verified.md` if upstream changed.
+6. **Prefer primary sources:** upstream `script.py` / API routes over blog posts; ComfyUI source or reproducible run over old issues.
+7. **Update provenance when you verify:** add access date and commit; move claims from “assumed” to “confirmed” in the research note, not only in chat.
+8. **Do not expand scope** by declaring unrelated decisions invalid — audit the area you touch.
 
 ---
 
@@ -128,9 +131,10 @@ When touching Tier 1 code, re-verify **that path** even if the wider audit is in
 
 **Start here:**
 
-1. This document (provenance rules and tiers)
-2. `docs/resolution_tracker.md` (what the project decided — with status key)
-3. `docs/research/*.md` and `docs/reference/*.md` for backend-specific notes
+1. [`audit-handoff.md`](audit-handoff.md) (Tier 1 checklist and next work)
+2. This document (provenance rules and tiers)
+3. `docs/resolution_tracker.md` (what the project decided — with status key)
+4. `docs/research/*.md` and `docs/reference/*.md` for backend-specific notes
 
 **Practical workflow:**
 
@@ -154,6 +158,8 @@ Keep provenance fresh in these locations when re-verifying (edit in place; do no
 | `docs/lessons-learned.md` | Non-obvious runtime fixes (mandatory per `CLAUDE.md`) |
 | `docs/research/provenance-and-reverification.md` | Process changes or new tier guidance |
 | `docs/research/cancel-interrupt-status.md` | Cancel/interrupt shipped vs gaps |
+| `docs/research/cancel-empirical-qa-handoff.md` | Live cancel QA protocol (subsidiary) |
+| `docs/research/external-comfyui-reference-corpus.md` | Off-repo ComfyUI doc mirror inventory; DOC-1 disposition |
 | `CLAUDE.md` | Pointers to authoritative research paths |
 | Feature-specific proposals under `docs/proposals/` | When implementation proves or disproves design assumptions |
 
@@ -176,6 +182,7 @@ Cancel/interrupt work **triggered** provenance review but has its **own** progre
 | Document | Tracks |
 |----------|--------|
 | [`cancel-interrupt-status.md`](cancel-interrupt-status.md) | What is **shipped** vs **gaps** for ComfyUI Cancel during generation (all providers) |
+| [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md) | Live cancel QA protocol — subsidiary; human-run with GPU + backends |
 | This document | How to **cite and re-verify** research project-wide |
 
 Update `cancel-interrupt-status.md` when interrupt behavior changes; update this doc when process rules change.

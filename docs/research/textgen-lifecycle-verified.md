@@ -27,7 +27,8 @@ In `modules/api/script.py`, `verify_api_key` compares `Authorization: Bearer …
 
 Calls `stop_everything_event()` (sets `shared.stop_everything = True`), which the generation loop checks during both streaming and non-streaming inference. Registered with `dependencies=check_key` → **API key** when configured (same gate as chat).
 
-**Access date:** 2026-06-07 — verified by reading `modules/api/script.py` and `modules/text_generation.py` on `oobabooga/textgen` `main`.
+**Access date:** 2026-06-07 — verified by reading `modules/api/script.py` and `modules/text_generation.py` on `oobabooga/textgen` `main`.  
+**Pack wiring re-check:** 2026-06-08 — `adapters/oai_compat.py` `on_interrupt` → `_stop_generation_textgen` → `POST /v1/internal/stop-generation` (verified how: `code read`; applies to cancel-interrupt Tier 1).
 
 ### `GET /v1/internal/model/info`
 

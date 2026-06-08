@@ -104,11 +104,11 @@ ComfyUI supports strong connection safety through custom type strings and graph-
 - source_url: https://docs.comfy.org/custom-nodes/backend/server_overview
 - source_type: local_mirror
 - finding:
-  - Local mirror file `D:\ai\tmp\comfyui-custom-nodes-research\03-backend-properties.md` explicitly records:
+  - Local mirror file `D:\ai\tmp\comfyui-custom-nodes-research\03-backend-properties.md` (Feb 2026 off-repo corpus; see `docs/research/external-comfyui-reference-corpus.md`) explicitly records:
     - `VALIDATE_INPUTS` gets constants, not node-connected values.
     - `input_types` can be used for type validation of connected inputs.
 - implication_for_project:
-  - Confirms our archive can safely cite both canonical docs URL and local mirror snapshots when preserving provenance.
+  - Confirms our archive can safely cite both canonical docs URL and local mirror snapshots when preserving provenance. Future captures should prefer in-repo paths if the corpus is vendored (DOC-1).
 - confidence: high
 
 ### R-2026-05-11-008

@@ -72,6 +72,8 @@ Explicit `POST /api/v1/models/load` with `context_length` is required for reliab
 | `nodes/lifecycle.py` | **Verified:** outputs `{type, ttl, context_length}` matching adapter expectations. |
 | TTL default 30 s (lifecycle node) vs LM Studio app default 60 min | **By design** — pack default favors VRAM reclamation; user-tunable. |
 
+**2026-06-08 code re-read:** No drift — `_iter_lm_studio_model_entries`, `_ensure_model_loaded_lm_studio`, `_unload_model_lm_studio` still match this note. Live cancel QA **[VERIFY]** remains open (`cancel-interrupt-status.md`).
+
 ## Applies to
 
 - `adapters/oai_compat.py` — LM Studio lifecycle paths
