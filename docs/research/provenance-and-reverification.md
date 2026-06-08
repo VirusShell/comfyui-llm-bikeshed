@@ -15,6 +15,10 @@ During June 2026 work on cooperative cancel / interrupt handling, an agent cited
 
 **What this doc is not:** a claim that the codebase or all decisions are wrong, or a complete re-verification checklist.
 
+### Operational kickoff (Tier 1 audit)
+
+For **hands-on Tier 1 re-verification** (branch, checklist, first tasks, Gitea workflow), start with [`audit-handoff.md`](audit-handoff.md). This document remains the **provenance rules** reference; the handoff doc is the **execution** entry point.
+
 ---
 
 ## 2. Scope of the problem

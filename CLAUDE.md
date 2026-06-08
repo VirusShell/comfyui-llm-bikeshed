@@ -11,6 +11,8 @@
 >
 > **Research provenance:** Before relying on external claims (issues, wikis, docs), read `docs/research/provenance-and-reverification.md` — undated citations are not verified fact.
 >
+> **Tier 1 audit kickoff:** Operational handoff for runtime re-verification is in `docs/research/audit-handoff.md` (branch `research/audit-and-cancel-tracking`).
+>
 > **Cancel / interrupt status:** Shipped vs planned ComfyUI Cancel behavior is in `docs/research/cancel-interrupt-status.md` (separate from the provenance audit) — do not re-derive from chat or old issue citations.
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
