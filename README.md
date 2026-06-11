@@ -1,6 +1,7 @@
 # ComfyUI LLM Bikeshed
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Tests](https://github.com/VirusShell/comfyui-llm-bikeshed/actions/workflows/test.yml/badge.svg)](https://github.com/VirusShell/comfyui-llm-bikeshed/actions/workflows/test.yml)
 
 ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Compatible** for OpenAI-style backends with automatic detection at the URL (LM Studio, OpenAI, llama.cpp, etc.). Use **LLM Provider: Textgen** for [oobabooga Textgen](https://github.com/oobabooga/text-generation-webui) (fixed backend, integrated VRAM controls, Textgen-only model list). API keys live in config or environment variables only.
 
@@ -34,7 +35,7 @@ Native **Ollama** (`/api/chat`) is not supported by this pack; use a dedicated O
 
    ```bash
    cd ComfyUI/custom_nodes
-   git clone https://github.com/your-username/comfyui-llm-bikeshed.git
+   git clone https://github.com/VirusShell/comfyui-llm-bikeshed.git
    ```
 
 2. Install dependencies:
@@ -210,8 +211,20 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 - vLLM and standalone llama-server backends
 - Native Ollama in this pack (removed 0.3.0)
 
+## Development
+
+```bash
+pip install -e ".[dev]"
+python -m pytest -q
+ruff check .
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for pull requests and issue reporting.
+
+## ComfyUI Registry (optional)
+
+To publish on the [ComfyUI Registry](https://docs.comfy.org/registry/overview), set `PublisherId` under `[tool.comfy]` in `pyproject.toml` after registering your publisher account. Until then, install via `git clone` into `custom_nodes/` as above.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
-When you create the GitHub repository, update the `Repository` URL in `pyproject.toml` (`[project.urls]`) to match your fork.
