@@ -22,10 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`example_workflows/`** — minimal template JSON files for basic generation, advanced options chaining, and Textgen.
 - **`LICENSE`** — MIT license file (matches README and pyproject).
 - **GitHub Actions CI** — `.github/workflows/test.yml` runs `pytest` and `ruff check` on push/PR.
+- **`CONTRIBUTING.md`** — development setup, PR expectations, and scope notes for public GitHub contributors.
+- **GitHub issue template** — minimal bug report form under `.github/ISSUE_TEMPLATE/`.
 
 ### Changed
 
 - **Ruff cleanup** — fixed line length, unused import, and import sorting issues across the codebase.
+- **Provenance audit abandoned** — backward inventory archived to `docs/the-archive/`; decision-time prevention docs remain authoritative.
+- **README** — GitHub-oriented install URL, CI badge, development section, and ComfyUI Registry pointer.
+- **`pyproject.toml`** — `readme`, `authors`, `keywords`, and GitHub `project.urls`.
 
 ## [0.3.0] - 2026-05-12
 

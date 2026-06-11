@@ -1,7 +1,7 @@
 # External ComfyUI custom-node reference corpus — status
 
 **Created:** 2026-06-08  
-**Status:** Inventory + disposition — **not** authoritative for this pack's runtime decisions.  
+**Status:** Inventory + disposition — **not** authoritative for this pack's runtime decisions. Decision-time gates: [`provenance-and-reverification.md`](provenance-and-reverification.md).  
 **Scope:** Off-repo research mirror at `D:\ai\tmp\comfyui-custom-nodes-research\` and how it relates to in-repo docs.
 
 ---

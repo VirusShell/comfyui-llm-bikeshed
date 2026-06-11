@@ -2,18 +2,31 @@
 
 Generated: 2026-02-25
 
-## Status Key
+## Status definitions
 
-| Status | Meaning |
-|--------|---------|
-| **Confirmed** | Verified against documentation or tested behavior |
-| **Decided** | Deliberate choice with clear rationale |
-| **Assumed** | Seemed reasonable, never actually verified |
-| **Unresolved** | Known open question |
-| **Contaminated** | Decision built on top of an assumption — foundation needs checking |
-| **Tabled** | Deliberately deferred — not in v1 scope |
-| **Proposed** | Documented stakeholder direction — not implemented or not yet promoted to Decided |
-| **Moot** | No longer relevant due to other decisions |
+Tracker status records **project intent and evidence strength at write time** — not automatic proof that upstream or ComfyUI still matches today. Before extending behavior, apply decision-time gates in [`provenance-and-reverification.md`](research/provenance-and-reverification.md).
+
+| Status | Meaning | Use when |
+|--------|---------|----------|
+| **Confirmed** | Verified against a **primary source** — upstream code read at a pin, empirical run in target environment, or reproducible ComfyUI behavior. | External fact is nailed down with traceable evidence in a research note or inline cite (access date, verified how). **Not** for docs-only third-party summaries or undated issues. |
+| **Decided** | Deliberate **human/product choice** with clear rationale. | Architecture, scope, UX, or policy — not a claim about what upstream currently does. Re-check external evidence only when implementation depends on it. |
+| **Assumed** | Workable **hypothesis**, never verified to Confirmed standard. | Exploration, reasonable default, or placeholder until research completes. Safe to build on only with `[VERIFY]` or follow-up note. |
+| **Unresolved** | Known open question; no committed answer. | Needs research or owner decision before driving behavior. |
+| **Contaminated** | Decision built on an assumption that failed or was never verified — foundation needs checking. | Downgrade or fix evidence before extending; do not promote children rows until foundation is clean. |
+| **Tabled** | Deliberately deferred — not in v1 scope. | Post-v1 or out-of-scope by explicit choice. |
+| **Proposed** | Documented stakeholder direction — not implemented or not yet promoted to Decided. | Roadmap signals; non-authoritative until promoted. |
+| **Moot** | No longer relevant due to other decisions. | Superseded by a later row or scope change. |
+
+### `[VERIFY]` in Notes
+
+`[VERIFY]` is not a tracker status column value — it is an inline flag in **Notes** meaning: **do not treat this row as proof for runtime behavior until the cited check is done.** Typical gaps: docs-only upstream cite, stale issue without re-fetch, empirical step not run on live backend.
+
+Promote toward **Confirmed** only after updating a `docs/research/` note (template: [`research-note-template.md`](research/research-note-template.md)) with access date, verified how, and applies-to.
+
+### Example callouts (semantics, not row edits)
+
+- **API-6 / API-7 (`Confirmed`):** Backed by [`textgen-lifecycle-verified.md`](research/textgen-lifecycle-verified.md) — upstream `code read` with access dates. Touching Textgen auth/routes requires re-checking that note, not re-reading the tracker alone.
+- **A-15 (`Decided` + `[VERIFY]` empirical):** Chain deferral is a **product decision** (P-10); TTL extension and Textgen defer-unload still need live-backend verification before treating empirical details as settled fact.
 
 ---
 
@@ -33,7 +46,7 @@ Generated: 2026-02-25
 | A-10 | Meta passthrough with provider switching — silent param dropping visibility | Decided | Allowlist filtering with info-level logging so users see dropped params in console. |
 | A-11 | `IS_CHANGED = float("NaN")` on Provider node | Decided | Don't implement IS_CHANGED on Provider nodes — let ComfyUI's default caching work (output only changes when widget values change). Generation nodes use `float("NaN")` since LLM calls are non-deterministic. |
 | A-12 | Structured output path per backend | Tabled | Structured Output node deferred from v1 scope. |
-| A-13 | Basic vs Advanced generation node split | Decided | Two nodes: Basic (inline params + presets, compact) and Advanced (connection-only config, modular). Both share adapter layer. Whether this could be a single node remains an option but two is the safe default. |
+| A-13 | Basic vs Advanced generation node split | Decided | Two nodes **shipped:** **LLM Generate (Basic)** (inline params + system prompt) and **LLM Generate (Advanced)** (connection-only config, modular). Both share adapter layer via `nodes/generation.py`. |
 | A-14 | Separate Provider nodes per provider vs single dropdown node | Decided | Separate nodes. Each has static widgets for its provider. All output same LLM_PROVIDER type. |
 | A-15 | Model memory management — unload deferral in generation chains | Decided | Use PROMPT hidden input reverse-indexing (P-10 confirmed). Generation node checks if its meta output connects to another generation node downstream. If yes, skip unload. If no, fire unload. LM Studio TTL behavior and text-gen-webui explicit unload deferral per this mechanism. **[VERIFY] empirical:** mid-chain TTL extension (`max(ttl*10, 300)`) and Textgen defer-unload on live backends. |
 | A-16 | Supported local backends | Decided | **In-pack:** LM Studio, text-generation-webui (OpenAI API via same OAI-compat adapter). **Removed (D-3):** native Ollama. Dropped vLLM and standalone llama-server (no unload API). llama.cpp supported indirectly through LM Studio and text-gen-webui. |
@@ -42,7 +55,7 @@ Generated: 2026-02-25
 | A-20 | Model selection priority (COMBO vs STRING fallback) | Decided | STRING `model_fallback` overrides COMBO dropdown. COMBO is convenience (auto-populated), STRING is override (offline fallback, connections). FR-21. |
 | A-21 | Load Text File utility node | Decided | Separate from Preset Loader. Reads `.txt` files from ComfyUI `input/` folder (configurable). Ships with pack so users don't need external node packs for text loading. FR-20. |
 | A-18 | keep_alive / ttl defaults and user configurability | Decided | User-assignable on lifecycle (LM Studio TTL/context) and provider-adjacent settings where applicable. LM Studio: `ttl`, default 30 s on lifecycle node (pack VRAM tuning; LM Studio app default idle TTL is 60 min when omitted — see `lm-studio-lifecycle-verified.md`). text-gen-webui: explicit unload, see A-15. **Moot (D-3):** Ollama `keep_alive` on a dedicated provider node. **[VERIFY] empirical:** TTL reset per request in chain on live LM Studio. |
-| A-22 | LM Studio explicit model load with context_length | Decided | `LLM Lifecycle: LM Studio` node supplies `context_length` (0 = model default). Adapter calls `GET /api/v1/models` (`models[].key`, `loaded_instances[].config.context_length`), `POST /api/v1/models/load` with `context_length` if needed, `POST /api/v1/models/unload` with `loaded_instances[].id` as `instance_id` when last in chain. Mirrors text-gen-webui lifecycle pattern. JIT bug (#1463) cited for explicit load — **[VERIFY]** issue status + empirical load/unload on live LM Studio. Tier 1 audit (2026-06-07): REST response parse fixed in `oai_compat.py`; see `lm-studio-lifecycle-verified.md`. |
+| A-22 | LM Studio explicit model load with context_length | Decided | `LLM Lifecycle: LM Studio` node supplies `context_length` (0 = model default). Adapter calls `GET /api/v1/models` (`models[].key`, `loaded_instances[].config.context_length`), `POST /api/v1/models/load` with `context_length` if needed, `POST /api/v1/models/unload` with `loaded_instances[].id` as `instance_id` when last in chain. Mirrors text-gen-webui lifecycle pattern. JIT bug ([#1463](https://github.com/lmstudio-ai/lmstudio-bug-tracker/issues/1463)) **still open** (re-checked 2026-06-08) — explicit load remains pack mitigation. **[VERIFY] empirical:** load/unload + context on live LM Studio. REST parse fixed 2026-06-07 — see `lm-studio-lifecycle-verified.md`. |
 | A-23 | OpenAI API — Chat Completions core slice | Decided | Separate Provider (`backend: openai`) and Options nodes. Non-streaming `POST /v1/chat/completions` with core sampling allowlist (`temperature`, `top_p`, `max_tokens`, `max_completion_tokens`, `stop`, `seed`, penalties). If both token limits are set, `max_completion_tokens` wins. No local model load/unload or LM-only `ttl`. Model list via `GET /v1/models` (same shape as OAI). API keys only from `config.yaml` / env (`LLM_BIKESHED_OPENAI_API_KEY`), never workflow JSON. Tools, streaming, JSON mode, multimodal — deferred (see README out-of-scope). |
 | A-24 | Textgen lifecycle node requires a visible widget | Confirmed | ComfyUI often renders nodes with `INPUT_TYPES["required"] == {}` as title + output only. `LLM Lifecycle: Textgen` uses BOOLEAN `manage_model_memory` (default ON); OFF yields empty `{}` lifecycle dict (no VRAM management). |
 
@@ -75,7 +88,7 @@ Generated: 2026-02-25
 | API-4 | Per-provider parameter allowlists | Confirmed | Full parameter tables documented in `docs/reference/backend-api-parameters.md`. LM Studio and text-gen-webui: unknown param handling needs empirical testing but allowlist approach mitigates risk. **Moot (D-3):** Ollama-specific `additionalProperties` note referred to removed adapter. |
 | API-5 | Anthropic structured output format | Tabled | Cloud providers deferred (A-17). |
 | API-6 | text-gen-webui internal model management endpoints | Confirmed | load/unload/list use `--admin-key` when set; `GET /v1/internal/model/info` uses `--api-key` (`check_key`), not admin — see `textgen-lifecycle-verified.md`. Upstream-verified 2026-05-12 / re-checked 2026-06-07. |
-| API-7 | text-gen-webui admin key handling | Confirmed | Supports separate `--admin-key` from `--api-key`. If admin-key not set, api-key is used for admin ops. Config should support both: `api_key` for generation, `admin_key` for model management. If only one configured, use it for both. |
+| API-7 | text-gen-webui admin key handling | Confirmed | Separate `--admin-key` from `--api-key` when both set; route split per API-6. At server startup, if only `--api-key` is set, Textgen copies it to `admin_key` (`run_server()` in `script.py`) — admin routes then accept the same bearer. Pack config supports both keys; `get_textgen_auth_keys()` may mirror a single user secret — see `textgen-lifecycle-verified.md` (access 2026-06-08). |
 | API-8 | OpenAI Chat Completions — provider slice | Confirmed | Same HTTP surface as LM Studio OAI path for chat (`/v1/chat/completions`) and models (`/v1/models`). Backend id `openai` skips Textgen/LM-only lifecycle APIs. Parameter surface intentionally smaller than full OpenAI API (see A-23). |
 | API-9 | Textgen model list source | Confirmed | For backend `text_gen_webui`, prefer `GET /v1/internal/model/list` (authoritative vs UI) before `GET /v1/models`. Implemented in `model_list._sync_resolve_oai_compat_models` with `get_textgen_auth_keys()` for credentials. |
 
@@ -157,3 +170,5 @@ Intent is spelled out in [`docs/proposals/product-direction-and-scope.md`](propo
 | 2026-06-08 | Documented off-repo ComfyUI reference corpus (DOC-1, DOC-2); added `docs/research/external-comfyui-reference-corpus.md`; removed hardcoded `D:\ai\tmp\` pointers from `CLAUDE.md` and `implementation-patterns.md`. |
 | 2026-06-08 | Tier 1 audit session (fresh-context prompt): code re-read confirmed no drift since 2026-06-07; empirical QA protocol added to `audit-handoff.md`; `[VERIFY]` on A-15, A-18, A-19, A-22 unchanged (no empirical runs). |
 | 2026-06-08 | **Audit reframe:** Tier 1 redefined as project-wide provenance sweep (tracker contamination, research claim inventory, reference/concept vs code, citation freshness). Empirical Textgen/LM Studio cancel QA demoted to optional subsidiary track. `audit-handoff.md`, `fresh-context-audit-prompt.md`, `provenance-and-reverification.md` §5 updated. Systematic Tier 1.1 tracker audit **pending**. |
+| 2026-06-08 | Prevention follow-ups: research notes backfilled to template; `fresh-context-prevention-prompt.md`; A-22 (#1463 open re-checked); API-7 clarified (startup admin_key copy); reference doc drift fixes (`prompt_graph`, Textgen auth). Tier 1 pragmatic sweep — see archived `audit-handoff.md`. |
+| 2026-06-11 | **Provenance audit abandoned** — systematic repo-wide sweep cancelled; checklist archived to `docs/the-archive/2026-06-08-provenance-audit-handoff-abandoned.md`. Decision-time prevention (`provenance-and-reverification.md`, `fresh-context-prevention-prompt.md`) remains authoritative. Repo prepared for GitHub migration from Gitea. |

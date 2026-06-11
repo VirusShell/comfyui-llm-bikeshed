@@ -1,10 +1,10 @@
 # Backend API Parameters Reference
 
-> **Last updated:** 2026-03-09
-> **Status:** Confirmed (Ollama), Confirmed (LM Studio), Confirmed (text-gen-webui)
-> **Resolution tracker:** API-4, API-7
+> **Last updated:** 2026-06-08  
+> **Status:** Reference for **in-pack** backends (LM Studio, Textgen, OpenAI). Ollama native API section retained for cross-backend mapping history only — **Ollama removed from pack (D-3, v0.3.0).**  
+> **Resolution tracker:** API-4, API-7 (Textgen auth). Allowlists in code: `adapters/oai_compat.py` `BACKEND_ALLOWLISTS`.
 
-## Ollama Native API
+## Ollama Native API (historical — pack removed D-3)
 
 **Endpoint:** `POST {url}/api/chat`
 
@@ -127,21 +127,25 @@ Not explicitly documented. Likely ignores unknown top-level params (llama.cpp ba
 | `tfs` | float | -- | Tail-free sampling |
 | `top_a` | float | -- | Top-A sampling |
 
-### Model Management Endpoints (Admin Key Required)
+### Model Management Endpoints (auth split — see API-6)
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/v1/internal/model/list` | GET | List available models |
-| `/v1/internal/model/load` | POST | Load model (`{"model_name": "...", "args": {...}}`) |
-| `/v1/internal/model/unload` | POST | Unload current model |
-| `/v1/internal/model/info` | GET | Current model info |
+| Endpoint | Method | Auth gate | Purpose |
+|----------|--------|-----------|---------|
+| `/v1/internal/model/info` | GET | API key (`check_key`) | Current loaded model info |
+| `/v1/internal/model/list` | GET | Admin key (`check_admin_key`) | List available models |
+| `/v1/internal/model/load` | POST | Admin key | Load model (`{"model_name": "...", "args": {...}}`) |
+| `/v1/internal/model/unload` | POST | Admin key | Unload current model |
+| `/v1/internal/stop-generation` | POST | API key | Stop in-flight generation (cancel) |
+
+Upstream: [`textgen-lifecycle-verified.md`](../research/textgen-lifecycle-verified.md).
 
 ### Admin Key Handling (API-7)
 
-- `--api-key KEY` protects all endpoints
-- `--admin-key ADMIN_KEY` separate key for admin ops (load/unload/list)
-- If `--admin-key` not set, `--api-key` is used for admin ops
-- **Config should support both:** `api_key` for generation, `admin_key` for model management
+- `--api-key KEY` protects chat, `model/info`, and `stop-generation` when set.
+- `--admin-key ADMIN_KEY` protects list/load/unload when set.
+- At **server startup**, if only `--api-key` is set, Textgen copies it to `admin_key` — admin routes then accept the same bearer (`run_server()` in `modules/api/script.py`).
+- When **both** flags are set to **different** values, clients must send the matching bearer per route (no per-request fallback).
+- **Pack config:** support both `api_key` and `admin_key`; when user configures only one, pack helpers may mirror for convenience — see `get_textgen_auth_keys()`.
 
 ### Unknown Parameter Handling
 
@@ -171,9 +175,9 @@ Pydantic model likely rejects unknown top-level fields. **Needs empirical testin
 
 ## Sources
 
-- [Ollama /api/chat](https://docs.ollama.com/api/chat)
-- [Ollama Modelfile Reference](https://docs.ollama.com/modelfile)
 - [LM Studio Chat Completions](https://lmstudio.ai/docs/developer/openai-compat/chat-completions)
 - [LM Studio TTL and Auto-Evict](https://lmstudio.ai/docs/developer/core/ttl-and-auto-evict)
-- [text-gen-webui OpenAI API](https://github.com/oobabooga/text-generation-webui/wiki/12-%E2%80%90-OpenAI-API)
-- [text-gen-webui typing.py](https://github.com/oobabooga/text-generation-webui/blob/main/extensions/openai/typing.py)
+- [LM Studio REST list/load/unload](https://lmstudio.ai/docs/developer/rest/list)
+- [Textgen OpenAI API module](https://github.com/oobabooga/textgen/blob/main/modules/api/script.py) — routes and auth (authoritative; wiki mirrors non-authoritative)
+- [Textgen typing.py](https://github.com/oobabooga/textgen/blob/main/modules/api/typing.py)
+- Ollama docs (historical cross-map only): [Ollama /api/chat](https://docs.ollama.com/api/chat)

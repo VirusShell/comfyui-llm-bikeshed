@@ -1,8 +1,9 @@
 # Cancel empirical QA — operational handoff
 
+> Decision-time prevention for new claims: [`provenance-and-reverification.md`](provenance-and-reverification.md).
+
 **Created:** 2026-06-08  
-**Branch:** `research/audit-and-cancel-tracking`  
-**Status:** Protocol ready; **no empirical runs recorded** as of 2026-06-08.
+**Status:** Protocol ready; **no empirical runs recorded** as of 2026-06-08. Independent of the abandoned provenance audit (2026-06-11).
 
 ---
 
@@ -12,9 +13,9 @@
 
 Prior audit handoffs listed live Textgen/LM Studio cancel QA as **priority 1 “next work.”** Fresh agents then treated the whole session as cancel QA instead of the broader provenance sweep (claim inventory, tracker contamination, doc/code alignment).
 
-This doc **isolates** human-run empirical cancel verification so it is not lost, while [`audit-handoff.md`](audit-handoff.md) and [`fresh-context-audit-prompt.md`](fresh-context-audit-prompt.md) stay focused on **project-wide provenance re-verification**.
+This doc **isolates** human-run empirical cancel verification so it is not lost. The project-wide provenance audit was **abandoned** (2026-06-11); see [`audit-handoff.md`](audit-handoff.md).
 
-Cancel research also **surfaced** the provenance failure pattern documented in [`provenance-and-reverification.md`](provenance-and-reverification.md) §3 — that episode is context, not the scope of this handoff.
+Cancel research also **surfaced** the provenance failure pattern documented in [`provenance-and-reverification.md`](provenance-and-reverification.md) § 8 — that episode is context, not the scope of this handoff.
 
 ---
 
@@ -24,7 +25,7 @@ Cancel research also **surfaced** the provenance failure pattern documented in [
 |----------|------|
 | [`cancel-interrupt-status.md`](cancel-interrupt-status.md) | **Shipped vs gaps** — what the pack implements, code-read verification, per-backend table, open `[VERIFY]` items. Update when behavior or test coverage changes. |
 | **This document** | **How to run live cancel QA** — step-by-step protocol, evidence to record, when to execute. |
-| [`audit-handoff.md`](audit-handoff.md) | **Main audit** — provenance checklist and workflow; links here for cancel QA only. |
+| [`audit-handoff.md`](audit-handoff.md) | Abandoned provenance audit — pointer to archive only. |
 | [`textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md) | Upstream Textgen routes, auth split, `stop-generation` source evidence. |
 | [`lm-studio-lifecycle-verified.md`](lm-studio-lifecycle-verified.md) | LM Studio TTL, load/unload; notes no stop API in pack. |
 
@@ -36,7 +37,7 @@ Cancel research also **surfaced** the provenance failure pattern documented in [
 
 | Do | Do not |
 |----|--------|
-| After or **in parallel with** the Tier 1 provenance sweep in [`audit-handoff.md`](audit-handoff.md) | **Instead of** provenance work (claim inventory, tracker audit, reference-doc alignment) |
+| When closing `[VERIFY]` cancel rows or validating interrupt behavior before a release | **Instead of** ad-hoc cancel testing without recording evidence |
 | When a human has GPU + live Textgen and/or LM Studio + ComfyUI | When only code-read or docs-only verification is needed — use `cancel-interrupt-status.md` |
 | When explicitly closing `[VERIFY]` on cancel/host-stop behavior | As the default “start here” for a fresh audit chat |
 
@@ -65,7 +66,7 @@ Cancel research also **surfaced** the provenance failure pattern documented in [
 | Does client abort stop GPU work on non-streaming chat? | LM Studio | No stop API wired in pack; outcome documents user-facing limits only |
 | Full load → generate → cancel → unload chain | Textgen, LM Studio | Tracker rows A-15, A-18, A-19, A-22 carry empirical `[VERIFY]` flags |
 
-Record outcomes in [`cancel-interrupt-status.md`](cancel-interrupt-status.md) and promote tracker rows only with evidence per [`provenance-and-reverification.md`](provenance-and-reverification.md) §4.
+Record outcomes in [`cancel-interrupt-status.md`](cancel-interrupt-status.md) and promote tracker rows only with evidence per [`provenance-and-reverification.md`](provenance-and-reverification.md) § 2 (Gate B).
 
 ---
 

@@ -9,9 +9,9 @@
 >
 > Each entry needs: date, severity, what happened, root cause, fix, and how to prevent it next time. If unsure whether something qualifies, add it — too many entries is better than a missing one.
 >
-> **Research provenance:** Before relying on external claims (issues, wikis, docs), read `docs/research/provenance-and-reverification.md` — undated citations are not verified fact.
+> **Research provenance (decision-time):** Before relying on external claims (issues, wikis, docs), read `docs/research/provenance-and-reverification.md` — apply write-time gates when creating research notes, updating tracker rows, or shipping behavior. New notes: copy `docs/research/research-note-template.md` (gold example: `textgen-lifecycle-verified.md`). Undated citations are not verified fact. **Fresh chat:** paste `docs/research/fresh-context-prevention-prompt.md` for normal work.
 >
-> **Provenance audit kickoff:** Project-wide re-verification (tracker, research notes, reference docs, citation freshness) is in `docs/research/audit-handoff.md` (branch `research/audit-and-cancel-tracking`). Fresh chat: `docs/research/fresh-context-audit-prompt.md`.
+> **Backward provenance inventory:** **Abandoned** (2026-06-11). Historical checklist: `docs/the-archive/2026-06-08-provenance-audit-handoff-abandoned.md`. Prevention rules in the provenance doc are authoritative for new work.
 >
 > **Cancel / interrupt status:** Shipped vs gaps in `docs/research/cancel-interrupt-status.md`. Live cancel QA protocol (subsidiary, human-run) in `docs/research/cancel-empirical-qa-handoff.md` — separate from the provenance audit; do not re-derive from chat or old issue citations.
 
@@ -21,7 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ComfyUI custom node pack that connects workflows to **LM Studio**, **Textgen** (text-generation-webui), and optional **OpenAI** Chat Completions (keys via config/env only). The **LLM Provider: OAI Compatible** node auto-detects the backend at a URL (LM Studio, Textgen, OpenAI, llama.cpp, generic OAI, etc.); fingerprinting may still label a host as Ollama for UI purposes, but this pack does **not** ship native Ollama nodes or `/api/chat` integration—use another pack for that. Scope is strictly LLM text generation: no image/video/music/speech generation. Additional cloud APIs beyond OpenAI core chat remain out of scope until explicitly added.
 
-**Current status:** Pre-implementation (design phase). Authoritative docs:
+**Current status:** Core v1 **shipped** — providers (OAI Compatible, Textgen), lifecycle nodes, Basic/Advanced generation, per-provider options, presets, interruptible adapter HTTP. Open design work (lifecycle UX rethink, tabled chat/cloud) remains in tracker and proposals. Authoritative docs:
 - `docs/text_gen_processing_concept.md` — node architecture and design decisions
 - `docs/resolution_tracker.md` — source of truth for open questions, assumptions, and confirmed decisions
 - `docs/proposals/product-direction-and-scope.md` — **non-authoritative** roadmap signals (Textgen-first, lifecycle rethink, **Ollama removed from pack as of 0.3.0**, llama.cpp deferred). Reconcile older tracker rows (e.g. A-16) when implementation proceeds.
@@ -70,11 +70,9 @@ Each adapter handles: parameter allowlist filtering (drops unsupported params, l
 
 **Provider nodes (A-14):** Separate node per backend (not a single dropdown node). Each has static widgets for its provider. All output the same `LLM_PROVIDER` type.
 
-**Generation nodes (A-13, still exploring):** Two variants under consideration:
-- **Basic** — compact, all-in-one with inline params (temperature, max_tokens, seed) and optional preset dropdown
-- **Advanced** — modular, no inline params; accepts `LLM_OPTIONS` and `LLM_META` connections; text fields support `defaultInput`
-
-Whether these are two nodes or one node with optional breakout connections is not yet decided.
+**Generation nodes (A-13, Decided — shipped):** Two nodes:
+- **LLM Generate (Basic)** — inline params (temperature, max_tokens, seed) and system prompt
+- **LLM Generate (Advanced)** — modular; accepts `LLM_PROVIDER`, `LLM_OPTIONS`, and `LLM_META` connections
 
 **Options nodes (A-1, A-2, A-3 — open):** Architecture blocked on per-backend parameter research (API-4). Three approaches under consideration: per-provider nodes, shared base + provider-specific, or single node with toggles.
 

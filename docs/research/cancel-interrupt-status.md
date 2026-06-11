@@ -10,7 +10,34 @@
 
 Tracking for **ComfyUI Cancel during LLM generation** in this pack — what is implemented, verified, and still open.
 
-This is **not** the project-wide provenance audit. For citation rules and the episode that surfaced undated external claims during cancel research, see [`provenance-and-reverification.md`](provenance-and-reverification.md).
+This is **not** the project-wide provenance audit. For decision-time gates and the episode that surfaced undated external claims during cancel research, see [`provenance-and-reverification.md`](provenance-and-reverification.md) § 8.
+
+---
+
+## Verification (code-read slice)
+
+| Claim | Source | Access date | Verified how |
+|-------|--------|-------------|--------------|
+| ComfyUI interrupt flag + cooperative polling | `adapters/interrupt.py`, `docs/lessons-learned.md` (2026-06-03) | 2026-06-08 | code read |
+| Textgen `stop-generation` route + API key gate | [`textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md) | 2026-06-08 | code read |
+| Pack wires `on_interrupt` for Textgen chat only | `adapters/oai_compat.py` | 2026-06-08 | code read |
+| LM Studio has no stop API in pack | [`lm-studio-lifecycle-verified.md`](lm-studio-lifecycle-verified.md) | 2026-06-08 | code read + docs |
+
+**Applies to:** `adapters/interrupt.py`, `adapters/base.py`, `adapters/oai_compat.py`, cancel/interrupt tracker notes.
+
+---
+
+## Falsifiers
+
+- Textgen removes or renames `POST /v1/internal/stop-generation`, or moves it behind admin auth without pack update.
+- ComfyUI changes interrupt API so `processing_interrupted()` is no longer the cooperative cancel signal.
+- Empirical run shows Textgen `stream: false` chat ignores `stop_everything` despite client cancel + wired callback.
+
+## Re-check triggers
+
+- [ ] Changes to `adapters/interrupt.py`, `oai_compat.py` cancel path, or Textgen upstream auth/routes
+- [ ] ComfyUI major upgrade
+- [ ] Recorded empirical cancel QA in [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md)
 
 ---
 
@@ -96,9 +123,9 @@ This is **not** the project-wide provenance audit. For citation rules and the ep
 
 | Document / code | Role |
 |-----------------|------|
-| [`provenance-and-reverification.md`](provenance-and-reverification.md) | Citation standards; cancel research surfaced provenance gap (§3) |
+| [`provenance-and-reverification.md`](provenance-and-reverification.md) | Decision-time gates; cancel research surfaced write-time gap (§ 8) |
 | [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md) | Live cancel QA protocol (subsidiary; human-run) |
-| [`audit-handoff.md`](audit-handoff.md) | Project-wide provenance audit (not cancel QA) |
+| [`audit-handoff.md`](audit-handoff.md) | Abandoned provenance audit (archive pointer) |
 | [`docs/lessons-learned.md`](../lessons-learned.md) | 2026-06-03 incident and fix narrative |
 | [`adapters/interrupt.py`](../../adapters/interrupt.py) | Interrupt polling and HTTP close implementation |
 | [`adapters/base.py`](../../adapters/base.py) | `_safe_post` / `_safe_get` integration |

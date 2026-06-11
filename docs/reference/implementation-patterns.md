@@ -1,6 +1,6 @@
 # Implementation Patterns & Code Examples
 
-> **Last updated:** 2026-03-09
+> **Last updated:** 2026-06-08  
 > **Purpose:** Ready-to-use code patterns for implementing the node pack
 
 ---
@@ -28,7 +28,8 @@ def INPUT_TYPES(cls):
             "system_prompt": ("STRING", {"multiline": True, "default": ""}),
         },
         "hidden": {
-            "prompt": "PROMPT",
+            # Use a distinct key when a required widget is also named "prompt" (name collision).
+            "prompt_graph": "PROMPT",
             "unique_id": "UNIQUE_ID",
         },
     }
@@ -50,11 +51,13 @@ def find_downstream_nodes(prompt: dict, my_node_id: str, output_index: int = 0) 
     return downstream
 
 
-def has_downstream_generation_node(prompt: dict, my_node_id: str, meta_output_index: int,
-                                    generation_class_types: set) -> bool:
-    """Check if any downstream node on the meta output is a generation node."""
-    downstream = find_downstream_nodes(prompt, my_node_id, meta_output_index)
-    return any(class_type in generation_class_types for _, class_type, _ in downstream)
+GENERATION_CLASS_TYPES = {"LLMGenerate", "LLMGenerateAdvanced"}  # graph/introspection.py
+
+
+def has_downstream_gen_node(prompt: dict, node_id: str, meta_output_index: int) -> bool:
+    """True if meta output connects to another generation node (unload deferral)."""
+    downstream = find_downstream_nodes(prompt, node_id, meta_output_index)
+    return any(ct in GENERATION_CLASS_TYPES for _, ct, _ in downstream)
 ```
 
 ---

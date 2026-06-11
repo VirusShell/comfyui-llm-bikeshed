@@ -2,6 +2,8 @@
 
 **Status:** Living document — captures stakeholder direction as of 2026-05. It does **not** by itself change shipped code or supersede every row in `docs/resolution_tracker.md`; reconciling older “Decided” rows with this direction is a separate documentation pass when implementation catches up.
 
+**Reality check (2026-06-08):** Core v1 nodes are **shipped** (OAI/Textgen providers, lifecycle nodes, Basic/Advanced generation, per-provider options). Lifecycle **UX** remains under rethink below — existing lifecycle wiring is operational, not validated as the final product model.
+
 ## Textgen-first priority
 
 Engineering and UX attention should favor **text-generation-webui (Textgen)** integration and shared generation/core features until that path feels solid. A 2026-05 pass tightened provider refresh latency (parallel backend probes, parallel Textgen list + model/info) and fixed OAI-compat UI state for **detected backend** and **loaded model** readouts; further lifecycle work remains deferred per below.

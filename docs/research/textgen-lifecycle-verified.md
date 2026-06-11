@@ -1,15 +1,65 @@
 # Textgen (oobabooga/textgen) lifecycle-related API — verified from upstream
 
-**Date:** 2026-05-12  
+**Date:** 2026-05-12 (initial upstream read); structure backfilled 2026-06-08  
 **Scope:** HTTP routes used by this pack for Textgen model memory and model listing, plus auth split. Sources are **upstream application code** on GitHub (`oobabooga/textgen`, formerly “text-generation-webui” lineage), not third-party wikis.
 
-## Sources (authoritative)
+Write-time rules: [`provenance-and-reverification.md`](provenance-and-reverification.md). Template: [`research-note-template.md`](research-note-template.md).
 
-| Topic | URL |
-|--------|-----|
-| FastAPI route registration and `Depends` for each path | https://github.com/oobabooga/textgen/blob/main/modules/api/script.py |
-| Current model payload helpers | https://github.com/oobabooga/textgen/blob/main/modules/api/models.py |
-| Response shapes (`ModelInfoResponse`, `LoadModelRequest`) | https://github.com/oobabooga/textgen/blob/main/modules/api/typing.py |
+---
+
+## Summary — what we believe
+
+- Textgen splits auth by route: **API key** (`--api-key`) gates chat, `GET /v1/internal/model/info`, and `POST /v1/internal/stop-generation`; **admin key** (`--admin-key`) gates `model/list`, load, and unload when each flag is set.
+- At server startup, if only `--api-key` is set, Textgen **copies** it to `admin_key` — admin routes then accept the same bearer. Distinct keys require passing both flags explicitly.
+- When a key flag is unset, the corresponding `verify_*` check is a no-op (no auth required for that gate).
+- OAI `GET /v1/models` reflects the **loaded** model only; the disk catalog is `GET /v1/internal/model/list`.
+- `POST /v1/internal/model/load` always calls `unload_model()` before loading; unload returns 500 on failure.
+- `POST /v1/internal/stop-generation` sets `shared.stop_everything`; the generation loop checks it during streaming and non-streaming inference.
+
+---
+
+## Verification
+
+| Topic | Source URL | Access date | Status / commit | Verified how |
+|-------|------------|-------------|-----------------|--------------|
+| Route registration, `Depends` per path, startup key copy | https://github.com/oobabooga/textgen/blob/main/modules/api/script.py | 2026-06-08 | `main` | code read |
+| Current model payload helpers | https://github.com/oobabooga/textgen/blob/main/modules/api/models.py | 2026-05-12 | `main` | code read |
+| Response shapes (`ModelInfoResponse`, `LoadModelRequest`) | https://github.com/oobabooga/textgen/blob/main/modules/api/typing.py | 2026-05-12 | `main` | code read |
+| Stop-generation + generation loop | `script.py` + `modules/text_generation.py` | 2026-06-07 | `main` | code read |
+| Pack wiring (`on_interrupt` → stop-generation) | `adapters/oai_compat.py` | 2026-06-08 | repo | code read |
+
+---
+
+## Applies to
+
+- **Files:** `adapters/oai_compat.py`, `model_list.py`, `server/endpoints.py`, `nodes/providers.py`, `nodes/lifecycle.py`
+- **Tracker:** A-19, API-6, API-7
+- **Features:** Textgen lifecycle, model dropdown, cancel/interrupt, API vs admin Bearer split
+
+---
+
+## Falsifiers — what would prove this wrong
+
+- `GET /v1/internal/model/info` starts requiring admin bearer while API key is set and differs (or the reverse for list/load/unload).
+- `POST /v1/internal/stop-generation` removed, renamed, or moved behind `check_admin_key`.
+- Startup key copy removed — admin routes require explicit `--admin-key` even when only `--api-key` is passed.
+- `GET /v1/models` begins returning the full disk catalog instead of loaded-only (or empty when idle).
+- `LoadModelRequest` required field renamed away from `model_name`.
+- Chat route gains an explicit idle-model guard with stable 4xx — would change the partial “idle chat” claim below.
+
+---
+
+## Re-check triggers
+
+Re-open this note when any of these occur:
+
+- [ ] Touching code or docs listed in **Applies to**
+- [ ] Upstream `oobabooga/textgen` release or `main` change in `modules/api/script.py`, `models.py`, or `typing.py`
+- [ ] Empirical failure on live Textgen (401 with correct key, cancel not stopping, wrong loaded model label)
+- [ ] Tracker promotion toward **Confirmed** for Textgen lifecycle, API-6, or API-7
+- [ ] Internal route prefix change (`/v1/internal/model/*`, `/v1/internal/stop-generation`)
+
+---
 
 ## Confirmed behavior
 
@@ -17,18 +67,19 @@
 
 In `modules/api/script.py`, `verify_api_key` compares `Authorization: Bearer …` to `shared.args.api_key`. `verify_admin_key` compares to `shared.args.admin_key`. If the corresponding flag is unset, the check is a no-op (no key required).
 
+At server startup (`run_server()`), when `--api-key` is set and `--admin-key` is not, Textgen sets `shared.args.admin_key = shared.args.api_key` — so a single-key deployment uses the same bearer for both gates.
+
 - **Chat and most “user” OAI-style routes** use `dependencies=check_key` → **API key** when configured. Example: `POST /v1/chat/completions` (`check_key`).
 - **`GET /v1/internal/model/info`** uses `dependencies=check_key` → **API key** when configured (not the admin key).
 - **`GET /v1/internal/model/list`**, **`POST /v1/internal/model/load`**, **`POST /v1/internal/model/unload`** use `dependencies=check_admin_key` → **admin key** when configured.
 
-**Implication:** If a user sets **different** values for `--api-key` and `--admin-key`, clients must send the **API** bearer token for `model/info` and chat, and the **admin** bearer token for internal list/load/unload. Sending only the admin key on `model/info` fails when an API key is set and differs.
+**Implication:** If a user sets **different** values for `--api-key` and `--admin-key`, clients must send the **API** bearer for `model/info` and chat, and the **admin** bearer for internal list/load/unload. Sending only the admin key on `model/info` fails when an API key is set and differs.
 
 ### `POST /v1/internal/stop-generation`
 
 Calls `stop_everything_event()` (sets `shared.stop_everything = True`), which the generation loop checks during both streaming and non-streaming inference. Registered with `dependencies=check_key` → **API key** when configured (same gate as chat).
 
-**Access date:** 2026-06-07 — verified by reading `modules/api/script.py` and `modules/text_generation.py` on `oobabooga/textgen` `main`.  
-**Pack wiring re-check:** 2026-06-08 — `adapters/oai_compat.py` `on_interrupt` → `_stop_generation_textgen` → `POST /v1/internal/stop-generation` (verified how: `code read`; applies to cancel-interrupt Tier 1).
+**Pack wiring re-check:** 2026-06-08 — `adapters/oai_compat.py` `on_interrupt` → `_stop_generation_textgen` → `POST /v1/internal/stop-generation` (verified how: `code read`; applies to cancel-interrupt Tier 2).
 
 ### `GET /v1/internal/model/info`
 

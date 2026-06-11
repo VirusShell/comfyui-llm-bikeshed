@@ -1,6 +1,6 @@
 # ComfyUI Platform Findings
 
-> **Last updated:** 2026-03-09
+> **Last updated:** 2026-06-08
 > **Applies to:** ComfyUI V1 node spec
 > **Resolution tracker items:** P-2, P-3, P-4, P-5, P-9, P-10
 
@@ -32,12 +32,13 @@ def find_downstream_nodes(prompt, my_node_id, output_index=0):
 
 ### Usage for Unload Deferral (A-15)
 
-Declare hidden inputs:
+Declare hidden inputs (use a distinct key if a required widget is also named `prompt`):
+
 ```python
-"hidden": {"prompt": "PROMPT", "unique_id": "UNIQUE_ID"}
+"hidden": {"prompt_graph": "PROMPT", "unique_id": "UNIQUE_ID"}
 ```
 
-In FUNCTION method, check if meta output connects to another generation node. If yes, skip unload. If no, fire unload.
+In FUNCTION method, read `kwargs.get("prompt_graph", {})` and check if meta output (index 1) connects to another generation node. If yes, skip unload. If no, fire unload.
 
 **Caveat:** `DYNPROMPT` may differ from `PROMPT` if Node Expansion is used, but our nodes do not use expansion.
 

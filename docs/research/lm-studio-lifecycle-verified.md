@@ -3,16 +3,64 @@
 **Date:** 2026-06-07  
 **Scope:** HTTP routes used by this pack for LM Studio model memory (TTL, explicit load/unload, loaded-state check). Sources are **LM Studio official docs** and REST API reference, not third-party wikis.
 
-## Sources
+Write-time rules: [`provenance-and-reverification.md`](provenance-and-reverification.md). Template: [`research-note-template.md`](research-note-template.md).
 
-| Topic | URL | Access date | Verified how |
-|-------|-----|-------------|--------------|
-| Idle TTL in request payload | https://lmstudio.ai/docs/developer/core/ttl-and-auto-evict | 2026-06-07 | docs read |
-| Chat completions (OAI-compat) | https://lmstudio.ai/docs/developer/openai-compat/chat-completions | 2026-06-07 | docs read |
-| List models (REST) | https://lmstudio.ai/docs/developer/rest/list | 2026-06-07 | docs read |
-| Load model (REST) | https://lmstudio.ai/docs/developer/rest/load | 2026-06-07 | docs read |
-| Unload model (REST) | https://lmstudio.ai/docs/developer/rest/unload | 2026-06-07 | docs read |
-| Upstream doc source (list) | https://github.com/lmstudio-ai/docs/blob/main/1_developer/2_rest/list.md | 2026-06-07 | code read (repo) |
+---
+
+## Summary — what we believe
+
+- Per-request idle TTL is set via top-level `ttl` (seconds) in chat payloads; timer resets on each request. App default when omitted is **60 minutes** — the pack lifecycle node defaults to **30 s** for VRAM reclamation.
+- REST `GET /api/v1/models` returns `models[].key` and `loaded_instances[].id` — not OpenAI-shaped `data[].id`.
+- Explicit load uses `POST /api/v1/models/load` with `model` and optional `context_length`; unload requires `instance_id` from `loaded_instances[].id`.
+- JIT loading and Auto-Evict complement TTL and explicit unload; no stop-generation API is wired for LM Studio in this pack.
+- JIT may ignore saved per-model settings — LM Studio issue **#1463** still **open** (re-checked 2026-06-08); explicit load with `context_length` is the pack mitigation.
+
+---
+
+## Verification
+
+| Topic | Source URL | Access date | Status / commit | Verified how |
+|-------|------------|-------------|-----------------|--------------|
+| Idle TTL in request payload | https://lmstudio.ai/docs/developer/core/ttl-and-auto-evict | 2026-06-07 | docs | docs read |
+| Chat completions (OAI-compat) | https://lmstudio.ai/docs/developer/openai-compat/chat-completions | 2026-06-07 | docs | docs read |
+| List models (REST) | https://lmstudio.ai/docs/developer/rest/list | 2026-06-07 | docs | docs read |
+| Load model (REST) | https://lmstudio.ai/docs/developer/rest/load | 2026-06-07 | docs | docs read |
+| Unload model (REST) | https://lmstudio.ai/docs/developer/rest/unload | 2026-06-07 | docs | docs read |
+| Upstream doc source (list) | https://github.com/lmstudio-ai/docs/blob/main/1_developer/2_rest/list.md | 2026-06-07 | `main` | code read (repo) |
+| JIT ignores per-model settings (#1463) | https://github.com/lmstudio-ai/lmstudio-bug-tracker/issues/1463 | 2026-06-08 | **open** (created 2026-01-31) | issue re-fetch |
+| Pack REST parse + unload | `adapters/oai_compat.py`, `nodes/lifecycle.py` | 2026-06-08 | repo | code read |
+
+---
+
+## Applies to
+
+- **Files:** `adapters/oai_compat.py` — LM Studio lifecycle paths; `nodes/lifecycle.py` — `LLMLifecycleLMStudio`
+- **Tracker:** A-15, A-18, A-22
+- **Features:** TTL in generate payload, explicit load/unload, chain `skip_unload`, cancel limits — see [`cancel-interrupt-status.md`](cancel-interrupt-status.md)
+
+---
+
+## Falsifiers — what would prove this wrong
+
+- `GET /api/v1/models` response shape changes away from `models[].key` + `loaded_instances[]` (e.g. only OpenAI `data[]`).
+- `POST /api/v1/models/unload` stops accepting `instance_id` or requires a different identifier.
+- Official docs remove or rename top-level `ttl` on chat completions.
+- Issue #1463 closed as fixed — explicit load may become optional for context settings on user's LM Studio version.
+- LM Studio adds a documented stop-generation or cancel API that this pack should wire.
+
+---
+
+## Re-check triggers
+
+Re-open this note when any of these occur:
+
+- [ ] Touching LM Studio lifecycle code in `adapters/oai_compat.py` or `nodes/lifecycle.py`
+- [ ] LM Studio desktop or REST API release notes mention model list, TTL, load/unload, or JIT behavior
+- [ ] Empirical failure: wrong loaded state, unload no-op, TTL not resetting, cancel leaves GPU busy
+- [ ] Tracker promotion for A-18 or A-22 toward **Confirmed** without empirical row
+- [ ] Issue #1463 status change (closed/fixed/superseded)
+
+---
 
 ## Confirmed behavior
 
@@ -55,7 +103,7 @@ No explicit "stop generation" API wired for LM Studio (unlike Textgen `stop-gene
 
 ### `context_length` via explicit load vs JIT
 
-Explicit `POST /api/v1/models/load` with `context_length` is required for reliable ctx settings when JIT would ignore desired ctx (tracker cites LM Studio issue #1463 — **[VERIFY]** issue still open/applicable at user's LM Studio version).
+Explicit `POST /api/v1/models/load` with `context_length` is required for reliable ctx settings when JIT would ignore desired ctx. Tracker cites LM Studio issue [#1463](https://github.com/lmstudio-ai/lmstudio-bug-tracker/issues/1463) — **open** as of 2026-06-08 (JIT ignores saved per-model settings; maintainer actively triaging).
 
 ## Unknown / version-sensitive
 
@@ -73,10 +121,3 @@ Explicit `POST /api/v1/models/load` with `context_length` is required for reliab
 | TTL default 30 s (lifecycle node) vs LM Studio app default 60 min | **By design** — pack default favors VRAM reclamation; user-tunable. |
 
 **2026-06-08 code re-read:** No drift — `_iter_lm_studio_model_entries`, `_ensure_model_loaded_lm_studio`, `_unload_model_lm_studio` still match this note. Live cancel QA **[VERIFY]** remains open (`cancel-interrupt-status.md`).
-
-## Applies to
-
-- `adapters/oai_compat.py` — LM Studio lifecycle paths
-- `nodes/lifecycle.py` — `LLMLifecycleLMStudio`
-- Tracker rows A-15, A-18, A-22
-- [`cancel-interrupt-status.md`](cancel-interrupt-status.md) — LM Studio cancel limits
