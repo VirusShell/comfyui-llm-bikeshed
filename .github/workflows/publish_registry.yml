@@ -18,8 +18,27 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.repository.fork == false
     steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - name: Require project.version bump on push
+        if: github.event_name == 'push'
+        id: version_bump
+        shell: bash
+        run: |
+          if git diff HEAD~1 HEAD -- pyproject.toml | grep -Eq '^[+-]version[[:space:]]*='; then
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping registry publish: pyproject.toml changed without a version bump."
+          fi
+
       - name: Publish Custom Node
-        uses: Comfy-Org/publish-node-action@1.0.1
+        if: github.event_name == 'workflow_dispatch' || steps.version_bump.outputs.bumped == 'true'
+        uses: Comfy-Org/publish-node-action@main
         with:
           # Official name per docs.comfy.org; fallback if user used COMFY_REGISTRY_API_KEY
           personal_access_token: ${{ secrets.REGISTRY_ACCESS_TOKEN || secrets.COMFY_REGISTRY_API_KEY }}
+          skip_checkout: true

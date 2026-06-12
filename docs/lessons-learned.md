@@ -360,3 +360,14 @@ System: Absolute vs Relative" entry above for the full details.
 **Root cause:** Conflation of OAI ``GET /v1/models`` (``data`` array) with LM Studio REST ``GET /api/v1/models`` (``models`` array). Tests copied the OAI mock shape.  
 **Fix:** ``_iter_lm_studio_model_entries()`` parses REST ``models[].key``; ``_resolve_lm_studio_instance_id()`` for unload; research note ``docs/research/lm-studio-lifecycle-verified.md``.  
 **Prevention:** When a backend has both OAI-compat and native REST routes, verify response JSON shape against upstream REST docs, not OAI examples; mock tests must match the route actually called.
+
+## 2026-06-12 — Comfy registry publish re-triggers on pyproject-only edits
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | Medium |
+| **What happened** | After v1.0.0 published successfully, a packaging-only pyproject.toml commit re-ran publish and failed (duplicate 1.0.0). Later release commits failed when publish-node-action@1.0.1 was pinned with unsupported skip_checkout. |
+| **Root cause** | Workflow paths: pyproject.toml fires on any edit to that file, not only semver bumps. Action tag 1.0.1 lacks skip_checkout (present on @main). |
+| **Fix** | Gate publish on project.version diff; use publish-node-action@main with skip_checkout: true and explicit checkout@v6. Document in VERSIONING.md. |
+| **Prevention** | Bump project.version whenever pyproject.toml must land without a registry release; use workflow_dispatch for intentional republish. |
+

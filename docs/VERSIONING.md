@@ -25,6 +25,10 @@ Pre-1.0 history (0.1.0–0.3.0) reflected early development and the Ollama remov
 4. Tag `vX.Y.Z` on the release commit and push the tag to GitHub.
 5. Push to **`master`** (default branch). The [Publish to Comfy registry](.github/workflows/publish_registry.yml) workflow runs on pushes to `master` or `main` when `pyproject.toml` changes.
 
+
+**CI note:** Any push that changes pyproject.toml on master/main triggers the publish workflow, but the job **skips** unless project.version changed in that commit (or you run **workflow_dispatch** manually). Packaging-only edits must either bump semver or use manual dispatch after a version bump.
+
+
 Registry publishing requires the repository secret `REGISTRY_ACCESS_TOKEN` (or `COMFY_REGISTRY_API_KEY`). A version already on the registry is not overwritten; each release needs a new semver.
 
 ## Contributors
