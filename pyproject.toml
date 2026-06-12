@@ -1,6 +1,6 @@
 [project]
 name = "comfyui-llm-bikeshed"
-version = "1.0.0"
+version = "1.0.1"
 description = "ComfyUI custom nodes for local LLM text generation"
 license = { file = "LICENSE" }
 readme = "README.md"

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-12
+
+### Fixed
+
+- **Packaging** — setuptools discovery scoped to Python modules so `pip install -e ".[dev]"` succeeds in CI (flat-layout dirs no longer break editable installs).
+
+### Changed
+
+- **CI** — GitHub Actions bumped to Node 24–compatible action versions (`checkout@v6`, `setup-python@v6`); registry publish pinned to `Comfy-Org/publish-node-action@1.0.1`.
+
 ## [1.0.0] - 2026-06-12
 
 First public GitHub and ComfyUI Registry release. Core v1: OAI-compatible and Textgen providers, Basic/Advanced generation, per-provider options, lifecycle nodes, presets, and ComfyUI **Cancel** during LLM HTTP. Default branch is master.
