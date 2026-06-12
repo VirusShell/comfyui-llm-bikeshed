@@ -223,7 +223,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for pull requests and issue reporting.
 
 ## ComfyUI Registry
 
-Install via ComfyUI-Manager once published, or clone into `custom_nodes/` as above.
+Published on the [ComfyUI Registry](https://registry.comfy.org/nodes/comfyui-llm-bikeshed). Install via ComfyUI Manager (search `@amvir/comfyui-llm-bikeshed` or use the [registry listing](https://registry.comfy.org/nodes/comfyui-llm-bikeshed)), or clone into `custom_nodes/` as above.
 
 **Publisher setup (one-time):**
 
