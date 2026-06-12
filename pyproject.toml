@@ -35,7 +35,7 @@ testpaths = ["tests"]
 # Used by Comfy Registry — https://registry.comfy.org
 [tool.comfy]
 # Set to your publisher ID (the part after @ on your registry profile).
-PublisherId = "virusshell"
+PublisherId = "amvir"
 DisplayName = "LLM Bikeshed"
 Icon = ""
 # requires-comfyui = ">=1.0.0"
