@@ -18,12 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.repository.fork == false
     steps:
-      - name: Check out code
-        uses: actions/checkout@v6
-
       - name: Publish Custom Node
         uses: Comfy-Org/publish-node-action@1.0.1
         with:
           # Official name per docs.comfy.org; fallback if user used COMFY_REGISTRY_API_KEY
           personal_access_token: ${{ secrets.REGISTRY_ACCESS_TOKEN || secrets.COMFY_REGISTRY_API_KEY }}
-          skip_checkout: true
