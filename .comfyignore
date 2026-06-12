@@ -1,0 +1,8 @@
+# Development-only assets (kept in git, excluded from registry archive)
+.claude/
+docs/
+tests/
+.github/
+specs/
+CONTRIBUTING.md
+CLAUDE.md

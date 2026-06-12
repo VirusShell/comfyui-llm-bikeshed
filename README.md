@@ -221,9 +221,16 @@ ruff check .
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for pull requests and issue reporting.
 
-## ComfyUI Registry (optional)
+## ComfyUI Registry
 
-To publish on the [ComfyUI Registry](https://docs.comfy.org/registry/overview), set `PublisherId` under `[tool.comfy]` in `pyproject.toml` after registering your publisher account. Until then, install via `git clone` into `custom_nodes/` as above.
+Install via ComfyUI-Manager once published, or clone into `custom_nodes/` as above.
+
+**Publisher setup (one-time):**
+
+1. Create a publisher at [registry.comfy.org](https://registry.comfy.org) (ID is permanent).
+2. Create a **Registry Publishing API Key** for that publisher.
+3. Set `PublisherId` under `[tool.comfy]` in `pyproject.toml` to your registry ID.
+4. Publish: `pip install comfy-cli` then `comfy node publish` (prompts for API key), or add `REGISTRY_ACCESS_TOKEN` to GitHub Actions secrets and push a `pyproject.toml` version bump (see `.github/workflows/publish_registry.yml`).
 
 ## License
 

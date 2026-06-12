@@ -2,13 +2,14 @@
 name = "comfyui-llm-bikeshed"
 version = "0.3.0"
 description = "ComfyUI custom nodes for local LLM text generation"
+license = { file = "LICENSE" }
 readme = "README.md"
-license = "MIT"
 requires-python = ">=3.10"
 authors = [{ name = "VirusShell", email = "22591047+VirusShell@users.noreply.github.com" }]
 keywords = ["comfyui", "llm", "lm-studio", "text-generation-webui", "openai"]
 classifiers = [
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -31,11 +32,13 @@ dev = ["pytest>=7.0", "ruff>=0.4.0"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+# Used by Comfy Registry — https://registry.comfy.org
 [tool.comfy]
-# PublisherId = ""  # Comfy Registry ID; fill when publishing to registry
-PublisherId = ""
+# Set to your publisher ID (the part after @ on your registry profile).
+PublisherId = "VirusShell"
 DisplayName = "LLM Bikeshed"
 Icon = ""
+# requires-comfyui = ">=1.0.0"
 
 [tool.ruff]
 target-version = "py310"
