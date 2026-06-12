@@ -25,6 +25,7 @@ This pack covers **LLM text generation** for ComfyUI (LM Studio, Textgen, OpenAI
 2. Keep changes focused; match existing code style and relative imports used for ComfyUI runtime.
 3. Update [`CHANGELOG.md`](CHANGELOG.md) under `[Unreleased]` for user-visible changes.
 4. Add a [`docs/lessons-learned.md`](docs/lessons-learned.md) entry when a fix reveals a non-obvious ComfyUI or backend quirk.
+5. Before cutting a release, follow [docs/VERSIONING.md](docs/VERSIONING.md) (semver, tags, registry).
 
 ## Issues
 

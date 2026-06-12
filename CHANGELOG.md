@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-12
+
+First public GitHub and ComfyUI Registry release. Core v1: OAI-compatible and Textgen providers, Basic/Advanced generation, per-provider options, lifecycle nodes, presets, and ComfyUI **Cancel** during LLM HTTP. Default branch is master.
+
 ### Security
 
 - **Credentials no longer in execution outputs** — `LLM_PROVIDER` and `LLM_META` dicts no longer embed `api_key` / `admin_key`. Adapters resolve secrets from `config.yaml` / env at HTTP time via `config.auth.resolve_provider_auth`.
