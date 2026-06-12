@@ -37,7 +37,8 @@ jobs:
 
       - name: Publish Custom Node
         if: github.event_name == 'workflow_dispatch' || steps.version_bump.outputs.bumped == 'true'
-        uses: Comfy-Org/publish-node-action@main
+        # Pin SHA: publish-node-action@1.0.1 breaks on comfy-cli 1.10.4 (`comfy --yes env` fails); this SHA matches successful 1.0.0 publish.
+        uses: Comfy-Org/publish-node-action@d2366e7abb6ab16f3bb03e3520ae25c8cf749bc9
         with:
           # Official name per docs.comfy.org; fallback if user used COMFY_REGISTRY_API_KEY
           personal_access_token: ${{ secrets.REGISTRY_ACCESS_TOKEN || secrets.COMFY_REGISTRY_API_KEY }}
