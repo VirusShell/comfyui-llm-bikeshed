@@ -230,7 +230,7 @@ Install via ComfyUI-Manager once published, or clone into `custom_nodes/` as abo
 1. Create a publisher at [registry.comfy.org](https://registry.comfy.org) (ID is permanent).
 2. Create a **Registry Publishing API Key** for that publisher.
 3. Set `PublisherId` under `[tool.comfy]` in `pyproject.toml` to your registry ID.
-4. Publish: `pip install comfy-cli` then `comfy node publish` (prompts for API key), or add `REGISTRY_ACCESS_TOKEN` to GitHub Actions secrets and push a `pyproject.toml` version bump (see `.github/workflows/publish_registry.yml`).
+4. Publish: `pip install comfy-cli` then `comfy node publish` (prompts for API key), or add the registry API key as GitHub secret **`REGISTRY_ACCESS_TOKEN`** (official name; `COMFY_REGISTRY_API_KEY` also works in our workflow) and push a `pyproject.toml` change (see `.github/workflows/publish_registry.yml`).
 
 ## License
 
