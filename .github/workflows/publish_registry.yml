@@ -6,7 +6,6 @@ on:
     branches:
       - main
       - master
-      - research/audit-and-cancel-tracking
     paths:
       - "pyproject.toml"
 
@@ -24,3 +23,4 @@ jobs:
         with:
           # Official name per docs.comfy.org; fallback if user used COMFY_REGISTRY_API_KEY
           personal_access_token: ${{ secrets.REGISTRY_ACCESS_TOKEN || secrets.COMFY_REGISTRY_API_KEY }}
+
