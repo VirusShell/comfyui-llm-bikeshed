@@ -3,7 +3,7 @@
 > Decision-time prevention for new claims: [`provenance-and-reverification.md`](provenance-and-reverification.md).
 
 **Created:** 2026-06-08  
-**Status:** Protocol ready; **no empirical runs recorded** as of 2026-06-08. Independent of the abandoned provenance audit (2026-06-11).
+**Status:** Protocol ready; **no empirical runs recorded** as of 2026-06-17. Agent probe 2026-06-17: localhost backends unreachable (see § Agent probe). Independent of the abandoned provenance audit (2026-06-11).
 
 ---
 
@@ -117,8 +117,89 @@ For each run: source URL (if citing upstream behavior), **source date** (backend
 
 ## Follow-ups after empirical QA (optional)
 
-1. **Integration test** — mock Textgen: cancel mid-generation → assert `POST …/stop-generation` called (strengthens wiring proof without live backend).
+1. ~~**Integration test**~~ — **Done** (`7c9bbc6`): `TestOAICompatTextgenCancel` in `tests/test_interrupt.py`.
 2. **Interrupt cleanup policy** — unload-on-cancel vs leave-loaded (human decision; VRAM vs latency).
-3. **User docs** — README + generation node help: Cancel stops the ComfyUI node; host may continue until stop API, timeout, or unload.
+3. ~~**User docs (README)**~~ — **Done** (`7c9bbc6`). Optional: generation node inline help.
 
 See [`cancel-interrupt-status.md`](cancel-interrupt-status.md) § Recommended next steps for ordered minimal list.
+
+---
+
+## Agent probe (2026-06-17)
+
+**Access date:** 2026-06-17  
+**Verified how:** automated HTTP probe (no GPU / ComfyUI session)  
+**Result:** No live backends available on this machine — empirical protocol **deferred** to human run below.
+
+| Port | Typical service | Probe result |
+|------|-----------------|--------------|
+| 5000 | Textgen | Timeout (unreachable) |
+| 1234 | LM Studio | Timeout (unreachable) |
+| 8188 | ComfyUI | Timeout (unreachable) |
+| 11434 | Ollama (out of pack scope) | Timeout (unreachable) |
+
+**Pre-commit automated checks (same session):** `pytest tests/test_interrupt.py tests/test_workflow_json_security.py` — 8/8 passed. Mock Textgen cancel → `POST …/stop-generation` (`TestOAICompatTextgenCancel`).
+
+---
+
+## Human-run checklist (execute when GPU + backends available)
+
+Use this when closing `[VERIFY]` rows. Record outcomes in [`cancel-interrupt-status.md`](cancel-interrupt-status.md) with access date, backend version, and `verified how = empirical`.
+
+### Prerequisites
+
+- [ ] ComfyUI running with this pack installed (default `http://127.0.0.1:8188`)
+- [ ] `config.yaml` or env vars set for Textgen API/admin keys (never in workflow JSON)
+- [ ] `nvidia-smi` or equivalent to observe GPU utilization
+- [ ] Note versions: ComfyUI, Textgen commit/tag, LM Studio app version
+
+### A. Textgen cancel stops host inference
+
+**Closes (partial/full):** cancel-interrupt-status open question on `stream: false` + stop-generation; supports A-19 lifecycle confidence.
+
+| # | Step | Pass? | Notes |
+|---|------|-------|-------|
+| A1 | Start Textgen with `--api` and `--api-key`; confirm `GET http://localhost:5000/v1/internal/model/list` or pack dropdown works | | |
+| A2 | Workflow: `LLM Lifecycle: Textgen` (manage ON) → `LLM Provider: Textgen` → `LLM Generate` with high `max_tokens` (e.g. 4096), slow model | | GPU rises |
+| A3 | Click **Cancel** mid-generation | | ComfyUI queue unblocks within ~5 s |
+| A4 | Within 30 s, check Textgen logs + GPU | | GPU drops; no new tokens |
+| A5 | (Optional) Confirm `POST /v1/internal/stop-generation` in Textgen access log | | |
+
+### B. LM Studio client abort vs GPU work
+
+**Closes:** cancel-interrupt-status LM Studio `[VERIFY]`; documents user-facing limits (no stop API in pack).
+
+| # | Step | Pass? | Notes |
+|---|------|-------|-------|
+| B1 | Start LM Studio local server; confirm `GET http://localhost:1234/v1/models` | | |
+| B2 | `LLM Lifecycle: LM Studio` (ttl e.g. 30) → OAI provider pointed at LM Studio → Generate, high `max_tokens` | | GPU busy |
+| B3 | **Cancel** mid-generation | | ComfyUI unblocks |
+| B4 | Observe GPU / LM Studio inference panel for 60 s | | Record: stops vs runs to completion |
+
+### C. Textgen full lifecycle chain (A-19 empirical)
+
+**Closes:** A-19 `[VERIFY]` — load → generate → unload with distinct api/admin keys.
+
+| # | Step | Pass? | Notes |
+|---|------|-------|-------|
+| C1 | Textgen with api + admin keys configured in pack config only | | |
+| C2 | Single-node workflow: lifecycle ON, model not loaded; run Generate | | Model loads before chat |
+| C3 | After success, confirm unload (or last-node unload in chain) | | VRAM freed / Textgen shows unloaded |
+| C4 | Two-node chain: Gen1 `meta` → Gen2; only final node should unload | | First node skips unload |
+
+### D. LM Studio TTL + chain deferral (A-15, A-18, A-22 empirical)
+
+**Closes:** A-15 mid-chain TTL extension / defer-unload; A-18 TTL reset per request; A-22 load/unload + `context_length`.
+
+| # | Step | Pass? | Notes |
+|---|------|-------|-------|
+| D1 | `LLM Lifecycle: LM Studio`, ttl=30, `context_length` > 0 if testing A-22 | | |
+| D2 | Single Generate: confirm explicit load if needed, generation, unload on last node | | A-22 |
+| D3 | Two-node chain connected via `meta`: run both; confirm model stays loaded between nodes | | A-15 deferral |
+| D4 | After chain completes, confirm unload / TTL behavior | | A-18 TTL reset |
+| D5 | (Optional) Mid-chain cancel: note whether model stays loaded (cleanup policy gap) | | Product input |
+
+### After each section
+
+1. Append results table to [`cancel-interrupt-status.md`](cancel-interrupt-status.md) § Empirical runs.
+2. Promote tracker rows (A-15, A-18, A-19, A-22) only with evidence per [`provenance-and-reverification.md`](provenance-and-reverification.md) Gate B.

@@ -1,8 +1,8 @@
 # Cancel / interrupt implementation status
 
 **Created:** 2026-06-07  
-**Last updated:** 2026-06-08  
-**Status:** ComfyUI-side cooperative cancel **shipped** (commit `1006400`); Textgen host-side **stop-generation wired** (code read 2026-06-07, re-confirmed 2026-06-08); empirical host-stop QA **still open**; other cleanup **partial / gaps remain**.
+**Last updated:** 2026-06-17  
+**Status:** ComfyUI-side cooperative cancel **shipped** (commit `1006400`); Textgen host-side **stop-generation wired** (code read 2026-06-07, re-confirmed 2026-06-08); mock Textgen stop-generation integration test added (`7c9bbc6`); README cancel section shipped (`7c9bbc6`); **empirical host-stop QA still open** (agent probe 2026-06-17: no localhost backends).
 
 ---
 
@@ -68,8 +68,9 @@ This is **not** the project-wide provenance audit. For decision-time gates and t
 | `test_cancels_inflight_request` | Mock slow streamed response → flag set mid-flight → `resp.close()` called, `InterruptProcessingException` raised. |
 | `test_calls_on_interrupt_callback` | Cancel mid-flight → optional `on_interrupt` callback invoked before exception. |
 | `test_safe_post_uses_direct_requests_outside_comfy` | When Comfy hooks absent, `_safe_post` uses plain `requests.post` (existing adapter test mocks keep working). |
+| `TestOAICompatTextgenCancel::test_textgen_cancel_calls_stop_generation` | Cancel during `OAICompatAdapter.generate` (Textgen) → `POST …/v1/internal/stop-generation` called (`7c9bbc6`). |
 
-**Not covered:** live ComfyUI queue run; real backend behavior after client disconnect; Textgen `stop-generation` called from `OAICompatAdapter.generate` (only `interruptible_request` callback tested); unload/TTL on interrupt; `_safe_get` adapter paths; `model_list.py` dropdown fetches.
+**Not covered:** live ComfyUI queue run; real backend behavior after client disconnect; unload/TTL on interrupt; `_safe_get` adapter paths; `model_list.py` dropdown fetches.
 
 **2026-06-08 code re-read:** `oai_compat.py` still sets `on_interrupt` for `text_gen_webui` only; `_stop_generation_textgen` uses bare `requests.post` to `/v1/internal/stop-generation` with API bearer headers. LM Studio / OpenAI paths have no `on_interrupt` hook.
 
@@ -82,7 +83,7 @@ This is **not** the project-wide provenance audit. For decision-time gates and t
 | **No cleanup on interrupt** | Medium | `OAICompatAdapter.generate()` only runs unload (`_unload_model_*`) after a successful completion. Interrupt raises before that block — model can remain loaded on Textgen / LM Studio TTL path unchanged. LM Studio / Textgen unload paths use **bare `requests.post`** (not interruptible) — intentional for post-success cleanup only. |
 | **`stream: false` in API body** | Medium (design constraint) | Chat payload always sets `"stream": False`. Transport uses streaming reads for cancel, but many hosts treat non-streaming completions as “run to completion server-side”; client disconnect may **not** stop inference. |
 | **Model list endpoints not interruptible** | Low (acceptable) | `model_list.py` and server dropdown paths use bare `requests.get` / `requests.post` — short calls; not routed through `interruptible_request()`. |
-| **User-facing README / node help** | Medium | No shipped documentation of cancel limits (Comfy unblocks vs host keeps generating). |
+| **User-facing README / node help** | Low (README done) | README § Cancel during generation documents Comfy unblocks vs host limits (`7c9bbc6`). Generation node inline help still minimal. |
 
 ---
 
@@ -109,13 +110,21 @@ This is **not** the project-wide provenance audit. For decision-time gates and t
 
 ---
 
+## Empirical runs
+
+| Date | Backend | Scenario | Outcome | Tracker rows |
+|------|---------|----------|---------|--------------|
+| 2026-06-17 | — | Agent HTTP probe (ports 5000, 1234, 8188, 11434) | **Deferred** — no backends reachable; human checklist in [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md) § Human-run checklist | A-15, A-18, A-19, A-22 unchanged |
+
+---
+
 ## Recommended next steps (ordered, minimal)
 
-1. **Empirical [VERIFY]** — live Textgen: cancel mid-generation with `stream: false` → confirm GPU idle / generation stops. **Procedure:** [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md).
-2. **Empirical [VERIFY]** — live LM Studio: same cancel scenario; document whether GPU work stops (no stop API in pack). **Procedure:** same doc.
-3. **Integration test** — mock Textgen: cancel mid-generation → assert `POST …/stop-generation` called (unit); complements manual QA.
+1. **Empirical [VERIFY]** — live Textgen: cancel mid-generation with `stream: false` → confirm GPU idle / generation stops. **Procedure:** [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md) § A.
+2. **Empirical [VERIFY]** — live LM Studio: same cancel scenario; document whether GPU work stops (no stop API in pack). **Procedure:** same doc § B.
+3. ~~**Integration test**~~ — **Done** (`7c9bbc6`): mock Textgen cancel → assert `POST …/stop-generation`.
 4. **Interrupt cleanup policy** — decide unload-on-cancel vs leave-loaded; implement minimally if VRAM impact confirmed.
-5. **User docs** — README + generation node help: Cancel stops the ComfyUI node; host may continue until stop API, timeout, or unload.
+5. ~~**User docs (README)**~~ — **Done** (`7c9bbc6`). Optional: generation node inline help.
 
 ---
 
