@@ -192,6 +192,14 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 2. The model stays loaded across the chain (VRAM-aware deferral)
 3. Only the last node in the chain triggers model unload/short TTL
 
+## Cancel during generation
+
+Pressing **Cancel** in ComfyUI stops the generation node and lets the queue continue — the pack polls ComfyUI's interrupt flag and aborts in-flight HTTP.
+
+- **Textgen:** the pack also calls Textgen's stop-generation endpoint when configured with an API key. This usually stops generation on the host, but behavior with non-streaming chat is not fully verified.
+- **LM Studio / OpenAI / other OAI hosts:** Cancel unblocks ComfyUI, but the backend may keep running until it finishes on its own. There is no stop API wired for LM Studio in this pack.
+- **VRAM cleanup on Cancel:** not implemented yet. If you cancel mid-run, the model may stay loaded (Textgen) or follow the normal TTL (LM Studio) — same as if generation had completed without an explicit unload.
+
 ## Architecture
 
 - **VRAM / model memory (current behavior)** — **Textgen:** model list and loaded label use internal HTTP (`GET /v1/internal/model/list`, `GET /v1/internal/model/info`); generation uses `POST {url}/v1/chat/completions`; with **Manage model memory** ON (dedicated Textgen provider or lifecycle wired to OAI Compatible), the adapter calls `POST {url}/v1/internal/model/load` / `unload` around generation. Chain-aware unload deferral uses **`skip_unload`** on generation nodes. **LM Studio:** TTL/context via the LM Studio lifecycle node. **Ollama** is not supported natively in this pack. **Still open:** lifecycle UX long-term; see [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md).

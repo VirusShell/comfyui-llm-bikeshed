@@ -11,6 +11,7 @@ import pytest
 import adapters.interrupt as interrupt_mod
 from adapters.base import _safe_post
 from adapters.interrupt import interruptible_request
+from adapters.oai_compat import OAICompatAdapter
 
 
 class InterruptProcessingException(BaseException):
@@ -175,3 +176,76 @@ class TestInterruptibleRequest:
         )
         assert resp is mock_oai_response
         assert captured["url"].endswith("/v1/chat/completions")
+
+
+class TestOAICompatTextgenCancel:
+    def test_textgen_cancel_calls_stop_generation(
+        self, mock_comfy_interrupt, monkeypatch,
+    ):
+        """Cancel during Textgen chat POST must call stop-generation."""
+        started = threading.Event()
+        stop_urls: list[str] = []
+
+        class SlowResponse:
+            def close(self) -> None:
+                pass
+
+            def iter_content(self, chunk_size: int = 8192):
+                started.set()
+                while True:
+                    time.sleep(0.05)
+                    yield b""
+
+        def slow_request(self, method, url, **kwargs):
+            kwargs.setdefault("stream", True)
+            return SlowResponse()
+
+        def track_stop(url, **kwargs):
+            stop_urls.append(url)
+            resp = MagicMock()
+            resp.ok = True
+            resp.status_code = 200
+            return resp
+
+        monkeypatch.setattr(
+            interrupt_mod.requests.Session, "request", slow_request, raising=False
+        )
+        monkeypatch.setattr("adapters.oai_compat.requests.post", track_stop)
+        monkeypatch.setattr(
+            "adapters.oai_compat.resolve_provider_auth",
+            lambda _p: ("test-api-key", "test-admin-key"),
+        )
+
+        provider = {
+            "backend": "text_gen_webui",
+            "adapter": "oai_compat",
+            "url": "http://localhost:5000",
+            "model": "my-model",
+            "timeout": 120,
+            "lifecycle": None,
+        }
+
+        adapter = OAICompatAdapter()
+        result: dict[str, object] = {}
+
+        def run() -> None:
+            try:
+                adapter.generate(
+                    provider,
+                    [{"role": "user", "content": "hi"}],
+                    {},
+                    skip_unload=True,
+                )
+            except BaseException as exc:
+                result["exc"] = exc
+
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
+        assert started.wait(timeout=2.0)
+
+        mock_comfy_interrupt["interrupted"] = True
+        thread.join(timeout=2.0)
+
+        assert isinstance(result.get("exc"), InterruptProcessingException)
+        assert len(stop_urls) == 1
+        assert stop_urls[0] == "http://localhost:5000/v1/internal/stop-generation"

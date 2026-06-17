@@ -15,7 +15,18 @@ class LLMLifecycleLMStudio:
     def INPUT_TYPES(cls) -> dict:  # noqa: N802
         return {
             "required": {
-                "ttl": ("INT", {"default": 30, "min": 0}),
+                "ttl": (
+                    "INT",
+                    {
+                        "default": 30,
+                        "min": 0,
+                        "tooltip": (
+                            "Time-to-live in seconds — how long LM Studio keeps "
+                            "the model loaded after each request. Timer resets "
+                            "on each request. 0 = unload immediately."
+                        ),
+                    },
+                ),
                 "context_length": (
                     "INT",
                     {"default": 0, "min": 0, "max": 1048576},

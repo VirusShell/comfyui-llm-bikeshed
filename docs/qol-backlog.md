@@ -6,16 +6,7 @@ Tracked UX/polish improvements that aren't blocking v1 but should be addressed.
 
 ### Tooltips / Hints
 
-- [ ] **LLM Provider: LM Studio — `ttl` widget needs unit tooltip**
-  TTL is in minutes but the widget is a bare INT with no indication. Add tooltip: "Time-to-live in minutes — how long LM Studio keeps the model loaded after the request. 0 = unload immediately."
-
-- [ ] **LLM Generate (Basic) — `meta` output needs tooltip**
-  Users won't know what `LLM_META` carries. Add tooltip: "Carries provider + options for chaining to downstream generation nodes."
-  *(Flagged in concept doc, line 103)*
-
-- [ ] **LLM Generate (Advanced) — `meta` input and output need tooltips**
-  Same as above for the output; the input also needs: "Accepts provider + options from an upstream generation node. Explicit provider/options inputs override meta values."
-  *(Flagged in concept doc, line 127)*
+*(All tooltip items completed — see Completed section.)*
 
 ### Node Layout
 
@@ -39,4 +30,6 @@ Tracked UX/polish improvements that aren't blocking v1 but should be addressed.
 
 ## Completed
 
-*(none yet)*
+- [x] **LLM Lifecycle: LM Studio — `ttl` widget unit tooltip** (seconds, per LM Studio API)
+- [x] **LLM Generate (Basic) — `meta` output tooltip**
+- [x] **LLM Generate (Advanced) — `meta` input and output tooltips**

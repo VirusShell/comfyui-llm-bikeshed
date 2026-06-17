@@ -68,42 +68,43 @@ def has_downstream_gen_node(prompt: dict, node_id: str, meta_output_index: int) 
 from aiohttp import web
 from server import PromptServer
 import asyncio
-import requests
+from model_list import (
+    _sync_resolve_oai_compat_models,
+    _sync_resolve_textgen_models,
+)
 
-@PromptServer.instance.routes.post("/llm-bikeshed/models")
-async def get_models(request):
+@PromptServer.instance.routes.post("/llm-bikeshed/models/oai-compat")
+async def get_models_oai_compat(request):
+    """OAI-compatible model list (LM Studio, OpenAI, generic OAI, etc.)."""
     data = await request.json()
-    backend_type = data.get("backend_type", "ollama")
-    url = data.get("url", "http://localhost:11434")
-    timeout = data.get("timeout", 10)
+    url = data.get("url", "")
+    if not url:
+        return web.json_response({"models": [], "backend": "generic"})
 
-    try:
-        if backend_type == "ollama":
-            response = await asyncio.to_thread(
-                requests.get, f"{url}/api/tags", timeout=timeout
-            )
-            models = [m["name"] for m in response.json().get("models", [])]
-        elif backend_type == "lm_studio":
-            response = await asyncio.to_thread(
-                requests.get, f"{url}/v1/models", timeout=timeout
-            )
-            models = [m["id"] for m in response.json().get("data", [])]
-        elif backend_type == "text_gen_webui":
-            headers = {}
-            admin_key = data.get("admin_key")
-            if admin_key:
-                headers["Authorization"] = f"Bearer {admin_key}"
-            response = await asyncio.to_thread(
-                requests.get, f"{url}/v1/internal/model/list",
-                headers=headers, timeout=timeout
-            )
-            models = response.json().get("model_names", [])
-        else:
-            models = []
+    models, backend, loaded_model = await asyncio.to_thread(
+        _sync_resolve_oai_compat_models, url,
+    )
+    payload = {"models": models, "backend": backend}
+    if backend == "text_gen_webui":
+        payload["loaded_model"] = loaded_model
+    return web.json_response(payload)
 
-        return web.json_response({"models": models, "error": None})
-    except Exception as e:
-        return web.json_response({"models": [], "error": str(e)})
+
+@PromptServer.instance.routes.post("/llm-bikeshed/models/textgen")
+async def get_models_textgen(request):
+    """Textgen-only model list (skips multi-backend detection)."""
+    data = await request.json()
+    url = data.get("url", "")
+    if not url:
+        return web.json_response(
+            {"models": [], "backend": "text_gen_webui", "loaded_model": None},
+        )
+    models, backend, loaded_model = await asyncio.to_thread(
+        _sync_resolve_textgen_models, url,
+    )
+    return web.json_response(
+        {"models": models, "backend": backend, "loaded_model": loaded_model},
+    )
 ```
 
 ---
@@ -117,9 +118,8 @@ app.registerExtension({
     name: "llm-bikeshed.model-dropdown",
     async nodeCreated(node) {
         const providerNodes = [
-            "LLMProviderOllama",
-            "LLMProviderLMStudio",
-            "LLMProviderTextGenWebUI"
+            "LLMProviderOAICompat",
+            "LLMProviderTextGenWebUI",
         ];
         if (!providerNodes.includes(node.comfyClass)) return;
 
@@ -139,7 +139,7 @@ app.registerExtension({
 ## Toggle-Based Options Pattern
 
 ```python
-class LLMOptionsOllama:
+class LLMOptionsLMStudio:
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -158,9 +158,10 @@ class LLMOptionsOllama:
 
     def build_options(self, **kwargs):
         options = {}
-        param_names = ["temperature", "top_k", "top_p", "seed", "num_predict",
-                       "num_ctx", "repeat_penalty", "mirostat", "mirostat_eta",
-                       "mirostat_tau", "tfs_z", "min_p", "typical_p"]
+        param_names = [
+            "temperature", "top_p", "max_tokens", "seed", "stop",
+            "top_k", "repeat_penalty", "presence_penalty", "frequency_penalty",
+        ]
         for name in param_names:
             if kwargs.get(f"enable_{name}", False):
                 options[name] = kwargs[name]
@@ -196,14 +197,14 @@ def generate(self, provider: dict, prompt: str, system_prompt: str = "",
         payload.update(self.adapter.prepare_options(options))
 
     response = requests.post(
-        f"{url}/api/chat",
+        f"{url}/v1/chat/completions",
         json=payload,
         timeout=timeout,
     )
     response.raise_for_status()
 
     result = response.json()
-    text = result["message"]["content"]
+    text = result["choices"][0]["message"]["content"]
     return (text,)
 ```
 

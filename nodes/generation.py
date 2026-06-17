@@ -35,6 +35,10 @@ class LLMGenerate:
     CATEGORY = "LLM Bikeshed/generation"
     RETURN_TYPES = ("STRING", "LLM_META")
     RETURN_NAMES = ("text", "meta")
+    OUTPUT_TOOLTIPS = (
+        "",
+        "Carries provider + options for chaining to downstream generation nodes.",
+    )
     FUNCTION = "generate"
     OUTPUT_NODE = False
 
@@ -113,6 +117,10 @@ class LLMGenerateAdvanced:
     CATEGORY = "LLM Bikeshed/generation"
     RETURN_TYPES = ("STRING", "LLM_META")
     RETURN_NAMES = ("text", "meta")
+    OUTPUT_TOOLTIPS = (
+        "",
+        "Carries provider + options for chaining to downstream generation nodes.",
+    )
     FUNCTION = "generate"
     OUTPUT_NODE = False
 
@@ -126,7 +134,16 @@ class LLMGenerateAdvanced:
             "optional": {
                 "provider": ("LLM_PROVIDER",),
                 "options": ("LLM_OPTIONS",),
-                "meta": ("LLM_META",),
+                "meta": (
+                    "LLM_META",
+                    {
+                        "tooltip": (
+                            "Accepts provider + options from an upstream "
+                            "generation node. Explicit provider/options inputs "
+                            "override meta values."
+                        ),
+                    },
+                ),
             },
             "hidden": {
                 "prompt_graph": "PROMPT",
