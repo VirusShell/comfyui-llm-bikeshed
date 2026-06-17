@@ -17,6 +17,19 @@ const PROVIDER_CONFIG = {
 /** Debounce first auto-fetch so duplicate nodeCreated does not double-hit the backend. */
 const INITIAL_FETCH_DEBOUNCE_MS = 600;
 
+/** Debounce URL edits before re-fetching models (callback + DOM listeners). */
+const URL_REFETCH_DEBOUNCE_MS = 500;
+
+/**
+ * Display-only text widgets — ComfyUI frontend ~1.39+ honors `disabled` and
+ * `read_only` on STRING/text widgets (Vue node renderer).
+ */
+const READ_ONLY_WIDGET_OPTIONS = {
+  serialize: false,
+  disabled: true,
+  read_only: true,
+};
+
 /**
  * Fetch model list from a backend endpoint.
  * @param {string} endpoint - The PromptServer route path.
@@ -126,6 +139,44 @@ function markNodeDirty(node) {
   }
 }
 
+/** Current URL from the widget (callback `value` arg can be stale with multiple providers). */
+function getWidgetUrl(urlWidget, defaultUrl) {
+  const raw = urlWidget?.value;
+  if (raw === null || raw === undefined || String(raw).trim() === "") {
+    return defaultUrl;
+  }
+  return String(raw);
+}
+
+/**
+ * DOM listeners on the STRING input — backup when `urlWidget.callback` does not fire
+ * (observed with multiple provider nodes on one graph, ComfyUI frontend 1.39–1.45).
+ */
+function attachUrlInputListeners(urlWidget, onChange) {
+  if (!urlWidget || urlWidget.__llmBikeshedUrlListenersAttached) {
+    return;
+  }
+
+  const tryAttach = (attempt = 0) => {
+    const inputEl = urlWidget.inputEl;
+    if (!inputEl) {
+      if (attempt < 20) {
+        requestAnimationFrame(() => tryAttach(attempt + 1));
+      }
+      return;
+    }
+    if (urlWidget.__llmBikeshedUrlListenersAttached) {
+      return;
+    }
+    urlWidget.__llmBikeshedUrlListenersAttached = true;
+    const handler = () => onChange();
+    inputEl.addEventListener("input", handler);
+    inputEl.addEventListener("change", handler);
+  };
+
+  tryAttach();
+}
+
 function applyProviderStatus(node, backendWidget, loadedWidget, backend, loadedModel) {
   if (backendWidget) {
     backendWidget.value = formatBackendName(backend);
@@ -163,14 +214,14 @@ app.registerExtension({
         "detected_backend",
         "detecting…",
         () => {},
-        { serialize: false },
+        READ_ONLY_WIDGET_OPTIONS,
       );
       loadedModelWidget = node.addWidget(
         "text",
         "loaded_model_status",
         "—",
         () => {},
-        { serialize: false },
+        READ_ONLY_WIDGET_OPTIONS,
       );
     }
 
@@ -191,41 +242,17 @@ app.registerExtension({
       }
       initialFetchTimer = setTimeout(() => {
         initialFetchTimer = null;
-        const currentUrl = urlWidget?.value || defaultUrl;
-        runFetch(currentUrl, modelWidget.value);
+        runFetch(getWidgetUrl(urlWidget, defaultUrl), modelWidget.value);
       }, INITIAL_FETCH_DEBOUNCE_MS);
     };
 
     // Defer + debounce fetch until after workflow/widget restore so COMBO keeps saved model id.
     scheduleInitialFetch();
+    node.__llmBikeshedScheduleProviderFetch = scheduleInitialFetch;
 
-    // Debounce timer for URL change detection
-    let detectTimer = null;
+    let urlRefetchTimer = null;
 
-    // Re-fetch models and re-detect on URL change
-    if (urlWidget) {
-      const origCallback = urlWidget.callback;
-      urlWidget.callback = function (value) {
-        if (origCallback) {
-          origCallback.call(this, value);
-        }
-        clearTimeout(detectTimer);
-        if (showBackendLabel && backendWidget) {
-          backendWidget.value = "detecting…";
-        }
-        if (showBackendLabel && loadedModelWidget) {
-          loadedModelWidget.value = "—";
-        }
-        markNodeDirty(node);
-        detectTimer = setTimeout(() => {
-          runFetch(value, undefined);
-        }, 500);
-      };
-    }
-
-    // Add refresh button widget
-    node.addWidget("button", "Refresh Models", null, () => {
-      const url = urlWidget?.value || defaultUrl;
+    const beginUrlRefetchUi = () => {
       if (showBackendLabel && backendWidget) {
         backendWidget.value = "detecting…";
       }
@@ -233,7 +260,41 @@ app.registerExtension({
         loadedModelWidget.value = "—";
       }
       markNodeDirty(node);
+    };
+
+    const scheduleUrlRefetch = () => {
+      beginUrlRefetchUi();
+      clearTimeout(urlRefetchTimer);
+      urlRefetchTimer = setTimeout(() => {
+        runFetch(getWidgetUrl(urlWidget, defaultUrl), undefined);
+      }, URL_REFETCH_DEBOUNCE_MS);
+    };
+
+    // Re-fetch models and re-detect on URL change (callback + DOM backup).
+    if (urlWidget) {
+      const origCallback = urlWidget.callback;
+      urlWidget.callback = function (_value) {
+        if (origCallback) {
+          origCallback.call(this, _value);
+        }
+        scheduleUrlRefetch();
+      };
+      attachUrlInputListeners(urlWidget, scheduleUrlRefetch);
+    }
+
+    // Add refresh button widget
+    node.addWidget("button", "Refresh Models", null, () => {
+      const url = getWidgetUrl(urlWidget, defaultUrl);
+      beginUrlRefetchUi();
       runFetch(url, undefined);
     });
+  },
+
+  loadedGraphNode(node) {
+    if (!PROVIDER_CONFIG[node.comfyClass]) {
+      return;
+    }
+    // Widget values are restored after nodeCreated; refetch all provider nodes on load.
+    node.__llmBikeshedScheduleProviderFetch?.();
   },
 });
