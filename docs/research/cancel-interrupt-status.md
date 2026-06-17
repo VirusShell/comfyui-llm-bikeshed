@@ -2,7 +2,7 @@
 
 **Created:** 2026-06-07  
 **Last updated:** 2026-06-17  
-**Status:** ComfyUI-side cooperative cancel **shipped** (commit `1006400`); Textgen host-side **stop-generation wired** (code read 2026-06-07, re-confirmed 2026-06-08); mock Textgen stop-generation integration test added (`7c9bbc6`); README cancel section shipped (`7c9bbc6`); **empirical host-stop QA still open** (agent probe 2026-06-17: no localhost backends).
+**Status:** ComfyUI-side cooperative cancel **shipped** (commit `1006400`); Textgen host-side **stop-generation wired** (code read 2026-06-07, re-confirmed 2026-06-08); mock Textgen stop-generation integration test added (`7c9bbc6`); README cancel section shipped (`7c9bbc6`); **partial empirical runs** 2026-06-17 — Textgen v4.9 cancel **PASS**; LM Studio v0.4.16 cancel **FAIL** (expected, no stop API). Lifecycle chain QA (A-15, A-18, A-19, A-22) still open.
 
 ---
 
@@ -91,8 +91,8 @@ This is **not** the project-wide provenance audit. For decision-time gates and t
 
 | Backend | ComfyUI unblocks on Cancel? | Host stops inference on Cancel? | Next action |
 |---------|----------------------------|-----------------------------------|-------------|
-| **LM Studio** | Yes — via `_safe_post` interrupt polling | **Unknown / likely partial** — non-streaming chat + client abort; no explicit stop API wired | Empirical **[VERIFY]**; document limits in README |
-| **Textgen** | Yes — same | **Stop API wired** — `POST /v1/internal/stop-generation` on cancel (API key); sets `shared.stop_everything` upstream. **Empirical [VERIFY]** on live instance still recommended for `stream: false` chat. | Live cancel QA; document in README |
+| **LM Studio** | Yes — via `_safe_post` interrupt polling | **Empirical FAIL (expected)** — v0.4.16: Cancel unblocks ComfyUI but inference continues; no stop API in pack | Document limits; future product fix if scoped |
+| **Textgen** | Yes — same | **Empirical PASS** — v4.9: Cancel stops inference immediately (`stream: false` chat) | Close primary cancel `[VERIFY]`; lifecycle chain QA still open |
 | **OpenAI** | Yes — same | **Do not assume** — cloud non-streaming request may complete or bill after client drop; not tested by this pack | Document expectation; no code change until scoped |
 | **Generic OAI** | Yes — same | **Host-dependent** — same `stream: false` constraint | Document; verify per host if users report hangs |
 
@@ -103,8 +103,8 @@ This is **not** the project-wide provenance audit. For decision-time gates and t
 | Item | Source | Status |
 |------|--------|--------|
 | Does `POST /v1/internal/stop-generation` still exist and which key (`--api-key` vs `--admin-key`)? | https://github.com/oobabooga/textgen/blob/main/modules/api/script.py (access 2026-06-07) | **Confirmed** — route exists; `check_key` → API key |
-| Does `stop-generation` affect **blocking** `/v1/chat/completions` with `stream: false`? | Upstream sets `shared.stop_everything`; generation loop checks it | **Code read confirmed**; **empirical [VERIFY]** on live Textgen still open |
-| Does LM Studio stop GPU work when the client closes a non-streaming chat connection? | Lessons-learned prevention note (2026-06-03) | **[VERIFY]** — empirical |
+| Does `stop-generation` affect **blocking** `/v1/chat/completions` with `stream: false`? | Upstream sets `shared.stop_everything`; generation loop checks it | **Empirical PASS** — Textgen v4.9, operator run 2026-06-17 |
+| Does LM Studio stop GPU work when the client closes a non-streaming chat connection? | Lessons-learned prevention note (2026-06-03) | **Empirical FAIL** — LM Studio v0.4.16, operator run 2026-06-17; documents user-facing limit |
 | Should interrupt trigger lifecycle unload (immediate vs defer vs skip)? | Product / VRAM policy | **Unresolved** — design choice |
 | ComfyUI interrupt API stability | ComfyUI `comfy.model_management` | **Assumed** — matches lessons-learned fix; re-check on major ComfyUI upgrades |
 
@@ -114,17 +114,20 @@ This is **not** the project-wide provenance audit. For decision-time gates and t
 
 | Date | Backend | Scenario | Outcome | Tracker rows |
 |------|---------|----------|---------|--------------|
-| 2026-06-17 | — | Agent HTTP probe (ports 5000, 1234, 8188, 11434) | **Deferred** — no backends reachable; human checklist in [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md) § Human-run checklist | A-15, A-18, A-19, A-22 unchanged |
+| 2026-06-17 | Textgen **v4.9** | ComfyUI Cancel mid-generation (`stream: false`, pack default) | **PASS** — inference stops immediately; ComfyUI queue unblocks | Primary cancel `[VERIFY]` closed for Textgen |
+| 2026-06-17 | LM Studio **v0.4.16** | ComfyUI Cancel mid-generation | **FAIL (expected)** — ComfyUI unblocks; inference does **not** stop; no obvious mid-gen model eject errors | Documents LM Studio limit; future fix if scoped |
+| 2026-06-17 | — | Agent default-port probe (5000, 1234, 8188, 11434) | **Invalid** — wrong methodology; see [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md) § Agent probe — corrected | Not evidence about operator backends |
 
 ---
 
 ## Recommended next steps (ordered, minimal)
 
-1. **Empirical [VERIFY]** — live Textgen: cancel mid-generation with `stream: false` → confirm GPU idle / generation stops. **Procedure:** [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md) § A.
-2. **Empirical [VERIFY]** — live LM Studio: same cancel scenario; document whether GPU work stops (no stop API in pack). **Procedure:** same doc § B.
-3. ~~**Integration test**~~ — **Done** (`7c9bbc6`): mock Textgen cancel → assert `POST …/stop-generation`.
-4. **Interrupt cleanup policy** — decide unload-on-cancel vs leave-loaded; implement minimally if VRAM impact confirmed.
-5. ~~**User docs (README)**~~ — **Done** (`7c9bbc6`). Optional: generation node inline help.
+1. ~~**Empirical [VERIFY]** — live Textgen cancel~~ — **Done** 2026-06-17 (v4.9 PASS). See § Empirical runs.
+2. ~~**Empirical [VERIFY]** — live LM Studio cancel~~ — **Done** 2026-06-17 (v0.4.16 FAIL/expected). See § Empirical runs.
+3. **Empirical [VERIFY]** — lifecycle chains (A-15, A-18, A-19, A-22). **Procedure:** [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md) § C–D.
+4. ~~**Integration test**~~ — **Done** (`7c9bbc6`): mock Textgen cancel → assert `POST …/stop-generation`.
+5. **Interrupt cleanup policy** — decide unload-on-cancel vs leave-loaded; implement minimally if VRAM impact confirmed.
+6. ~~**User docs (README)**~~ — **Done** (`7c9bbc6`). Optional: generation node inline help.
 
 ---
 

@@ -371,3 +371,13 @@ System: Absolute vs Relative" entry above for the full details.
 | **Fix** | Gate publish on project.version diff; use publish-node-action@main with skip_checkout: true and explicit checkout@v6. Document in VERSIONING.md. |
 | **Prevention** | Bump project.version whenever pyproject.toml must land without a registry release; use workflow_dispatch for intentional republish. |
 
+## Default-port backend probe invalid for workflow QA (2026-06-17)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | Medium — false “backends down” conclusions; wasted agent/human triage |
+| **What happened** | An agent session probed `localhost:5000`, `1234`, `8188`, and `11434` and recorded that empirical cancel QA was blocked because all timed out. Operator reported backends **were** running (except Textgen at probe time) on **custom host URLs**, not defaults. |
+| **Root cause** | (1) Agent environment ≠ operator GPU machine. (2) Pack workflows configure `url` per provider node — default-port TCP probes do not read workflow state. (3) Ollama `:11434` is out of pack scope since D-3 but was probed anyway. |
+| **Fix** | Corrected `cancel-empirical-qa-handoff.md` § Agent probe; tracker **I-8**; research note `user-feedback-2026-06-17.md`. |
+| **Prevention** | QA agents must use configured URLs + `POST /llm-bikeshed/models/oai-compat`, `/models/textgen`, or `/detect` from the ComfyUI host — never infer backend health from default ports alone. |
+

@@ -3,7 +3,7 @@
 > Decision-time prevention for new claims: [`provenance-and-reverification.md`](provenance-and-reverification.md).
 
 **Created:** 2026-06-08  
-**Status:** Protocol ready; **no empirical runs recorded** as of 2026-06-17. Agent probe 2026-06-17: localhost backends unreachable (see § Agent probe). Independent of the abandoned provenance audit (2026-06-11).
+**Status:** Protocol ready; **partial empirical runs recorded** 2026-06-17 (Textgen cancel PASS, LM Studio cancel FAIL/expected — see [`cancel-interrupt-status.md`](cancel-interrupt-status.md) § Empirical runs). Agent port probe 2026-06-17 was **invalid methodology** (see § Agent probe — corrected). Independent of the abandoned provenance audit (2026-06-11).
 
 ---
 
@@ -125,20 +125,34 @@ See [`cancel-interrupt-status.md`](cancel-interrupt-status.md) § Recommended ne
 
 ---
 
-## Agent probe (2026-06-17)
+## Agent probe (2026-06-17) — corrected
 
 **Access date:** 2026-06-17  
-**Verified how:** automated HTTP probe (no GPU / ComfyUI session)  
-**Result:** No live backends available on this machine — empirical protocol **deferred** to human run below.
+**Original claim:** automated HTTP probe to default localhost ports → “no backends reachable.”  
+**Correction (2026-06-17, operator feedback):** That probe was **not valid evidence** about whether the operator’s backends were running.
 
-| Port | Typical service | Probe result |
-|------|-----------------|--------------|
-| 5000 | Textgen | Timeout (unreachable) |
-| 1234 | LM Studio | Timeout (unreachable) |
-| 8188 | ComfyUI | Timeout (unreachable) |
-| 11434 | Ollama (out of pack scope) | Timeout (unreachable) |
+### Why the port probe was wrong
 
-**Pre-commit automated checks (same session):** `pytest tests/test_interrupt.py tests/test_workflow_json_security.py` — 8/8 passed. Mock Textgen cancel → `POST …/stop-generation` (`TestOAICompatTextgenCancel`).
+| Assumption | Reality |
+|------------|---------|
+| Backends listen on default ports (`5000` Textgen, `1234` LM Studio, `8188` ComfyUI) | **LLM host `url` is per-workflow** — operators often use LAN IPs or non-default ports. |
+| Timeout on `localhost:PORT` means backend down | Agent environment ≠ operator GPU machine; even on the same machine, custom URLs are invisible to a default-port sweep. |
+| Probe `11434` (Ollama) | **Out of pack scope** since D-3 (0.3.0) — should not appear in pack QA. |
+
+**Operator report:** Backends **were** running except Textgen at probe time; the agent never queried the **configured** URLs from the workflow or pack endpoints.
+
+### Correct approach (agents and humans)
+
+1. Read each provider node’s `url` widget (or workflow JSON `widgets_values`) for the graph under test.
+2. From the ComfyUI host running the pack, call pack routes with that URL:
+   - `POST /llm-bikeshed/models/oai-compat` — `{"url": "<base>"}` (fingerprint + models)
+   - `POST /llm-bikeshed/models/textgen` — Textgen-only list
+   - `POST /llm-bikeshed/detect` — backend label only
+3. Record backend **version** (Textgen tag, LM Studio app version) in empirical tables — not inferred from port defaults.
+
+See also [`user-feedback-2026-06-17.md`](user-feedback-2026-06-17.md) § Correct backend reachability check.
+
+**Pre-commit automated checks (same agent session):** `pytest tests/test_interrupt.py tests/test_workflow_json_security.py` — 8/8 passed. Mock Textgen cancel → `POST …/stop-generation` (`TestOAICompatTextgenCancel`). (Unit tests do not substitute for live cancel QA.)
 
 ---
 

@@ -58,6 +58,7 @@ Promote toward **Confirmed** only after updating a `docs/research/` note (templa
 | A-22 | LM Studio explicit model load with context_length | Decided | `LLM Lifecycle: LM Studio` node supplies `context_length` (0 = model default). Adapter calls `GET /api/v1/models` (`models[].key`, `loaded_instances[].config.context_length`), `POST /api/v1/models/load` with `context_length` if needed, `POST /api/v1/models/unload` with `loaded_instances[].id` as `instance_id` when last in chain. Mirrors text-gen-webui lifecycle pattern. JIT bug ([#1463](https://github.com/lmstudio-ai/lmstudio-bug-tracker/issues/1463)) **still open** (re-checked 2026-06-08) — explicit load remains pack mitigation. **[VERIFY] empirical:** load/unload + context on live LM Studio. REST parse fixed 2026-06-07 — see `lm-studio-lifecycle-verified.md`. |
 | A-23 | OpenAI API — Chat Completions core slice | Decided | Separate Provider (`backend: openai`) and Options nodes. Non-streaming `POST /v1/chat/completions` with core sampling allowlist (`temperature`, `top_p`, `max_tokens`, `max_completion_tokens`, `stop`, `seed`, penalties). If both token limits are set, `max_completion_tokens` wins. No local model load/unload or LM-only `ttl`. Model list via `GET /v1/models` (same shape as OAI). API keys only from `config.yaml` / env (`LLM_BIKESHED_OPENAI_API_KEY`), never workflow JSON. Tools, streaming, JSON mode, multimodal — deferred (see README out-of-scope). |
 | A-24 | Textgen lifecycle node requires a visible widget | Confirmed | ComfyUI often renders nodes with `INPUT_TYPES["required"] == {}` as title + output only. `LLM Lifecycle: Textgen` uses BOOLEAN `manage_model_memory` (default ON); OFF yields empty `{}` lifecycle dict (no VRAM management). |
+| A-25 | Provider node redundancy (OAI Compatible vs Textgen vs lifecycle) | Unresolved | **UX feedback 2026-06-17:** Nodes overlap when OAI URL points at Textgen; lifecycle nodes only connect to OAI Compatible; Textgen provider embeds same lifecycle toggle as **LLM Lifecycle: Textgen**. Consolidation deferred to **D-2** lifecycle rethink. See [`user-feedback-2026-06-17.md`](research/user-feedback-2026-06-17.md). |
 
 ---
 
@@ -75,6 +76,8 @@ Promote toward **Confirmed** only after updating a `docs/research/` note (templa
 | P-8 | Batch dimension handling for IMAGE type | Confirmed | [B,H,W,C] format. Handle both [H,W,C] and [B,H,W,C] defensively. |
 | P-9 | Boolean toggle widget save/load reliability | Confirmed | BOOLEAN is first-class primitive type with standard serialization. `label_on`/`label_off` parameters supported. No known save/load issues. |
 | P-10 | Graph topology introspection at execution time | Confirmed | PROMPT hidden input contains full execution graph keyed by node ID. Input connections use `[source_node_id, output_index]` format. Output connections derived by reverse-indexing (iterate all nodes' inputs to find references to your node ID). Implementation pattern documented in `docs/reference/implementation-patterns.md`. |
+| P-11 | Provider `url` change → model dropdown refresh (multi-provider graphs) | Confirmed | **Empirical 2026-06-17:** With OAI Compatible + Textgen providers on one graph, editing Textgen `url` may not refresh model/status until **Refresh Models**; OAI `url` edit can work immediately. ComfyUI frontend 1.39.19 / 1.45.15. Code: `js/model_dropdown.js` debounced `urlWidget.callback`. See [`user-feedback-2026-06-17.md`](research/user-feedback-2026-06-17.md). |
+| P-12 | Provider status widgets (`detected_backend`, `loaded_model_status`) read-only UX | Confirmed | JS adds `text` widgets with empty callback and `serialize: false` but **no `disabled`** — fields accept keyboard input. Rename/clarity also flagged (operator). Fix: disabled widget or custom read-only display. |
 
 ---
 
@@ -112,6 +115,7 @@ Promote toward **Confirmed** only after updating a `docs/research/` note (templa
 | I-5 | HTTP timeout defaults | Decided | 120s default, configurable per-provider in config.yaml. |
 | I-6 | `WEB_DIRECTORY` value in `__init__.py` | Decided | `"./js"`. |
 | I-7 | Config migration on node pack updates | Decided | Merge on load. `config.example.yaml` (shipped defaults) is deep-merged with user's `config.yaml` at runtime — user values always win. New keys from example appear with defaults. User-added keys preserved. Neither file is modified on disk. No migration scripts, no config versioning. |
+| I-8 | Agent QA — backend reachability probes | Confirmed | **Do not** infer backend state from default localhost ports (5000/1234/8188) or Ollama 11434 (out of pack). Use workflow `url` values + pack `POST /llm-bikeshed/models/*` or `/detect`. Corrected 2026-06-17 after invalid agent probe — see [`cancel-empirical-qa-handoff.md`](research/cancel-empirical-qa-handoff.md) § Agent probe — corrected. |
 
 ---
 
@@ -147,7 +151,7 @@ Intent is spelled out in [`docs/proposals/product-direction-and-scope.md`](propo
 | # | Item | Status | Notes |
 |---|------|--------|-------|
 | D-1 | Textgen-first delivery priority | Proposed | Align engineering attention with Textgen + shared core before broadening surface area. |
-| D-2 | Lifecycle UX and architecture rethink | Proposed | Existing lifecycle code and `textgen-rehaul` lifecycle manager design are not treated as validated user UX; expect a full rethink before major investment. |
+| D-2 | Lifecycle UX and architecture rethink | Proposed | Existing lifecycle code and `textgen-rehaul` lifecycle manager design are not treated as validated user UX; expect a full rethink before major investment. **2026-06-17 feedback:** Provider/lifecycle redundancy (A-25) strengthens case for consolidation — Textgen provider already embeds lifecycle; separate lifecycle nodes remain for OAI-compat + LM Studio path only. |
 | D-3 | Remove Ollama from this pack | Decided | **Shipped 2026-05-12** — native adapter, provider/options nodes, `/llm-bikeshed/models/ollama`, shipped `providers.ollama` example removed; see [`ollama-removal-plan.md`](proposals/ollama-removal-plan.md) and `CHANGELOG.md` [0.3.0]. URL detection may still return backend id `ollama` for OAI-compat labeling only. |
 | D-4 | Dedicated llama.cpp integration | Tabled | After Textgen and core generation are solid; indirect use via LM Studio / Textgen unchanged. |
 
@@ -172,3 +176,4 @@ Intent is spelled out in [`docs/proposals/product-direction-and-scope.md`](propo
 | 2026-06-08 | **Audit reframe:** Tier 1 redefined as project-wide provenance sweep (tracker contamination, research claim inventory, reference/concept vs code, citation freshness). Empirical Textgen/LM Studio cancel QA demoted to optional subsidiary track. `audit-handoff.md`, `fresh-context-audit-prompt.md`, `provenance-and-reverification.md` §5 updated. Systematic Tier 1.1 tracker audit **pending**. |
 | 2026-06-08 | Prevention follow-ups: research notes backfilled to template; `fresh-context-prevention-prompt.md`; A-22 (#1463 open re-checked); API-7 clarified (startup admin_key copy); reference doc drift fixes (`prompt_graph`, Textgen auth). Tier 1 pragmatic sweep — see archived `audit-handoff.md`. |
 | 2026-06-11 | **Provenance audit abandoned** — systematic repo-wide sweep cancelled; checklist archived to `docs/the-archive/2026-06-08-provenance-audit-handoff-abandoned.md`. Decision-time prevention (`provenance-and-reverification.md`, `fresh-context-prevention-prompt.md`) remains authoritative. Repo prepared for GitHub migration from Gitea. |
+| 2026-06-17 | Operator feedback triage: P-11 (multi-provider URL refresh bug), P-12 (status widgets editable), A-25 (provider redundancy), I-8 (probe methodology); empirical cancel results (Textgen PASS, LM Studio FAIL/expected). Research note [`user-feedback-2026-06-17.md`](research/user-feedback-2026-06-17.md). |

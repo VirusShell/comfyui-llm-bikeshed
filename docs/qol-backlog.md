@@ -4,6 +4,17 @@ Tracked UX/polish improvements that aren't blocking v1 but should be addressed.
 
 ## Pending
 
+### Provider UX
+
+- [ ] **Multi-provider URL change → model refresh (P-11)**
+  Editing `url` on **LLM Provider: Textgen** may not refresh dropdown/status until **Refresh Models** when OAI Compatible is also on the graph. Likely fix in `js/model_dropdown.js` — use `urlWidget.value` in debounced handler; consider `input`/`change` listeners. See [`user-feedback-2026-06-17.md`](research/user-feedback-2026-06-17.md).
+
+- [ ] **`detected_backend` / `loaded_model_status` read-only (P-12)**
+  JS `text` widgets are editable; should be disabled or non-interactive. Consider clearer label for `loaded_model_status` (e.g. `loaded_model`).
+
+- [ ] **Provider architecture clarity (A-25 / D-2)**
+  Document or redesign overlap between OAI Compatible, Textgen provider, and lifecycle nodes.
+
 ### Tooltips / Hints
 
 *(All tooltip items completed — see Completed section.)*
