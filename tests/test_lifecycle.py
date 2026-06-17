@@ -28,6 +28,10 @@ class TestLMStudioLifecycle:
         assert result["type"] == "lm_studio"
         assert result["ttl"] == 30
 
+    def test_has_ui_description(self) -> None:
+        assert LLMLifecycleLMStudio.DESCRIPTION
+        assert LLMLifecycleLMStudio.OUTPUT_TOOLTIPS
+
 
 class TestTextGenWebUILifecycle:
     """LLMLifecycleTextGenWebUI builds presence-only dict."""
@@ -39,3 +43,7 @@ class TestTextGenWebUILifecycle:
 
     def test_output_type(self) -> None:
         assert LLMLifecycleTextGenWebUI.RETURN_TYPES == ("LLM_LIFECYCLE",)
+
+    def test_has_ui_description(self) -> None:
+        assert LLMLifecycleTextGenWebUI.DESCRIPTION
+        assert LLMLifecycleTextGenWebUI.OUTPUT_TOOLTIPS

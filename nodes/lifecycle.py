@@ -8,8 +8,18 @@ class LLMLifecycleLMStudio:
 
     RETURN_TYPES = ("LLM_LIFECYCLE",)
     RETURN_NAMES = ("lifecycle",)
+    OUTPUT_TOOLTIPS = (
+        "Connect to the lifecycle input on LLM Provider: OAI Compatible when the "
+        "detected backend is LM Studio.",
+    )
     FUNCTION = "build_lifecycle"
     CATEGORY = "LLM Bikeshed/lifecycle"
+    DESCRIPTION = (
+        "Optional VRAM management for LM Studio when using LLM Provider: OAI "
+        "Compatible. Connect lifecycle to the provider's lifecycle input. The "
+        "adapter applies TTL on each chat request and can load the model with an "
+        "explicit context length before generation."
+    )
 
     @classmethod
     def INPUT_TYPES(cls) -> dict:  # noqa: N802
@@ -29,7 +39,15 @@ class LLMLifecycleLMStudio:
                 ),
                 "context_length": (
                     "INT",
-                    {"default": 0, "min": 0, "max": 1048576},
+                    {
+                        "default": 0,
+                        "min": 0,
+                        "max": 1048576,
+                        "tooltip": (
+                            "Context window for explicit model load via LM Studio "
+                            "REST API. 0 = use the model default."
+                        ),
+                    },
                 ),
             },
         }
@@ -57,8 +75,19 @@ class LLMLifecycleTextGenWebUI:
 
     RETURN_TYPES = ("LLM_LIFECYCLE",)
     RETURN_NAMES = ("lifecycle",)
+    OUTPUT_TOOLTIPS = (
+        "Connect to the lifecycle input on LLM Provider: OAI Compatible when "
+        "the detected backend is Textgen.",
+    )
     FUNCTION = "build_lifecycle"
     CATEGORY = "LLM Bikeshed/lifecycle"
+    DESCRIPTION = (
+        "Optional VRAM management for Textgen (text-generation-webui) when using "
+        "LLM Provider: OAI Compatible. Turn Manage model memory ON to load before "
+        "chat and unload after the last generation in a chain. For new workflows, "
+        "prefer LLM Provider: Textgen with Manage model memory ON instead of this "
+        "node."
+    )
 
     @classmethod
     def INPUT_TYPES(cls) -> dict:  # noqa: N802
@@ -70,6 +99,11 @@ class LLMLifecycleTextGenWebUI:
                         "default": True,
                         "label_on": "ON",
                         "label_off": "OFF",
+                        "tooltip": (
+                            "When ON, load the selected model before generation and "
+                            "unload after the last node in a chain. OFF = same as "
+                            "leaving lifecycle disconnected."
+                        ),
                     },
                 ),
             },
