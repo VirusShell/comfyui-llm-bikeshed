@@ -28,6 +28,7 @@ class TestLLMProviderTextGenWebUI:
         assert "api_key" not in p
         assert "admin_key" not in p
         assert p["lifecycle"] == {"type": "text_gen_webui"}
+        assert p["load_before_generate"] is True
 
     def test_build_provider_lifecycle_off(self) -> None:
         node = LLMProviderTextGenWebUI()
@@ -39,6 +40,18 @@ class TestLLMProviderTextGenWebUI:
                 "",
             )
         assert p["lifecycle"] is None
+        assert p["load_before_generate"] is False
+
+    def test_validate_rejects_placeholder_model(self) -> None:
+        msg = LLMProviderTextGenWebUI.VALIDATE_INPUTS(
+            model="(refresh to load)",
+            model_fallback="",
+        )
+        assert isinstance(msg, str)
+        assert "Select a model" in msg
+
+    def test_validate_accepts_real_model(self) -> None:
+        assert LLMProviderTextGenWebUI.VALIDATE_INPUTS(model="m.gguf") is True
 
     def test_model_fallback_overrides_combo(self) -> None:
         node = LLMProviderTextGenWebUI()
@@ -73,3 +86,15 @@ class TestLLMProviderOAICompatTextgenHint:
             if "LLM Provider: Textgen" in r.getMessage()
         ]
         assert len(hits) == 1
+
+    def test_oai_compat_textgen_auto_load_flag(self) -> None:
+        from nodes import providers as providers_mod
+
+        node = LLMProviderOAICompat()
+        with patch.object(providers_mod, "detect_backend", return_value="text_gen_webui"):
+            with patch.object(providers_mod, "get_api_key", return_value=None):
+                with patch.object(providers_mod, "get_config", return_value={}):
+                    (p,) = node.build_provider(
+                        "http://h:5000", "m.gguf", "", None,
+                    )
+        assert p["load_before_generate"] is True

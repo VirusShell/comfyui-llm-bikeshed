@@ -381,3 +381,13 @@ System: Absolute vs Relative" entry above for the full details.
 | **Fix** | Corrected `cancel-empirical-qa-handoff.md` § Agent probe; tracker **I-8**; research note `user-feedback-2026-06-17.md`. |
 | **Prevention** | QA agents must use configured URLs + `POST /llm-bikeshed/models/oai-compat`, `/models/textgen`, or `/detect` from the ComfyUI host — never infer backend health from default ports alone. |
 
+## Provider model COMBO: selection ignored without load + loaded status gaps (2026-07-09)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | High — model dropdown appears functional but workflow fails unless the already-loaded model is selected |
+| **What happened** | Operator could open the model COMBO and see the full list, but picking a different model did not load it; queue failed unless the VRAM-resident model was selected. `loaded_model_status` remained editable on some ComfyUI builds. llama.cpp backends never showed the loaded model. |
+| **Root cause** | (1) Textgen does not JIT-load on chat — load only ran when lifecycle was wired, while OAI Compatible at Textgen URLs had no default load path. (2) `updateModelWidget` could prefer stale saved values over the user's current COMBO selection after refresh. (3) `loaded_model` JSON was Textgen-only; LM Studio / llama.cpp never queried. (4) `disabled`/`read_only` widget options are ignored on some frontend builds without DOM enforcement. |
+| **Fix** | `load_before_generate` on provider dict (Textgen provider respects `manage_model_memory`; OAI Compatible enables for Textgen URLs). `POST /llm-bikeshed/models/ensure-loaded` + COMBO callback loads on selection. LM Studio REST + llama.cpp `/v1/models` status parsing for `loaded_model`. `VALIDATE_INPUTS` rejects placeholder COMBO values. `attachReadOnlyWidget()` DOM hardening. |
+| **Prevention** | Backends that require explicit load must not rely on lifecycle nodes alone for the happy path; dynamic COMBO updates must preserve `widget.value` when still valid; status widgets need DOM-level read-only fallback; loaded-model probes should follow each backend's native list API shape. |
+

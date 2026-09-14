@@ -49,8 +49,14 @@ class LLMProviderOAICompat:
         }
 
     @classmethod
-    def VALIDATE_INPUTS(cls, model: str = "", **kwargs: object) -> bool:  # noqa: N802
-        """Accept any model string — list is dynamically populated by JS."""
+    def VALIDATE_INPUTS(cls, model: str = "", model_fallback: str = "", **kwargs: object) -> bool | str:  # noqa: N802
+        """Reject placeholder model ids before queueing the workflow."""
+        resolved = (model_fallback or "").strip() or (model or "").strip()
+        if not resolved or resolved.startswith("("):
+            return (
+                "Select a model from the dropdown "
+                "(click Refresh Models if the list is empty)"
+            )
         return True
 
     def build_provider(
@@ -98,6 +104,7 @@ class LLMProviderOAICompat:
             "model": resolved_model,
             "timeout": timeout,
             "lifecycle": lifecycle,
+            "load_before_generate": backend == "text_gen_webui",
         }
         return (provider,)
 
@@ -134,7 +141,13 @@ class LLMProviderTextGenWebUI:
         }
 
     @classmethod
-    def VALIDATE_INPUTS(cls, model: str = "", **kwargs: object) -> bool:  # noqa: N802
+    def VALIDATE_INPUTS(cls, model: str = "", model_fallback: str = "", **kwargs: object) -> bool | str:  # noqa: N802
+        resolved = (model_fallback or "").strip() or (model or "").strip()
+        if not resolved or resolved.startswith("("):
+            return (
+                "Select a model from the dropdown "
+                "(click Refresh Models if the list is empty)"
+            )
         return True
 
     def build_provider(
@@ -168,5 +181,6 @@ class LLMProviderTextGenWebUI:
             "model": resolved_model,
             "timeout": timeout,
             "lifecycle": lifecycle,
+            "load_before_generate": manage_model_memory,
         }
         return (provider,)

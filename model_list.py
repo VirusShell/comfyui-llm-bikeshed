@@ -80,6 +80,101 @@ def _model_ids_from_oai_models_body(data: dict) -> list[str]:
     return [x for x in ids if x]
 
 
+def _loaded_model_ids_from_oai_models_body(data: dict) -> list[str]:
+    """Return model ids marked ``status.value == loaded`` (llama.cpp router mode)."""
+    loaded: list[str] = []
+    rows = data.get("data")
+    if not isinstance(rows, list):
+        return loaded
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        status = item.get("status")
+        if not isinstance(status, dict) or status.get("value") != "loaded":
+            continue
+        mid = item.get("id")
+        if mid is not None:
+            loaded.append(str(mid))
+    return loaded
+
+
+def _loaded_model_from_lm_studio_rest(body: dict) -> str | None:
+    """First model key with a non-empty ``loaded_instances`` list."""
+    models = body.get("models")
+    if not isinstance(models, list):
+        return None
+    for item in models:
+        if not isinstance(item, dict):
+            continue
+        instances = item.get("loaded_instances")
+        if not isinstance(instances, list) or not instances:
+            continue
+        key = item.get("key")
+        if key is not None:
+            return str(key)
+    return None
+
+
+def _fetch_lm_studio_loaded_model(
+    url: str, api_key: str | None = None, timeout: int = 10
+) -> str | None:
+    """``GET /api/v1/models`` — first loaded model key, if any."""
+    url = normalize_oai_base_url(url)
+    headers: dict[str, str] = {}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    try:
+        response = requests.get(
+            f"{url.rstrip('/')}/api/v1/models",
+            headers=headers,
+            timeout=timeout,
+        )
+        if not response.ok:
+            return None
+        data = response.json()
+        if not isinstance(data, dict):
+            return None
+        return _loaded_model_from_lm_studio_rest(data)
+    except requests.RequestException as e:
+        _log_transport_fail("LM Studio loaded model", url, e)
+        return None
+    except (TypeError, ValueError, KeyError):
+        return None
+
+
+def _fetch_loaded_model_from_oai_models(
+    url: str, api_key: str | None = None, timeout: int = 10
+) -> str | None:
+    """Parse ``GET /v1/models`` for llama.cpp-style loaded status or a sole model."""
+    url = normalize_oai_base_url(url)
+    headers: dict[str, str] = {}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    try:
+        response = requests.get(
+            f"{url.rstrip('/')}/v1/models",
+            headers=headers,
+            timeout=timeout,
+        )
+        if not response.ok:
+            return None
+        data = response.json()
+        if not isinstance(data, dict):
+            return None
+        loaded = _loaded_model_ids_from_oai_models_body(data)
+        if loaded:
+            return loaded[0]
+        ids = _model_ids_from_oai_models_body(data)
+        if len(ids) == 1:
+            return ids[0]
+        return None
+    except requests.RequestException as e:
+        _log_transport_fail("OAI-compat loaded model", url, e)
+        return None
+    except (TypeError, ValueError, KeyError):
+        return None
+
+
 def _model_names_from_textgen_internal_list(data: dict) -> list[str]:
     """Parse ``model_names`` from text-generation-webui internal list JSON."""
     names = data.get("model_names")
@@ -312,8 +407,11 @@ def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str, str | Non
     if backend == "text_gen_webui":
         return _sync_resolve_textgen_models(url)
 
+    loaded_model: str | None = None
+    resolved_key: str | None = api_key_prelim
+
     try:
-        models = _fetch_models_oai_compat(url)
+        models = _fetch_models_oai_compat(url, api_key=resolved_key)
     except requests.HTTPError:
         models = []
         keys_to_try: list[str] = []
@@ -331,6 +429,7 @@ def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str, str | Non
             try:
                 models = _fetch_models_oai_compat(url, api_key=key)
                 if models:
+                    resolved_key = key
                     break
             except requests.HTTPError:
                 continue
@@ -340,7 +439,89 @@ def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str, str | Non
                 "check API key in config on this ComfyUI host",
                 url,
             )
-    return models, backend, None
+
+    if backend == "lm_studio":
+        loaded_model = _fetch_lm_studio_loaded_model(url, api_key=resolved_key)
+    elif backend in ("llamacpp", "generic", "openai"):
+        loaded_model = _fetch_loaded_model_from_oai_models(
+            url, api_key=resolved_key,
+        )
+
+    return models, backend, loaded_model
+
+
+def _is_placeholder_model_name(name: str) -> bool:
+    s = (name or "").strip()
+    return not s or s.startswith("(")
+
+
+def sync_ensure_model_loaded(
+    url: str, model: str, backend: str | None = None, timeout: int = 120
+) -> tuple[bool, str | None]:
+    """Load *model* on backends that require an explicit load before chat.
+
+    Returns ``(True, None)`` on success, else ``(False, error_message)``.
+  """
+    name = (model or "").strip()
+    if _is_placeholder_model_name(name):
+        return False, "invalid or placeholder model name"
+
+    url_n = normalize_oai_base_url(url)
+    try:
+        from .config import get_api_key
+    except ImportError:
+        try:
+            from config import get_api_key
+        except ImportError:
+            get_api_key = None  # type: ignore[assignment]
+
+    if backend is None:
+        api_prelim = get_api_key("oai_compat") if get_api_key else None
+        backend = detect_backend(url_n, api_key=api_prelim)
+
+    if backend == "text_gen_webui":
+        return sync_textgen_load_model(url_n, name, timeout=timeout)
+
+    if backend == "lm_studio":
+        api_key = None
+        if get_api_key is not None:
+            api_key = get_api_key("lm_studio") or get_api_key("oai_compat")
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        try:
+            response = requests.post(
+                f"{url_n.rstrip('/')}/api/v1/models/load",
+                json={"model": name, "echo_load_config": True},
+                headers=headers,
+                timeout=timeout,
+            )
+            if response.ok:
+                return True, None
+            body = (response.text or "")[:300]
+            return False, f"HTTP {response.status_code}: {body}".strip()
+        except requests.RequestException as e:
+            _log_transport_fail("LM Studio model load", url_n, e)
+            return False, str(e)
+
+    if backend == "llamacpp":
+        headers = {"Content-Type": "application/json"}
+        try:
+            response = requests.post(
+                f"{url_n.rstrip('/')}/models/load",
+                json={"model": name},
+                headers=headers,
+                timeout=timeout,
+            )
+            if response.ok:
+                return True, None
+            body = (response.text or "")[:300]
+            return False, f"HTTP {response.status_code}: {body}".strip()
+        except requests.RequestException as e:
+            _log_transport_fail("llama.cpp model load", url_n, e)
+            return False, str(e)
+
+    return False, f"backend {backend!r} does not support explicit model load"
 
 
 def sync_textgen_load_model(
@@ -351,7 +532,7 @@ def sync_textgen_load_model(
     Returns ``(True, None)`` on HTTP success, else ``(False, error_message)``.
     """
     name = (model or "").strip()
-    if not name or name.startswith("("):
+    if _is_placeholder_model_name(name):
         return False, "invalid or placeholder model name"
 
     try:

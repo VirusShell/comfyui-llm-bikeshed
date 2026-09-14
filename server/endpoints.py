@@ -19,6 +19,7 @@ if HAS_SERVER:
     from ..model_list import (
         _sync_resolve_oai_compat_models,
         _sync_resolve_textgen_models,
+        sync_ensure_model_loaded,
     )
 
     try:
@@ -48,10 +49,9 @@ if HAS_SERVER:
         models, backend, loaded_model = await asyncio.to_thread(
             _sync_resolve_oai_compat_models, url,
         )
-        payload = {"models": models, "backend": backend}
-        if backend == "text_gen_webui":
-            payload["loaded_model"] = loaded_model
-        return web.json_response(payload)
+        return web.json_response(
+            {"models": models, "backend": backend, "loaded_model": loaded_model},
+        )
 
     @PromptServer.instance.routes.post("/llm-bikeshed/models/textgen")
     async def _endpoint_models_textgen(
@@ -104,3 +104,30 @@ if HAS_SERVER:
             logger.exception("detect_backend failed for url=%r", url)
             backend = "generic"
         return web.json_response({"backend": backend})
+
+    @PromptServer.instance.routes.post("/llm-bikeshed/models/ensure-loaded")
+    async def _endpoint_models_ensure_loaded(
+        request: web.Request,
+    ) -> web.Response:
+        """Load the selected model on backends that require explicit load."""
+        try:
+            data = await request.json()
+        except (json.JSONDecodeError, TypeError, ValueError, OSError):
+            return web.json_response(
+                {"ok": False, "error": "invalid JSON body"},
+                status=400,
+            )
+        url = data.get("url", "")
+        model = data.get("model", "")
+        backend = data.get("backend")
+        if not url or not model:
+            return web.json_response(
+                {"ok": False, "error": "url and model are required"},
+                status=400,
+            )
+        ok, err = await asyncio.to_thread(
+            sync_ensure_model_loaded, url, model, backend,
+        )
+        if ok:
+            return web.json_response({"ok": True})
+        return web.json_response({"ok": False, "error": err or "load failed"})

@@ -6,11 +6,14 @@ const PROVIDER_CONFIG = {
     /** When true, show read-only detected_backend from the same response as models. */
     showBackendLabel: true,
     defaultUrl: "http://localhost:1234",
+    /** Textgen provider widget; absent on OAI Compatible. */
+    manageMemoryWidget: null,
   },
   LLMProviderTextGenWebUI: {
     endpoint: "/llm-bikeshed/models/textgen",
     showBackendLabel: true,
     defaultUrl: "http://localhost:5000",
+    manageMemoryWidget: "manage_model_memory",
   },
 };
 
@@ -20,15 +23,24 @@ const INITIAL_FETCH_DEBOUNCE_MS = 600;
 /** Debounce URL edits before re-fetching models (callback + DOM listeners). */
 const URL_REFETCH_DEBOUNCE_MS = 500;
 
+/** Debounce model COMBO changes before calling ensure-loaded. */
+const MODEL_LOAD_DEBOUNCE_MS = 400;
+
 /**
  * Display-only text widgets — ComfyUI frontend ~1.39+ honors `disabled` and
- * `read_only` on STRING/text widgets (Vue node renderer).
+ * `read_only` on STRING/text widgets (Vue node renderer). Older builds need
+ * DOM enforcement (see attachReadOnlyWidget).
  */
 const READ_ONLY_WIDGET_OPTIONS = {
   serialize: false,
   disabled: true,
   read_only: true,
 };
+
+const PLACEHOLDER_VALUES = new Set(["(refresh to load)", "(no models found)"]);
+
+/** Backends where explicit load before chat is supported. */
+const LOAD_ON_SELECT_BACKENDS = new Set(["text_gen_webui", "lm_studio", "llamacpp"]);
 
 /**
  * Fetch model list from a backend endpoint.
@@ -64,6 +76,27 @@ async function fetchModels(endpoint, url) {
   }
 }
 
+/**
+ * Ask the pack backend to load the selected model (Textgen / LM Studio / llama.cpp).
+ * @returns {Promise<{ ok: boolean, error?: string }>}
+ */
+async function ensureModelLoaded(url, model, backend) {
+  if (!url || !model || PLACEHOLDER_VALUES.has(model)) {
+    return { ok: false, error: "invalid model" };
+  }
+  try {
+    const response = await app.api.fetchApi("/llm-bikeshed/models/ensure-loaded", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, model, backend }),
+    });
+    const data = await response.json();
+    return { ok: Boolean(data.ok), error: data.error };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
 /** Human-readable backend family (never leaves UI stuck on “detecting…”). */
 function formatBackendName(backend) {
   if (backend === null || backend === undefined || backend === "") {
@@ -72,11 +105,8 @@ function formatBackendName(backend) {
   return BACKEND_LABELS[backend] || String(backend);
 }
 
-/** Read-only line for currently loaded model (Textgen); other backends N/A. */
-function formatLoadedModelStatus(backend, loadedModel) {
-  if (backend !== "text_gen_webui") {
-    return "—";
-  }
+/** Read-only line for the model currently loaded in VRAM (when known). */
+function formatLoadedModelStatus(loadedModel) {
   if (loadedModel === undefined) {
     return "—";
   }
@@ -86,38 +116,49 @@ function formatLoadedModelStatus(backend, loadedModel) {
   return loadedModel;
 }
 
+function isRealModelName(value) {
+  return Boolean(value) && !PLACEHOLDER_VALUES.has(String(value));
+}
+
 /**
- * Update a COMBO widget's options list, preserving the saved/current value.
+ * Update a COMBO widget's options list, preserving the user's current selection.
  * @param {object} widget - The ComfyUI COMBO widget.
  * @param {string[]} models - New model list from the backend.
- * @param {string|null} savedValue - Previously saved model value to preserve.
+ * @param {string|null|undefined} savedValue - Workflow-restored value to prefer when still valid.
  */
-const PLACEHOLDER_VALUES = new Set(["(refresh to load)", "(no models found)"]);
-
 function updateModelWidget(widget, models, savedValue) {
   const options = [...models];
+  const current = widget.value;
 
-  // Keep the saved value in the list so it isn't lost — but not placeholders.
-  // If the backend returned real models, do not inject a stale workflow value
-  // (e.g. an LM Studio id when the URL now points at Textgen).
-  const isSavedReal = savedValue && !PLACEHOLDER_VALUES.has(savedValue);
-  const backendReturnedModels = models.length > 0;
-  if (isSavedReal && !options.includes(savedValue) && !backendReturnedModels) {
-    options.push(savedValue);
-  }
+  const pickPreferred = () => {
+    if (isRealModelName(current) && options.includes(current)) {
+      return current;
+    }
+    if (
+      savedValue !== undefined &&
+      isRealModelName(savedValue) &&
+      options.includes(savedValue)
+    ) {
+      return savedValue;
+    }
+    if (isRealModelName(current) && !options.includes(current) && models.length === 0) {
+      options.push(current);
+      return current;
+    }
+    return options[0] ?? "(no models found)";
+  };
 
-  // Fallback: ensure at least one option exists
   if (options.length === 0) {
     options.push("(no models found)");
   }
 
   widget.options.values = options;
-
-  // Restore saved value if it's a real model, otherwise use first option
-  if (isSavedReal && options.includes(savedValue)) {
-    widget.value = savedValue;
-  } else if (!widget.value || !options.includes(widget.value)) {
-    widget.value = options[0];
+  const next = pickPreferred();
+  if (widget.value !== next) {
+    widget.value = next;
+  }
+  if (typeof widget.callback === "function") {
+    widget.callback(widget.value);
   }
 }
 
@@ -146,6 +187,18 @@ function getWidgetUrl(urlWidget, defaultUrl) {
     return defaultUrl;
   }
   return String(raw);
+}
+
+function shouldLoadOnSelect(node, config, backend) {
+  if (!LOAD_ON_SELECT_BACKENDS.has(backend)) {
+    return false;
+  }
+  const memName = config.manageMemoryWidget;
+  if (!memName) {
+    return backend === "text_gen_webui";
+  }
+  const memWidget = node.widgets?.find((w) => w.name === memName);
+  return memWidget ? Boolean(memWidget.value) : true;
 }
 
 /**
@@ -177,12 +230,46 @@ function attachUrlInputListeners(urlWidget, onChange) {
   tryAttach();
 }
 
+/** Force read-only on status widgets when Vue options are ignored (older ComfyUI). */
+function attachReadOnlyWidget(widget) {
+  if (!widget || widget.__llmBikeshedReadOnlyAttached) {
+    return;
+  }
+
+  const apply = () => {
+    const el = widget.inputEl;
+    if (!el) {
+      return false;
+    }
+    el.readOnly = true;
+    el.disabled = true;
+    el.tabIndex = -1;
+    el.setAttribute("aria-readonly", "true");
+    el.style.pointerEvents = "none";
+    el.style.cursor = "default";
+  };
+
+  const tryAttach = (attempt = 0) => {
+    if (apply()) {
+      widget.__llmBikeshedReadOnlyAttached = true;
+      return;
+    }
+    if (attempt < 25) {
+      requestAnimationFrame(() => tryAttach(attempt + 1));
+    }
+  };
+
+  tryAttach();
+}
+
 function applyProviderStatus(node, backendWidget, loadedWidget, backend, loadedModel) {
   if (backendWidget) {
     backendWidget.value = formatBackendName(backend);
+    attachReadOnlyWidget(backendWidget);
   }
   if (loadedWidget) {
-    loadedWidget.value = formatLoadedModelStatus(backend, loadedModel);
+    loadedWidget.value = formatLoadedModelStatus(loadedModel);
+    attachReadOnlyWidget(loadedWidget);
   }
   markNodeDirty(node);
 }
@@ -198,7 +285,6 @@ app.registerExtension({
 
     const { endpoint, defaultUrl, showBackendLabel } = config;
 
-    // Find the model and url widgets
     const modelWidget = node.widgets?.find((w) => w.name === "model");
     const urlWidget = node.widgets?.find((w) => w.name === "url");
 
@@ -223,11 +309,40 @@ app.registerExtension({
         () => {},
         READ_ONLY_WIDGET_OPTIONS,
       );
+      attachReadOnlyWidget(backendWidget);
+      attachReadOnlyWidget(loadedModelWidget);
     }
+
+    let lastBackend = null;
+    let modelLoadTimer = null;
+
+    const refreshLoadedStatus = (url, backend) => {
+      fetchModels(endpoint, url).then(({ loadedModel }) => {
+        if (loadedModelWidget) {
+          loadedModelWidget.value = formatLoadedModelStatus(loadedModel);
+          attachReadOnlyWidget(loadedModelWidget);
+        }
+        markNodeDirty(node);
+      });
+    };
+
+    const scheduleModelLoad = (url, model, backend) => {
+      if (!shouldLoadOnSelect(node, config, backend) || !isRealModelName(model)) {
+        return;
+      }
+      clearTimeout(modelLoadTimer);
+      modelLoadTimer = setTimeout(async () => {
+        const { ok } = await ensureModelLoaded(url, model, backend);
+        if (ok) {
+          refreshLoadedStatus(url, backend);
+        }
+      }, MODEL_LOAD_DEBOUNCE_MS);
+    };
 
     /** @param {unknown} [initialSavedModel] if set, restore COMBO to this after fetch */
     const runFetch = (url, initialSavedModel) => {
       fetchModels(endpoint, url).then(({ models, backend, loadedModel }) => {
+        lastBackend = backend;
         const saved =
           initialSavedModel !== undefined ? initialSavedModel : modelWidget.value;
         updateModelWidget(modelWidget, models, saved);
@@ -246,7 +361,6 @@ app.registerExtension({
       }, INITIAL_FETCH_DEBOUNCE_MS);
     };
 
-    // Defer + debounce fetch until after workflow/widget restore so COMBO keeps saved model id.
     scheduleInitialFetch();
     node.__llmBikeshedScheduleProviderFetch = scheduleInitialFetch;
 
@@ -270,7 +384,6 @@ app.registerExtension({
       }, URL_REFETCH_DEBOUNCE_MS);
     };
 
-    // Re-fetch models and re-detect on URL change (callback + DOM backup).
     if (urlWidget) {
       const origCallback = urlWidget.callback;
       urlWidget.callback = function (_value) {
@@ -282,11 +395,20 @@ app.registerExtension({
       attachUrlInputListeners(urlWidget, scheduleUrlRefetch);
     }
 
-    // Add refresh button widget
+    const origModelCallback = modelWidget.callback;
+    modelWidget.callback = function (value) {
+      if (origModelCallback) {
+        origModelCallback.call(this, value);
+      }
+      markNodeDirty(node);
+      const url = getWidgetUrl(urlWidget, defaultUrl);
+      scheduleModelLoad(url, value, lastBackend);
+    };
+
     node.addWidget("button", "Refresh Models", null, () => {
       const url = getWidgetUrl(urlWidget, defaultUrl);
       beginUrlRefetchUi();
-      runFetch(url, undefined);
+      runFetch(url, modelWidget.value);
     });
   },
 
@@ -294,7 +416,6 @@ app.registerExtension({
     if (!PROVIDER_CONFIG[node.comfyClass]) {
       return;
     }
-    // Widget values are restored after nodeCreated; refetch all provider nodes on load.
     node.__llmBikeshedScheduleProviderFetch?.();
   },
 });

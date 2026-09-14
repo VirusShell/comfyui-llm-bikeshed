@@ -15,6 +15,11 @@ except ImportError:
 
 logger = logging.getLogger("llm-bikeshed")
 
+
+def _is_placeholder_model(name: str) -> bool:
+    s = (name or "").strip()
+    return not s or s.startswith("(")
+
 # Per-backend parameter allowlists — only these are forwarded to the API.
 BACKEND_ALLOWLISTS: dict[str, set[str]] = {
     "openai": {
@@ -170,15 +175,24 @@ class OAICompatAdapter:
             _dedupe_openai_token_limits(filtered)
 
         lifecycle = provider.get("lifecycle")
-
-        # Ensure model is loaded (only with matching lifecycle).
         lc_type = lifecycle.get("type") if lifecycle else None
-        if lifecycle and lc_type == "lm_studio" and backend == "lm_studio":
+
+        # Textgen does not JIT-load on chat. Load the selected model when the
+        # provider allows it (Textgen provider manage_model_memory, or OAI
+        # Compatible auto-load at Textgen URLs). Unload stays lifecycle-gated.
+        load_before = provider.get("load_before_generate")
+        if load_before is None and backend == "text_gen_webui":
+            load_before = True
+        if (
+            backend == "text_gen_webui"
+            and load_before
+            and not _is_placeholder_model(model)
+        ):
+            self._ensure_model_loaded(provider, model)
+        elif lifecycle and lc_type == "lm_studio" and backend == "lm_studio":
             self._ensure_model_loaded_lm_studio(
                 provider, model, lifecycle,
             )
-        elif lifecycle and lc_type == "text_gen_webui" and backend == "text_gen_webui":
-            self._ensure_model_loaded(provider, model)
         elif lifecycle and lc_type != backend:
             logger.info(
                 "Lifecycle type '%s' doesn't match backend '%s'"

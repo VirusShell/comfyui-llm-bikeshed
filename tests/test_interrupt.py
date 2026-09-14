@@ -223,6 +223,7 @@ class TestOAICompatTextgenCancel:
             "model": "my-model",
             "timeout": 120,
             "lifecycle": None,
+            "load_before_generate": False,
         }
 
         adapter = OAICompatAdapter()
