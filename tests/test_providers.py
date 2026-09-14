@@ -91,7 +91,9 @@ class TestLLMProviderOAICompatTextgenHint:
         from nodes import providers as providers_mod
 
         node = LLMProviderOAICompat()
-        with patch.object(providers_mod, "detect_backend", return_value="text_gen_webui"):
+        with patch.object(
+            providers_mod, "detect_backend", return_value="text_gen_webui"
+        ):
             with patch.object(providers_mod, "get_api_key", return_value=None):
                 with patch.object(providers_mod, "get_config", return_value={}):
                     (p,) = node.build_provider(

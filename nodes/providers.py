@@ -49,7 +49,12 @@ class LLMProviderOAICompat:
         }
 
     @classmethod
-    def VALIDATE_INPUTS(cls, model: str = "", model_fallback: str = "", **kwargs: object) -> bool | str:  # noqa: N802
+    def VALIDATE_INPUTS(  # noqa: N802
+        cls,
+        model: str = "",
+        model_fallback: str = "",
+        **kwargs: object,
+    ) -> bool | str:
         """Reject placeholder model ids before queueing the workflow."""
         resolved = (model_fallback or "").strip() or (model or "").strip()
         if not resolved or resolved.startswith("("):
@@ -141,7 +146,12 @@ class LLMProviderTextGenWebUI:
         }
 
     @classmethod
-    def VALIDATE_INPUTS(cls, model: str = "", model_fallback: str = "", **kwargs: object) -> bool | str:  # noqa: N802
+    def VALIDATE_INPUTS(  # noqa: N802
+        cls,
+        model: str = "",
+        model_fallback: str = "",
+        **kwargs: object,
+    ) -> bool | str:
         resolved = (model_fallback or "").strip() or (model or "").strip()
         if not resolved or resolved.startswith("("):
             return (
