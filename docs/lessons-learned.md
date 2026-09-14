@@ -52,8 +52,7 @@ dev-only artifacts. They were committed to git and merged to main before being c
 
 **Fix:** Added to `.gitignore`, removed `uv.lock` from tracking.
 
-**Prevention:** Global CLAUDE.md updated with plugin/extension project exception for
-venv handling.
+**Prevention:** Project docs note: plugin/extension packs may keep a local venv; do not treat pack venv the same as ComfyUI's embedded Python.
 
 ---
 
@@ -89,7 +88,7 @@ Notable offenders in the wild:
 
 ---
 
-## Permission Prompt Interruptions (Claude Code)
+## Permission prompt interruptions (agent tooling)
 
 **Date documented:** 2026-03-15
 **Severity:** Workflow disruption
@@ -99,8 +98,8 @@ Two contributing factors:
 1. Deprecated `:*` pattern syntax in settings.local.json (should be ` *` with space)
 2. Overly specific rules that didn't generalize across command variations
 
-**Fix:** Rebuilt `.claude/settings.local.json` with correct syntax and scoped rules.
-See `docs/blargh.md` for full forensics.
+**Fix:** Rebuilt local agent permission settings with correct syntax and scoped rules.
+See `docs/blargh.md` for historical forensics (tooling-specific; not product behavior).
 
 ---
 
@@ -156,16 +155,16 @@ and runtime-only failures that local tests miss.
    embedded Python and tries importing every node class. Run manually or as a pre-PR step.
    Needs ComfyUI path configured (env var or config).
 
-2. **Spec task template** — For future Smart-Ralph specs on ComfyUI projects, add a
+2. **Verify checklist item** — For future ComfyUI pack work, add a
    standard `[VERIFY]` task: "Test all imports under ComfyUI's embedded Python." Would
-   catch issues before the PR phase.
+   catch import issues before merge.
 
 3. **Post-mortem step** — After a spec completes, do a "did anything fail at runtime
    that tests didn't catch?" review and update lessons-learned. Lowest effort, highest
    chance of being skipped.
 
 **Decision:** Holding for now. If option 1 proves useful on this project, consider
-proposing option 2 as a Smart-Ralph enhancement for ComfyUI specs.
+proposing option 2 as a reusable ComfyUI pack checklist item.
 
 ---
 

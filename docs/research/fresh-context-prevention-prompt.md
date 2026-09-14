@@ -15,7 +15,7 @@ Apply **decision-time prevention** before external claims become durable project
 | [`provenance-and-reverification.md`](provenance-and-reverification.md) | **Gate A–C:** research notes, tracker status, shipping behavior |
 | [`research-note-template.md`](research-note-template.md) | Structure for new/updated `docs/research/*.md` (gold example: [`textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md)) |
 | [`resolution_tracker.md`](../resolution_tracker.md) | § Status definitions — status ≠ proof; use `[VERIFY]` when evidence is incomplete |
-| [`CLAUDE.md`](../../CLAUDE.md) | Pack scope, shipped backends, mandatory lessons-learned rule |
+| [`CLAUDE.md`](../../CLAUDE.md) | Pointer to README / CODEBASE / docs (stub only) |
 
 ## Before you cite or ship
 

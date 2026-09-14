@@ -192,7 +192,7 @@ Edit in place when re-verifying; do not duplicate conflicting truths.
 | `docs/resolution_tracker.md` | Promoting Assumed → Confirmed, or flagging Contaminated |
 | `docs/lessons-learned.md` | Non-obvious runtime fixes (mandatory per `CLAUDE.md`) |
 | `docs/research/cancel-interrupt-status.md` | Cancel/interrupt shipped vs gaps |
-| `CLAUDE.md` | Pointers to prevention rules, template, and [`fresh-context-prevention-prompt.md`](fresh-context-prevention-prompt.md) |
+| `CLAUDE.md` | Historical pointer row; prefer [`fresh-context-prevention-prompt.md`](fresh-context-prevention-prompt.md) |
 
 ---
 

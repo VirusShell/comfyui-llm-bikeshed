@@ -3,7 +3,7 @@
 ## comfyui-llm-bikeshed
 
 **Date:** 2026-03-09
-**Status:** Handoff-ready for Claude Code. Supersedes all prior concept docs and the original requirements.md.
+**Status:** Concept / design history. Supersedes older concept docs and the original requirements.md. Prefer shipped behavior in README and CODEBASE.md.
 **Companion doc:** resolution_tracker.md (source of truth for item status)
 
 **Post–0.3.0 scope note:** Native **Ollama** is **not** implemented in this pack (D-3). Earlier text that lists Ollama as an in-pack backend or documents Ollama-specific nodes remains as **design history** unless a paragraph is explicitly refreshed; see `CHANGELOG.md` [0.3.0] and `docs/proposals/ollama-removal-plan.md`.
@@ -63,7 +63,7 @@ Each Provider node handles:
 
 When multiple generation nodes chain via `meta`, the model should stay loaded until the last node finishes. The timeout-based backends (Ollama, LM Studio) handle this naturally — the timer resets on each request within the chain. text-gen-webui is different because its unload is an explicit API call, not a timer.
 
-Three approaches to research (assigned to Claude Code):
+Three approaches to research:
 1. **Graph topology introspection (P-10):** Can a node's FUNCTION method determine if its `meta` output connects to another generation node downstream? If yes, only the last node fires unload. Cleanest approach but depends on ComfyUI platform capability. **Highest-priority research item.**
 2. **Artificial delay:** text-gen-webui adapter uses a Python threading timer for unload, cancel-and-reset if another generation request arrives within the window. Fakes TTL behavior. Implementable without platform support.
 3. **Manual user toggle:** "Unload after generation" boolean on Provider node. User sets to off for mid-chain nodes, on for the last. Simple but manual.
@@ -222,7 +222,7 @@ All adapters use `requests` (synchronous HTTP). PromptServer endpoints for model
 
 ---
 
-## Priority Research for Claude Code
+## Priority research
 
 Ordered by impact on design decisions:
 
@@ -258,7 +258,7 @@ Ordered by impact on design decisions:
 
 ---
 
-## User's Existing Workflow (Context for Claude Code)
+## User's existing workflow (context)
 
 The user has a Flux prompt optimization workflow that demonstrates the real-world usage pattern these nodes need to support:
 

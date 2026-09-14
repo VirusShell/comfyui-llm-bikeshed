@@ -285,7 +285,7 @@ def get_api_key(provider: str) -> str | None:
 
 ## Sources
 
-- Research findings from `specs/comfyui-llm-bikeshed/research.md` (gitignored Ralph spec)
+- Research findings from `specs/comfyui-llm-bikeshed/research.md` (local specs scratch (gitignored))
 - `docs/reference/comfyui-platform-findings.md` — project-verified platform behavior
 - [ComfyUI custom nodes (official docs)](https://docs.comfy.org/custom-nodes/)
 - Off-repo Feb 2026 doc mirror — inventory only: `docs/research/external-comfyui-reference-corpus.md`

@@ -98,7 +98,6 @@ comfyui-llm-bikeshed/
 ├── presets/
 │   ├── README.txt              # Format + how LLM Preset Loader lists files
 │   └── llamacpp_oai_system.txt # Example system prompt (llama.cpp / OAI Compatible)
-├── specs/                      # Ralph Specum spec artifacts (indexed)
 │
 ├── config.example.yaml         # Shipped defaults (merged with user config)
 ├── pyproject.toml              # Package metadata, dev deps, Comfy Registry ID
@@ -107,7 +106,7 @@ comfyui-llm-bikeshed/
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── LICENSE
-├── CLAUDE.md                   # Agent guidance (see gitignore note below)
+├── CLAUDE.md                   # Short pointer stub (not an agent control plane)
 ├── .gitignore
 ├── .comfyignore                # Excludes dev/docs from registry archive
 └── .github/
@@ -313,10 +312,6 @@ Tests import pack modules directly (not through ComfyUI's loader). `__init__.py`
 | [`docs/thorough-audit-2026-04-27.md`](docs/thorough-audit-2026-04-27.md) | Point-in-time audit snapshot |
 | [`docs/design_review_update_2026-03-10.md`](docs/design_review_update_2026-03-10.md) | Design review update |
 
-### Ralph Specum specs (`specs/`)
-
-Indexed spec artifacts for pack development (`specs/comfyui-llm-bikeshed/`: research, requirements, design, tasks). The `specs/` directory is in `.gitignore` for *untracked* local state, but several spec files are committed. Not shipped to Comfy Registry (see `.comfyignore`).
-
 ---
 
 ## Dependencies and packaging
@@ -383,11 +378,11 @@ These paths are excluded from normal git workflow or never committed:
 | `.venv/`, `__pycache__/`, `*.egg-info/`, `dist/`, `build/` | Python build/env artifacts |
 | `.pytest_cache/`, `.ruff_cache/`, `uv.lock` | Tool caches / lockfile (local uv use) |
 | `docs/old/` (new files), `docs/blargh.md`, `docs/Screenshot-*.png` | Superseded or scratch docs |
-| `specs/**/.progress.md`, `specs/**/.ralph-state.json` | Local Ralph state |
+| `specs/**` (local only) | Ignored local scratch under `specs/` — not project source of truth |
 | `.claude/`, `*.code-workspace`, `.vscode/` | IDE/agent local config |
 | `Thumbs.db`, `.DS_Store` | OS cruft |
 
-**Note:** Some paths appear in both `.gitignore` and the git index because they were committed before ignore rules were added — notably `CLAUDE.md`, `docs/old/*`, and parts of `specs/`. New clones on GitHub still receive those tracked files; the ignore rules prevent *new* untracked copies from being added accidentally.
+**Note:** `CLAUDE.md` and `docs/old/*` may appear in both `.gitignore` and history because they were committed before ignore rules. This branch drops tracked `specs/` and `.claude/` from the index; ignore rules keep them local-only going forward.
 
 **Not gitignored but excluded from Comfy Registry archive:** see [`.comfyignore`](.comfyignore) (`docs/`, `tests/`, `.github/`, `specs/`, `CONTRIBUTING.md`, `CLAUDE.md`, `.claude/`).
 
@@ -418,4 +413,4 @@ These paths are excluded from normal git workflow or never committed:
 | `model_list.py` | Fetch model IDs and Textgen loaded model |
 | `version.py` | Package version string |
 
-For a short agent guide (scope, Decision B, hard stops, pointers), see [`CLAUDE.md`](CLAUDE.md). Deeper architecture stays in this file; `CLAUDE.md` may also be listed in `.gitignore` to avoid accidental local-only copies, but the tracked copy in git is the shared baseline.
+[`CLAUDE.md`](CLAUDE.md) is only a short pointer to README / this file / `docs/`. It is not an agent control plane.

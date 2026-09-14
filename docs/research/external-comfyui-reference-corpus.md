@@ -54,7 +54,7 @@ For **this pack's** decisions and patterns, prefer:
 | Runtime surprises | `docs/lessons-learned.md` |
 | Textgen / LM Studio lifecycle (verified) | `docs/research/textgen-lifecycle-verified.md`, `docs/research/lm-studio-lifecycle-verified.md` |
 | Provenance rules | `docs/research/provenance-and-reverification.md` |
-| Ralph spec research (gitignored) | `specs/comfyui-llm-bikeshed/research.md` |
+| Local specs research (gitignored) | `specs/comfyui-llm-bikeshed/research.md` |
 
 The external corpus remains useful only as a **broad ComfyUI custom-node cheat sheet** until vendored or replaced by live official docs.
 
