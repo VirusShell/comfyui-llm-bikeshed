@@ -163,10 +163,10 @@ Configure inference parameters. All output `LLM_OPTIONS` type.
 
 | Node | Description |
 |------|-------------|
-| **LLM Preset Loader** | Lists `.txt` files from the `presets/` directory, outputs file content as STRING |
+| **LLM Preset Loader** | Lists `.txt` files from the [`presets/`](presets/) directory, outputs file content as STRING |
 | **LLM Load Text File** | Lists `.txt` files from ComfyUI's input folder, outputs file content as STRING |
 
-Connect either to a generation node's `system_prompt` or `prompt` input.
+Connect either to a generation node's `system_prompt` or `prompt` input. See [`presets/README.txt`](presets/README.txt) for format; shipped example [`presets/llamacpp_oai_system.txt`](presets/llamacpp_oai_system.txt) (llama.cpp / OAI Compatible).
 
 ## Quick Start
 
@@ -220,7 +220,7 @@ Pressing **Cancel** in ComfyUI stops the generation node and lets the queue cont
 - **Backend detection** — `detection.py` plus `POST /llm-bikeshed/detect` for the indicator on the OAI Compatible provider; **LLM Provider: Textgen** uses `POST /llm-bikeshed/models/textgen` (no fingerprinting) for the model dropdown
 - **Synchronous HTTP** via `requests` (ComfyUI nodes run synchronously)
 - **Config merge-on-load**: `config.example.yaml` defaults deep-merged with user's `config.yaml`
-- **Frontend JS** for dynamic model dropdowns via PromptServer endpoints
+- **Frontend JS** for dynamic model dropdowns via PromptServer endpoints (`POST /llm-bikeshed/*`). These **client↔server** routes are **not ComfyUI API-mode compatible**; generation still runs from graph dataflow (`LLM_PROVIDER` → generate → `/v1/chat/completions`). Headless queues need URL/model already set in the workflow JSON.
 
 ## Out of scope (current release)
 

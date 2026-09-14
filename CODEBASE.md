@@ -96,12 +96,13 @@ comfyui-llm-bikeshed/
 ├── docs/                       # Design, research, reference, proposals
 ├── example_workflows/          # 3 shipped workflow JSON templates
 ├── presets/
-│   └── README.txt              # Placeholder; user adds .txt preset files here
+│   ├── README.txt              # Format + how LLM Preset Loader lists files
+│   └── llamacpp_oai_system.txt # Example system prompt (llama.cpp / OAI Compatible)
 ├── specs/                      # Ralph Specum spec artifacts (indexed)
 │
 ├── config.example.yaml         # Shipped defaults (merged with user config)
 ├── pyproject.toml              # Package metadata, dev deps, Comfy Registry ID
-├── requirements.txt            # Empty/minimal — ComfyUI ships runtime deps
+├── requirements.txt            # Mirrors pyproject runtime deps (pyyaml, requests)
 ├── README.md                   # User-facing install and node reference
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
@@ -184,6 +185,8 @@ Registered only when `aiohttp`, `PromptServer`, and relative imports succeed:
 | `/llm-bikeshed/models/ensure-loaded` | POST | Load-on-select helper (Textgen / LM Studio / llama.cpp when supported) |
 
 Request body: JSON `{ "url": "<base URL>" }` (ensure-loaded also takes `model` / `backend`).
+
+**Not ComfyUI API-mode compatible:** These custom `/llm-bikeshed/*` routes are **client↔server** helpers for the browser UI (model COMBO, backend label, load-on-select). Official Comfy guidance: nodes that *require* direct client↔server traffic are **not** compatible with API/headless queue mode. **Graph dataflow remains the source of truth for generation** (`LLM_PROVIDER` → generate nodes → `POST {url}/v1/chat/completions`). Headless/API runners can still execute generation if provider URL/model are set in the workflow JSON; they will not get dynamic Refresh Models / detect / ensure-loaded from the JS extension.
 
 ### Frontend (`js/model_dropdown.js`)
 
@@ -366,7 +369,7 @@ Or uv: `[dependency-groups].dev` mirrors optional `[project.optional-dependencie
 | [`example_workflows/advanced_with_options.json`](example_workflows/advanced_with_options.json) | Provider + Options + Advanced generate |
 | [`example_workflows/textgen_basic.json`](example_workflows/textgen_basic.json) | Textgen provider with memory management |
 
-[`presets/`](presets/) — users add `.txt` files; **LLM Preset Loader** lists and reads them. [`presets/README.txt`](presets/README.txt) is a placeholder only (no sample presets shipped).
+[`presets/`](presets/) — users add `.txt` files; **LLM Preset Loader** lists and reads them (skips `README.txt`). See [`presets/README.txt`](presets/README.txt). Shipped example: [`presets/llamacpp_oai_system.txt`](presets/llamacpp_oai_system.txt) for llama.cpp / OAI Compatible system prompts.
 
 ---
 
