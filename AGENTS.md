@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file is **not** a Claude Code (or any agent) control plane.
+Short pointer for any coding agent working in this pack.
 
 Project truth lives in:
 

@@ -106,7 +106,7 @@ comfyui-llm-bikeshed/
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── LICENSE
-├── CLAUDE.md                   # Short pointer stub (not an agent control plane)
+├── AGENTS.md                   # Short tool-neutral pointer (not an agent control plane)
 ├── .gitignore
 ├── .comfyignore                # Excludes dev/docs from registry archive
 └── .github/
@@ -382,9 +382,9 @@ These paths are excluded from normal git workflow or never committed:
 | `.claude/`, `*.code-workspace`, `.vscode/` | IDE/agent local config |
 | `Thumbs.db`, `.DS_Store` | OS cruft |
 
-**Note:** `CLAUDE.md` and `docs/old/*` may appear in both `.gitignore` and history because they were committed before ignore rules. This branch drops tracked `specs/` and `.claude/` from the index; ignore rules keep them local-only going forward.
+**Note:** Root `CLAUDE.md` was removed in favor of `AGENTS.md`. `CLAUDE.md` remains in `.gitignore` so it is not re-added; `docs/old/*` may still appear in both `.gitignore` and history. This branch drops tracked `specs/` and `.claude/` from the index; ignore rules keep them local-only going forward.
 
-**Not gitignored but excluded from Comfy Registry archive:** see [`.comfyignore`](.comfyignore) (`docs/`, `tests/`, `.github/`, `specs/`, `CONTRIBUTING.md`, `CLAUDE.md`, `.claude/`).
+**Not gitignored but excluded from Comfy Registry archive:** see [`.comfyignore`](.comfyignore) (`docs/`, `tests/`, `.github/`, `specs/`, `CONTRIBUTING.md`, `AGENTS.md`, `.claude/`).
 
 ---
 
@@ -413,4 +413,4 @@ These paths are excluded from normal git workflow or never committed:
 | `model_list.py` | Fetch model IDs and Textgen loaded model |
 | `version.py` | Package version string |
 
-[`CLAUDE.md`](CLAUDE.md) is only a short pointer to README / this file / `docs/`. It is not an agent control plane.
+[`AGENTS.md`](AGENTS.md) is only a short tool-neutral pointer to README / this file / `docs/`. It is not an agent control plane.

@@ -15,7 +15,7 @@ Apply **decision-time prevention** before external claims become durable project
 | [`provenance-and-reverification.md`](provenance-and-reverification.md) | **Gate A–C:** research notes, tracker status, shipping behavior |
 | [`research-note-template.md`](research-note-template.md) | Structure for new/updated `docs/research/*.md` (gold example: [`textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md)) |
 | [`resolution_tracker.md`](../resolution_tracker.md) | § Status definitions — status ≠ proof; use `[VERIFY]` when evidence is incomplete |
-| [`CLAUDE.md`](../../CLAUDE.md) | Pointer to README / CODEBASE / docs (stub only) |
+| [`AGENTS.md`](../../AGENTS.md) | Pointer to README / CODEBASE / docs (stub only) |
 
 ## Before you cite or ship
 
@@ -23,7 +23,7 @@ Apply **decision-time prevention** before external claims become durable project
 2. **Tracker promotion** → matching research note row; `docs only` alone is **not** enough for **Confirmed**.
 3. **Textgen routes/auth** → read [`textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md).
 4. **LM Studio lifecycle** → read [`lm-studio-lifecycle-verified.md`](lm-studio-lifecycle-verified.md).
-5. **Runtime surprise with non-obvious root cause** → entry in [`docs/lessons-learned.md`](../lessons-learned.md) per `CLAUDE.md`.
+5. **Runtime surprise with non-obvious root cause** → entry in [`docs/lessons-learned.md`](../lessons-learned.md) per `AGENTS.md`.
 
 ## Constraints
 

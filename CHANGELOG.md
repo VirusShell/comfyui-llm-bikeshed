@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `requirements.txt` now mirrors `pyproject.toml` runtime deps (`pyyaml`, `requests`) for honest git/Manager installs.
 - README: llama.cpp via **LLM Provider: OAI Compatible** quickstart (base URL without duplicated `/v1`); LM Studio / Textgen called out on the same path.
 - Docs: generate-node `IS_CHANGED` → `float("NaN")` documented as deliberate always-rerun (`CODEBASE.md`, node docstrings).
-- `CLAUDE.md`: stub pointer to README / CODEBASE / docs only (not an agent control plane).
+- `AGENTS.md`: short tool-neutral pointer to README / CODEBASE / docs (replaces root `CLAUDE.md`).
 - Removed tracked `.claude/` and `specs/` Ralph artifacts from the git index (already gitignored).
 - Docs: neutralized Claude Code / Ralph agent dialect in CODEBASE, lessons, blargh, concept, and research pointers.
 
