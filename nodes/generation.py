@@ -64,6 +64,12 @@ class LLMGenerate:
 
     @classmethod
     def IS_CHANGED(cls, **kwargs: object) -> float:  # noqa: N802
+        """Always-rerun fingerprint (deliberate).
+
+        Returning float("NaN") makes ComfyUI treat every queue as changed so LLM
+        HTTP calls are not skipped by the cache. Do not replace with a stable
+        hash unless product wants cached generate skips. See CODEBASE.md.
+        """
         return float("NaN")
 
     @classmethod
@@ -153,6 +159,12 @@ class LLMGenerateAdvanced:
 
     @classmethod
     def IS_CHANGED(cls, **kwargs: object) -> float:  # noqa: N802
+        """Always-rerun fingerprint (deliberate).
+
+        Returning float("NaN") makes ComfyUI treat every queue as changed so LLM
+        HTTP calls are not skipped by the cache. Do not replace with a stable
+        hash unless product wants cached generate skips. See CODEBASE.md.
+        """
         return float("NaN")
 
     @classmethod

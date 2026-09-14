@@ -142,6 +142,7 @@ flowchart LR
 2. **Lifecycle nodes** output `LLM_LIFECYCLE` (LM Studio `ttl`/`context_length`, or Textgen `manage_model_memory`).
 3. **Options nodes** output `LLM_OPTIONS` — only toggle-enabled parameters are included (`nodes/options_base.py`).
 4. **Generation nodes** call `get_adapter(provider["adapter"]).generate(...)`, return `(text, meta)`. Advanced node accepts upstream `meta` for chaining; `graph.introspection.has_downstream_gen_node` sets `skip_unload` when another generation node is downstream on the `meta` output.
+5. **Caching / `IS_CHANGED` (deliberate):** Both `LLMGenerate` and `LLMGenerateAdvanced` implement `IS_CHANGED` as `return float("NaN")`. ComfyUI treats NaN fingerprints as never-equal, so generate nodes **always re-execute** on queue. That is intentional for LLM calls (non-deterministic / external HTTP); do not "fix" to a stable hash or seed fingerprint unless product explicitly wants cached skips. Standards note: `IS_CHANGED` is an equality fingerprint, not a boolean — `True` every time would incorrectly skip reruns.
 
 ### Adapters (`adapters/`)
 
@@ -180,8 +181,9 @@ Registered only when `aiohttp`, `PromptServer`, and relative imports succeed:
 | `/llm-bikeshed/models/oai-compat` | POST | Model list + backend label for OAI Compatible node |
 | `/llm-bikeshed/models/textgen` | POST | Textgen-only model list (no fingerprinting) |
 | `/llm-bikeshed/detect` | POST | Backend detection for UI |
+| `/llm-bikeshed/models/ensure-loaded` | POST | Load-on-select helper (Textgen / LM Studio / llama.cpp when supported) |
 
-Request body: JSON `{ "url": "<base URL>" }`.
+Request body: JSON `{ "url": "<base URL>" }` (ensure-loaded also takes `model` / `backend`).
 
 ### Frontend (`js/model_dropdown.js`)
 
@@ -318,19 +320,19 @@ Indexed spec artifacts for pack development (`specs/comfyui-llm-bikeshed/`: rese
 
 ### Runtime
 
-Declared in [`pyproject.toml`](pyproject.toml):
+Declared in **both** [`pyproject.toml`](pyproject.toml) `[project.dependencies]` and [`requirements.txt`](requirements.txt) (keep in sync):
 
 - `pyyaml>=6.0`
 - `requests>=2.28.0`
 
-[`requirements.txt`](requirements.txt) intentionally lists no packages — ComfyUI core already provides `requests`, `pyyaml`, `pillow`, and `numpy`. Install via:
+Registry / CNR installs read `pyproject.toml`. Git / Manager / `pip install -r requirements.txt` paths use the mirrored file so installs stay honest even when ComfyUI already ships overlapping packages.
 
 ```bash
-pip install -r requirements.txt   # no-op for deps; README documents manual install
-pip install pyyaml>=6.0 requests>=2.28.0
+pip install -r requirements.txt
+# or: pip install -e .
 ```
 
-**Explicitly excluded:** provider SDKs (`openai`, etc.), `torch`, `transformers`, `aiohttp` (ComfyUI provides aiohttp for PromptServer; pack does not depend on it directly).
+**Explicitly excluded:** provider SDKs (`openai`, etc.), `torch`, `transformers`, `aiohttp` (ComfyUI provides aiohttp for PromptServer; pack does not depend on it directly). Pillow/numpy come from ComfyUI core when needed by the host — they are not pack runtime deps.
 
 ### Development
 
@@ -413,4 +415,4 @@ These paths are excluded from normal git workflow or never committed:
 | `model_list.py` | Fetch model IDs and Textgen loaded model |
 | `version.py` | Package version string |
 
-For agent-specific workflow rules (lessons learned, provenance, cancel status), see [`CLAUDE.md`](CLAUDE.md) when present locally — it is the canonical agent guide but may not appear in all checkout contexts depending on how the repo was cloned and whether tracked-ignore files are present.
+For a short agent guide (scope, Decision B, hard stops, pointers), see [`CLAUDE.md`](CLAUDE.md). Deeper architecture stays in this file; `CLAUDE.md` may also be listed in `.gitignore` to avoid accidental local-only copies, but the tracked copy in git is the shared baseline.

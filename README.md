@@ -26,6 +26,7 @@ ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Comp
   - [LM Studio](https://lmstudio.ai/) (default: `http://localhost:1234`)
   - [Textgen / text-generation-webui](https://github.com/oobabooga/text-generation-webui) (default: `http://localhost:5000`) — verified HTTP/auth for internal model routes is summarized in [`docs/research/textgen-lifecycle-verified.md`](docs/research/textgen-lifecycle-verified.md). **VRAM / model memory today:** see the same doc (appendix) and the short summary under [Architecture](#architecture).
   - Optional: **OpenAI** (`https://api.openai.com`) — set `providers.openai.api_key` or `LLM_BIKESHED_OPENAI_API_KEY`; keys never stored in workflows
+  - Optional: **llama.cpp** server (e.g. `llama-server`) exposing OpenAI-compatible `/v1` — use **LLM Provider: OAI Compatible** (see [Quick Start](#llamacpp-via-oai-compatible))
 
 Native **Ollama** (`/api/chat`) is not supported by this pack; use a dedicated Ollama-focused custom node pack, or an OpenAI-compatible gateway if your stack exposes `/v1/chat/completions`.
 
@@ -38,14 +39,14 @@ Native **Ollama** (`/api/chat`) is not supported by this pack; use a dedicated O
    git clone https://github.com/VirusShell/comfyui-llm-bikeshed.git
    ```
 
-2. Install dependencies:
+2. Install dependencies (same set as `pyproject.toml` `[project.dependencies]`):
 
    ```bash
    cd comfyui-llm-bikeshed
    pip install -r requirements.txt
    ```
 
-   Or manually: `pip install pyyaml>=6.0 requests>=2.28.0`
+   Registry / CNR installs use `pyproject.toml`; git clones should still run `pip install -r requirements.txt` so `pyyaml` and `requests` are present if your ComfyUI env does not already provide them.
 
 3. Restart ComfyUI. Nodes appear under the **LLM Bikeshed** category.
 
@@ -177,6 +178,18 @@ Connect either to a generation node's `system_prompt` or `prompt` input.
 4. Connect Provider output to Generate's `provider` input
 5. Type your prompt and system prompt
 6. Queue the workflow
+
+### llama.cpp via OAI Compatible
+
+Dedicated llama-server / process-manager nodes are **deferred**. Point **LLM Provider: OAI Compatible** at any llama.cpp server that speaks OpenAI-compatible HTTP.
+
+1. Start the server so it exposes at least `/v1/chat/completions` (and ideally `/health` + `/v1/models`). Example: `llama-server --port 8080` (flags vary by build).
+2. In ComfyUI, add **LLM Provider: OAI Compatible**.
+3. Set `url` to the **base** URL **without** a duplicated `/v1` suffix — e.g. `http://127.0.0.1:8080`, not `http://127.0.0.1:8080/v1`. The pack normalizes trailing `/v1` and appends paths itself.
+4. Click **Refresh Models**. Detection should label **llama.cpp** when `/health` matches; the model COMBO comes from `/v1/models` when available.
+5. Connect **LLM Generate (Basic)** (or Advanced + Options), queue a short prompt.
+
+Same OAI Compatible path works for **LM Studio** (default `http://localhost:1234`) and **Textgen** OpenAI extension (default `http://localhost:5000`). Prefer **LLM Provider: Textgen** when you want on-node **Manage model memory** for oobabooga.
 
 ### Advanced Setup (Modular Generation)
 

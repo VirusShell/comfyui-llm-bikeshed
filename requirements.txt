@@ -1,2 +1,4 @@
-# Runtime dependencies (requests, pyyaml, pillow, numpy) are provided by ComfyUI core.
-# Only list additional packages here that ComfyUI doesn't ship with.
+# Keep in sync with [project.dependencies] in pyproject.toml.
+# Registry/CNR installs read pyproject; git / Manager / pip -r paths often use this file.
+pyyaml>=6.0
+requests>=2.28.0

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `requirements.txt` now mirrors `pyproject.toml` runtime deps (`pyyaml`, `requests`) for honest git/Manager installs.
+- README: llama.cpp via **LLM Provider: OAI Compatible** quickstart (base URL without duplicated `/v1`); LM Studio / Textgen called out on the same path.
+- Docs: generate-node `IS_CHANGED` → `float("NaN")` documented as deliberate always-rerun (`CODEBASE.md`, node docstrings).
+- `CLAUDE.md`: shortened to durable agent truth (Decision B llama.cpp / OAI Compatible; strip stale deferrals and correction piles).
+
 ## [1.0.1] - 2026-06-12
 
 ### Fixed
