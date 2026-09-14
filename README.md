@@ -5,7 +5,7 @@
 
 ComfyUI custom nodes for local LLM text generation. Use **LLM Provider: OAI Compatible** for OpenAI-style backends with automatic detection at the URL (LM Studio, OpenAI, llama.cpp, etc.). Use **LLM Provider: Textgen** for [oobabooga Textgen](https://github.com/oobabooga/text-generation-webui) (fixed backend, integrated VRAM controls, Textgen-only model list). API keys live in config or environment variables only.
 
-**Product direction:** See [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md) for scope notes (Textgen-first, lifecycle model under review, llama.cpp deferred).
+**Product direction:** See [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md) for scope notes (Textgen-first, lifecycle model under review; llama.cpp via OAI Compatible is first-class; dedicated llama-server node deferred).
 
 ## Features
 
@@ -216,7 +216,7 @@ Pressing **Cancel** in ComfyUI stops the generation node and lets the queue cont
 - Structured output (JSON schema enforcement)
 - Full OpenAI API surface (tools, streaming, JSON mode, etc.) — only core chat sampling params in v0; additional cloud providers (Anthropic, Gemini, etc.)
 - Streaming output
-- vLLM and standalone llama-server backends
+- vLLM-specific nodes and a dedicated llama-server / process-manager node (llama.cpp via OAI Compatible `/v1` is supported)
 - Native Ollama in this pack (removed 0.3.0)
 
 ## Development
@@ -243,3 +243,4 @@ Published on the [ComfyUI Registry](https://registry.comfy.org/nodes/comfyui-llm
 ## License
 
 MIT — see [LICENSE](LICENSE).
+

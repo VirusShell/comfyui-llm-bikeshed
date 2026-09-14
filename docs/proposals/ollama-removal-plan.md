@@ -10,7 +10,7 @@
 
 - Replacing ecosystem Ollama support (other Comfy packs remain the right place for native Ollama UX).
 - Removing **URL/backend auto-detection** for the **OAI Compatible** provider solely because the probe can return `ollama` (see § Inventory — `detection.py`).
-- Dedicated llama.cpp server work (still deferred per direction doc).
+- Dedicated llama.cpp / llama-server **node** (still deferred); OAI Compatible path for llama.cpp `/v1` is first-class per product-direction.
 
 ## 2. Inventory (repo grep / read, 2026-05-12)
 
@@ -65,3 +65,4 @@ Saved workflows that reference **LLM Provider: Ollama** or **LLM Options: Ollama
 | **Stale imports / dead routes** | Phase A grep + import smoke after file deletes |
 | **Stale tracker rows** | Phase C reconciliation so implementers are not misled by old “three local backends” language |
 | **User `config.yaml` still has `providers.ollama`** | Harmless if unused; deep-merge keeps unknown keys—document optional manual deletion |
+
