@@ -12,7 +12,7 @@ Supported backends (via a single OpenAI-compatible adapter path): **LM Studio**,
 
 VRAM sharing with diffusion is a core requirement: LM Studio uses TTL-based model memory; Textgen uses explicit load/unload via internal HTTP routes when lifecycle or **Manage model memory** is enabled. API keys are resolved from `config.yaml` or environment variables at HTTP time — never stored in workflow JSON or node execution outputs.
 
-**Current release:** v1.0.0 (`pyproject.toml`, `version.py`). Core v1 is shipped; open design work (lifecycle UX, chat nodes, additional cloud APIs) lives in the tracker and proposals.
+**Current release:** v1.0.3 (`pyproject.toml`, `version.py`). Core v1 is shipped; open design work (lifecycle UX, chat nodes, additional cloud APIs) lives in the tracker and proposals.
 
 ---
 
