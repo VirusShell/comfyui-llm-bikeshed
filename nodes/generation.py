@@ -136,6 +136,7 @@ class LLMGenerateAdvanced:
             "required": {
                 "system_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "prompt": ("STRING", {"multiline": True}),
+                "seed": ("INT", {"default": -1, "min": -1, "max": 2**31 - 1}),
             },
             "optional": {
                 "provider": ("LLM_PROVIDER",),
@@ -175,6 +176,7 @@ class LLMGenerateAdvanced:
         self,
         system_prompt: str,
         prompt: str,
+        seed: int,
         provider: dict | None = None,
         options: dict | None = None,
         meta: dict | None = None,
@@ -188,7 +190,11 @@ class LLMGenerateAdvanced:
                 "No provider configured. Connect a Provider node or a meta input."
             )
 
-        resolved_options = options or (meta.get("options") if meta else None) or {}
+        resolved_options = dict(
+            options or (meta.get("options") if meta else None) or {}
+        )
+        if seed >= 0:
+            resolved_options["seed"] = seed
 
         adapter = get_adapter(resolved_provider["adapter"])
 

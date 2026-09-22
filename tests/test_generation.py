@@ -126,6 +126,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
             text, meta_out = node.generate(
                 system_prompt="",
                 prompt="Hello",
+                seed=-1,
                 provider=explicit_prov,
                 meta=meta_input,
             )
@@ -148,6 +149,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
             text, meta_out = node.generate(
                 system_prompt="",
                 prompt="Hello",
+                seed=-1,
                 provider=None,
                 meta=meta_input,
             )
@@ -170,6 +172,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
             text, meta_out = node.generate(
                 system_prompt="",
                 prompt="Hello",
+                seed=-1,
                 provider=provider,
                 options=explicit_opts,
                 meta=meta_input,
@@ -194,6 +197,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
             text, meta_out = node.generate(
                 system_prompt="",
                 prompt="Hello",
+                seed=-1,
                 provider=provider,
                 options=None,
                 meta=meta_input,
@@ -206,11 +210,73 @@ class TestLLMGenerateAdvancedMetaPrecedence:
         node = LLMGenerateAdvanced()
         try:
             node.generate(
-                system_prompt="", prompt="Hello", provider=None, meta=None,
+                system_prompt="",
+                prompt="Hello",
+                seed=-1,
+                provider=None,
+                meta=None,
             )
             assert False, "Expected ValueError"
         except ValueError as exc:
             assert "No provider configured" in str(exc)
+
+
+
+
+# ---------------------------------------------------------------------------
+# LLMGenerateAdvanced - seed widget
+# ---------------------------------------------------------------------------
+
+
+class TestLLMGenerateAdvancedSeed:
+    """Node seed widget merges into options; -1 leaves Options/meta seed alone."""
+
+    def _make_provider(self) -> dict:
+        return {"adapter": "oai_compat", "url": "http://host:1234"}
+
+    def _run(
+        self,
+        seed: int,
+        options: dict | None = None,
+        meta: dict | None = None,
+    ) -> dict:
+        node = LLMGenerateAdvanced()
+        mock_adapter = MagicMock()
+        mock_adapter.generate.return_value = "text"
+        provider = self._make_provider()
+        with patch("nodes.generation.get_adapter", return_value=mock_adapter), \
+             patch("nodes.generation.has_downstream_gen_node", return_value=False):
+            node.generate(
+                system_prompt="",
+                prompt="Hello",
+                seed=seed,
+                provider=provider,
+                options=options,
+                meta=meta,
+            )
+        return mock_adapter.generate.call_args[0][2]
+
+    def test_seed_positive_sets_options(self) -> None:
+        opts = self._run(seed=42, options={"temperature": 0.5})
+        assert opts["seed"] == 42
+        assert opts["temperature"] == 0.5
+
+    def test_seed_positive_overrides_options_seed(self) -> None:
+        opts = self._run(seed=99, options={"seed": 1})
+        assert opts["seed"] == 99
+
+    def test_seed_negative_keeps_options_seed(self) -> None:
+        opts = self._run(seed=-1, options={"seed": 7})
+        assert opts["seed"] == 7
+
+    def test_seed_negative_no_options_seed_absent(self) -> None:
+        opts = self._run(seed=-1, options={"temperature": 0.2})
+        assert "seed" not in opts
+
+    def test_seed_does_not_mutate_input_options_dict(self) -> None:
+        original = {"temperature": 0.5}
+        self._run(seed=42, options=original)
+        assert "seed" not in original
 
 
 class TestMetaSecretStripping:
