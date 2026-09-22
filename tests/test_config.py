@@ -126,25 +126,25 @@ class TestLoadConfig:
         example = tmp_path / "config.example.yaml"
         user = tmp_path / "config.yaml"
         example.write_text(
-            "providers:\n  ollama:\n"
-            "    host: http://default\n    port: 11434\n"
+            "providers:\n  lm_studio:\n"
+            "    host: http://default\n    port: 1234\n"
         )
-        user.write_text("providers:\n  ollama:\n    host: http://custom\n")
+        user.write_text("providers:\n  lm_studio:\n    host: http://custom\n")
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
 
         result = load_config()
 
-        assert result["providers"]["ollama"]["host"] == "http://custom"
-        assert result["providers"]["ollama"]["port"] == 11434
+        assert result["providers"]["lm_studio"]["host"] == "http://custom"
+        assert result["providers"]["lm_studio"]["port"] == 1234
 
     def test_missing_user_config_returns_defaults(self, tmp_path, monkeypatch) -> None:
         example = tmp_path / "config.example.yaml"
-        example.write_text("providers:\n  lmstudio:\n    host: http://localhost\n")
+        example.write_text("providers:\n  lm_studio:\n    host: http://localhost\n")
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
 
         result = load_config()
 
-        assert result["providers"]["lmstudio"]["host"] == "http://localhost"
+        assert result["providers"]["lm_studio"]["host"] == "http://localhost"
 
     def test_missing_both_files_returns_empty(self, tmp_path, monkeypatch) -> None:
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
@@ -184,30 +184,30 @@ class TestGetApiKey:
 
     def test_from_config(self, tmp_path, monkeypatch) -> None:
         user = tmp_path / "config.yaml"
-        user.write_text("providers:\n  lmstudio:\n    api_key: cfg-key-123\n")
+        user.write_text("providers:\n  lm_studio:\n    api_key: cfg-key-123\n")
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
 
-        assert get_api_key("lmstudio") == "cfg-key-123"
+        assert get_api_key("lm_studio") == "cfg-key-123"
 
     def test_from_env_var(self, tmp_path, monkeypatch) -> None:
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
-        monkeypatch.setenv("LLM_BIKESHED_OLLAMA_API_KEY", "env-key-456")
+        monkeypatch.setenv("LLM_BIKESHED_OPENAI_API_KEY", "env-key-456")
 
-        assert get_api_key("ollama") == "env-key-456"
+        assert get_api_key("openai") == "env-key-456"
 
     def test_config_takes_precedence_over_env(self, tmp_path, monkeypatch) -> None:
         user = tmp_path / "config.yaml"
-        user.write_text("providers:\n  ollama:\n    api_key: cfg-key\n")
+        user.write_text("providers:\n  openai:\n    api_key: cfg-key\n")
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
-        monkeypatch.setenv("LLM_BIKESHED_OLLAMA_API_KEY", "env-key")
+        monkeypatch.setenv("LLM_BIKESHED_OPENAI_API_KEY", "env-key")
 
-        assert get_api_key("ollama") == "cfg-key"
+        assert get_api_key("openai") == "cfg-key"
 
     def test_returns_none_when_no_key(self, tmp_path, monkeypatch) -> None:
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
-        monkeypatch.delenv("LLM_BIKESHED_OLLAMA_API_KEY", raising=False)
+        monkeypatch.delenv("LLM_BIKESHED_OPENAI_API_KEY", raising=False)
 
-        assert get_api_key("ollama") is None
+        assert get_api_key("openai") is None
 
 
 class TestGetAdminKey:
@@ -216,31 +216,35 @@ class TestGetAdminKey:
     def test_admin_key_from_config(self, tmp_path, monkeypatch) -> None:
         user = tmp_path / "config.yaml"
         user.write_text(
-            "providers:\n  textgenwebui:\n"
+            "providers:\n  text_gen_webui:\n"
             "    admin_key: admin-123\n    api_key: api-456\n"
         )
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
 
-        assert get_admin_key("textgenwebui") == "admin-123"
+        assert get_admin_key("text_gen_webui") == "admin-123"
 
     def test_falls_back_to_api_key(self, tmp_path, monkeypatch) -> None:
         user = tmp_path / "config.yaml"
-        user.write_text("providers:\n  textgenwebui:\n    api_key: api-456\n")
+        user.write_text("providers:\n  text_gen_webui:\n    api_key: api-456\n")
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
 
-        assert get_admin_key("textgenwebui") == "api-456"
+        assert get_admin_key("text_gen_webui") == "api-456"
 
     def test_falls_back_to_env_var(self, tmp_path, monkeypatch) -> None:
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
-        monkeypatch.setenv("LLM_BIKESHED_TEXTGENWEBUI_ADMIN_KEY", "env-admin-789")
+        monkeypatch.setenv(
+            "LLM_BIKESHED_TEXT_GEN_WEBUI_ADMIN_KEY", "env-admin-789",
+        )
 
-        assert get_admin_key("textgenwebui") == "env-admin-789"
+        assert get_admin_key("text_gen_webui") == "env-admin-789"
 
     def test_returns_none_when_no_key(self, tmp_path, monkeypatch) -> None:
         monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
-        monkeypatch.delenv("LLM_BIKESHED_TEXTGENWEBUI_ADMIN_KEY", raising=False)
+        monkeypatch.delenv(
+            "LLM_BIKESHED_TEXT_GEN_WEBUI_ADMIN_KEY", raising=False,
+        )
 
-        assert get_admin_key("textgenwebui") is None
+        assert get_admin_key("text_gen_webui") is None
 
 
 class TestGetTextgenAuthKeys:
@@ -273,3 +277,104 @@ class TestGetTextgenAuthKeys:
         api, admin = get_textgen_auth_keys()
         assert api == "tg-key"
         assert admin == "tg-key"
+
+
+class TestResolveProviderAuthParity:
+    """OAI-shaped backends share oai_compat fallback with list + generate."""
+
+    def test_lm_studio_falls_back_to_oai_compat(
+        self, tmp_path, monkeypatch,
+    ) -> None:
+        user = tmp_path / "config.yaml"
+        user.write_text("providers:\n  oai_compat:\n    api_key: shared-secret\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.setattr(config_module, "_config", None)
+
+        from adapters.oai_compat import OAICompatAdapter
+        from config.auth import (
+            api_keys_for_backend,
+            consulted_auth_slots,
+            resolve_provider_auth,
+        )
+
+        api, admin = resolve_provider_auth({"backend": "lm_studio"})
+        assert api == "shared-secret"
+        assert admin is None
+        assert consulted_auth_slots("lm_studio") == ["lm_studio", "oai_compat"]
+        assert api_keys_for_backend("lm_studio") == ["shared-secret"]
+
+        headers = OAICompatAdapter()._auth_headers({"backend": "lm_studio"})
+        assert headers.get("Authorization") == "Bearer shared-secret"
+
+    def test_llamacpp_falls_back_to_oai_compat(
+        self, tmp_path, monkeypatch,
+    ) -> None:
+        user = tmp_path / "config.yaml"
+        user.write_text("providers:\n  oai_compat:\n    api_key: shared-secret\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.setattr(config_module, "_config", None)
+
+        from config.auth import resolve_provider_auth
+
+        api, admin = resolve_provider_auth({"backend": "llamacpp"})
+        assert api == "shared-secret"
+        assert admin is None
+
+    def test_lm_studio_slot_wins_over_oai_compat(
+        self, tmp_path, monkeypatch,
+    ) -> None:
+        user = tmp_path / "config.yaml"
+        user.write_text(
+            "providers:\n"
+            "  lm_studio:\n    api_key: lm-key\n"
+            "  oai_compat:\n    api_key: oai-key\n",
+        )
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.setattr(config_module, "_config", None)
+
+        from config.auth import resolve_provider_auth
+
+        api, _ = resolve_provider_auth({"backend": "lm_studio"})
+        assert api == "lm-key"
+
+    def test_list_and_generate_share_oai_compat_only_key(
+        self, tmp_path, monkeypatch,
+    ) -> None:
+        """Key only under oai_compat → LM Studio list keys == generate Bearer."""
+        user = tmp_path / "config.yaml"
+        user.write_text("providers:\n  oai_compat:\n    api_key: shared-secret\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.setattr(config_module, "_config", None)
+
+        from adapters.oai_compat import OAICompatAdapter
+        from config.auth import api_keys_for_backend, resolve_provider_auth
+
+        list_keys = api_keys_for_backend("lm_studio")
+        gen_api, _ = resolve_provider_auth({"backend": "lm_studio"})
+        headers = OAICompatAdapter()._auth_headers({"backend": "lm_studio"})
+
+        assert list_keys == ["shared-secret"]
+        assert gen_api == "shared-secret"
+        assert headers["Authorization"] == f"Bearer {list_keys[0]}"
+
+    def test_textgen_distinct_api_and_admin_route_correct(
+        self, tmp_path, monkeypatch,
+    ) -> None:
+        user = tmp_path / "config.yaml"
+        user.write_text(
+            "providers:\n  text_gen_webui:\n"
+            "    api_key: api-only\n    admin_key: admin-only\n",
+        )
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.setattr(config_module, "_config", None)
+
+        from adapters.oai_compat import OAICompatAdapter
+
+        provider = {"backend": "text_gen_webui"}
+        adapter = OAICompatAdapter()
+        assert adapter._auth_headers(provider) == {
+            "Authorization": "Bearer api-only",
+        }
+        assert adapter._admin_headers(provider) == {
+            "Authorization": "Bearer admin-only",
+        }

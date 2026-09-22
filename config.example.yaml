@@ -1,6 +1,7 @@
 # ComfyUI LLM Bikeshed — Provider Configuration
 # Copy this file to config.yaml and adjust as needed.
 # config.yaml is gitignored and will not be shared with workflows.
+# After editing config.yaml, restart ComfyUI (there is no browser reload-config).
 
 # Optional (not implemented yet): tune pack logging without code changes.
 # logging:
@@ -10,6 +11,8 @@ providers:
   lm_studio:
     url: "http://localhost:1234"
     timeout: 120
+    # Optional when LM Studio / a proxy requires API auth. A key only under
+    # oai_compat also authenticates Refresh Models + Generate (shared fallback).
     # api_key: "your-api-key-here"
 
   openai:
@@ -31,9 +34,13 @@ providers:
 
   oai_compat:
     timeout: 120
-    # Keys for the "LLM Provider: OAI Compatible" node when the pasted URL needs auth.
-    # They are tried for generic OAI /v1/models and chat like other providers.
-    # For a Textgen URL, these merge with providers.text_gen_webui (see get_textgen_auth_keys):
-    # use text_gen_webui.* for Textgen-specific secrets when possible; use oai_compat when
-    # you only configure this block (single place for chat + model list refresh on that host).
+    # Shared key slot for "LLM Provider: OAI Compatible" and fallback for
+    # lm_studio / openai / llamacpp / generic OAI-shaped backends (list + chat).
+    # For Textgen URLs these also merge with providers.text_gen_webui
+    # (see get_textgen_auth_keys). Prefer text_gen_webui.* for Textgen dual keys.
     # api_key: "your-api-key-here"
+    # admin_key: "your-admin-key-here"  # optional; Textgen merge only
+
+  # llamacpp: no dedicated YAML slot required. Point OAI Compatible at the
+  # server URL and put the key under oai_compat (or set env
+  # LLM_BIKESHED_LLAMACPP_API_KEY / add a providers.llamacpp.api_key block).

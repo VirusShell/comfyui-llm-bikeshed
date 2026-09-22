@@ -23,9 +23,9 @@ if HAS_SERVER:
     )
 
     try:
-        from ..config import get_api_key
+        from ..config.auth import resolve_provider_auth
     except ImportError:
-        get_api_key = None  # type: ignore[assignment]
+        resolve_provider_auth = None  # type: ignore[assignment]
 
     try:
         from ..detection import detect_backend
@@ -94,8 +94,8 @@ if HAS_SERVER:
             return web.json_response({"backend": "generic"})
 
         api_key = None
-        if get_api_key is not None:
-            api_key = get_api_key("oai_compat")
+        if resolve_provider_auth is not None:
+            api_key, _ = resolve_provider_auth({"backend": "oai_compat"})
         try:
             backend = await asyncio.to_thread(
                 detect_backend, url, api_key=api_key,

@@ -33,17 +33,42 @@ def _is_json_safe(value: object) -> bool:
     return not (isinstance(value, float) and (math.isnan(value) or math.isinf(value)))
 
 
-def _raise_on_error(response: requests.Response, backend: str, url: str) -> None:
-    """Raise descriptive exception on HTTP error."""
+def _raise_on_error(
+    response: requests.Response,
+    backend: str,
+    url: str,
+    *,
+    auth_slots: list[str] | None = None,
+) -> None:
+    """Raise descriptive exception on HTTP error.
+
+    On 401/403, append which provider config slots were consulted (slot names
+    only — never key material) so missing/wrong keys are actionable.
+    """
     if not response.ok:
         try:
             body = response.text[:500]
         except Exception:
             body = "(could not read response body)"
-        raise RuntimeError(
+        msg = (
             f"[llm-bikeshed] {backend} error at {url}: "
             f"HTTP {response.status_code} — {body}"
         )
+        if response.status_code in (401, 403):
+            slots = auth_slots
+            if slots is None:
+                try:
+                    from ..config.auth import consulted_auth_slots
+                except ImportError:
+                    try:
+                        from config.auth import consulted_auth_slots
+                    except ImportError:
+                        consulted_auth_slots = None  # type: ignore[assignment]
+                if consulted_auth_slots is not None:
+                    slots = consulted_auth_slots(backend)
+            if slots:
+                msg += f" (auth slots consulted: {', '.join(slots)})"
+        raise RuntimeError(msg)
 
 
 def _sanitize_payload(obj: object) -> object:

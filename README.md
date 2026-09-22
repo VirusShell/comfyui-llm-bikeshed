@@ -82,7 +82,7 @@ Example workflows are in [`example_workflows/`](example_workflows/) — load the
 
      oai_compat:
        timeout: 120
-       # Fallback keys for OAI Compatible node (OpenAI, proxies, or when probing Textgen).
+       # Shared fallback for OAI Compatible + LM Studio / llama.cpp / OpenAI.
        # api_key: "your-api-key-here"
    ```
 
@@ -92,11 +92,26 @@ Example workflows are in [`example_workflows/`](example_workflows/) — load the
 
 ### API Key Resolution
 
-Keys are resolved in this order (first match wins):
+Keys are resolved in this order (first match wins) per provider slot:
 
 1. `config.yaml` provider entry (`api_key` / `admin_key`)
-2. Environment variable: `LLM_BIKESHED_{PROVIDER}_API_KEY` (e.g., `LLM_BIKESHED_LM_STUDIO_API_KEY`)
-3. None (local backends typically need no key)
+2. Environment variable: `LLM_BIKESHED_{PROVIDER}_API_KEY` (e.g. `LLM_BIKESHED_LM_STUDIO_API_KEY`)
+3. For admin role only: `LLM_BIKESHED_{PROVIDER}_ADMIN_KEY` (see Textgen dual-key below)
+4. None (many open local servers need no key)
+
+**OAI-shaped fallback:** for `lm_studio`, `openai`, `llamacpp`, and generic OAI Compatible backends, if the backend slot is empty the pack also tries `providers.oai_compat` (same helper for Refresh Models and Generate). Textgen keeps its own merge via `get_textgen_auth_keys` (`text_gen_webui` then `oai_compat`).
+
+**Cookbook (pick one):**
+
+| Goal | What to set |
+|------|-------------|
+| OpenAI cloud | `providers.openai.api_key` or `LLM_BIKESHED_OPENAI_API_KEY` |
+| LM Studio / proxy with optional auth | key under `providers.lm_studio` **or** only under `providers.oai_compat` — both Refresh Models and Generate use that key |
+| llama.cpp with a key | put the key under `oai_compat`, or set `LLM_BIKESHED_LLAMACPP_API_KEY` / a hand-added `providers.llamacpp.api_key` |
+| Textgen single key | set `api_key` (and optionally the same value as `admin_key`) under `text_gen_webui` **or** only under `oai_compat` |
+| Textgen distinct `--api-key` / `--admin-key` | set both `providers.text_gen_webui.api_key` and `.admin_key` to match the server flags (chat/`model/info` vs list/load/unload) |
+
+After editing `config.yaml`, **restart ComfyUI** (there is no browser set-key / reload-config endpoint).
 
 API keys never appear in workflow JSON — Provider nodes have no key widget.
 

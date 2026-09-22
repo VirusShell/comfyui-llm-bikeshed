@@ -3,10 +3,12 @@
 import logging
 
 try:
-    from ..config import get_api_key, get_config
+    from ..config import get_config
+    from ..config.auth import resolve_provider_auth
     from ..detection import detect_backend, normalize_oai_base_url
 except ImportError:
-    from config import get_api_key, get_config
+    from config import get_config
+    from config.auth import resolve_provider_auth
     from detection import detect_backend, normalize_oai_base_url
 
 logger = logging.getLogger("llm-bikeshed")
@@ -83,7 +85,7 @@ class LLMProviderOAICompat:
         providers_cfg = cfg.get("providers", {})
 
         # Detect backend type
-        preliminary_key = get_api_key("oai_compat")
+        preliminary_key, _ = resolve_provider_auth({"backend": "oai_compat"})
         backend = detect_backend(url, api_key=preliminary_key)
 
         if backend == "text_gen_webui" and not _OAI_COMPAT_TEXTGEN_HINT_LOGGED:

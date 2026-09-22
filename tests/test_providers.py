@@ -77,7 +77,10 @@ class TestLLMProviderOAICompatTextgenHint:
         with patch.object(
             providers_mod, "detect_backend", return_value="text_gen_webui",
         ):
-            with patch.object(providers_mod, "get_api_key", return_value=None):
+            with patch.object(
+                providers_mod, "resolve_provider_auth",
+                return_value=(None, None),
+            ):
                 with patch.object(providers_mod, "get_config", return_value={}):
                     node.build_provider("http://h:5000", "m", "", None)
                     node.build_provider("http://h:5000", "m", "", None)
@@ -94,7 +97,10 @@ class TestLLMProviderOAICompatTextgenHint:
         with patch.object(
             providers_mod, "detect_backend", return_value="text_gen_webui"
         ):
-            with patch.object(providers_mod, "get_api_key", return_value=None):
+            with patch.object(
+                providers_mod, "resolve_provider_auth",
+                return_value=(None, None),
+            ):
                 with patch.object(providers_mod, "get_config", return_value={}):
                     (p,) = node.build_provider(
                         "http://h:5000", "m.gguf", "", None,

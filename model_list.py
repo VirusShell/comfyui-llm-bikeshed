@@ -325,15 +325,19 @@ def _sync_resolve_textgen_models(url: str) -> tuple[list[str], str, str | None]:
 
     Uses internal ``model/list`` + ``model/info`` first, then ``/v1/models``
     with key retries. Backend id in the tuple is always ``text_gen_webui``.
+    Auth keys come from the same helpers as generate (``get_textgen_auth_keys`` /
+    ``api_keys_for_backend``).
     """
     try:
-        from .config import get_api_key, get_textgen_auth_keys
+        from .config import get_textgen_auth_keys
+        from .config.auth import api_keys_for_backend
     except ImportError:
         try:
-            from config import get_api_key, get_textgen_auth_keys
+            from config import get_textgen_auth_keys
+            from config.auth import api_keys_for_backend
         except ImportError:
-            get_api_key = None  # type: ignore[assignment]
             get_textgen_auth_keys = None  # type: ignore[assignment]
+            api_keys_for_backend = None  # type: ignore[assignment]
 
     tk, ak = None, None
     if get_textgen_auth_keys is not None:
@@ -354,18 +358,12 @@ def _sync_resolve_textgen_models(url: str) -> tuple[list[str], str, str | None]:
         return internal, "text_gen_webui", loaded_early
 
     try:
-        models = _fetch_models_oai_compat(url)
+        models = _fetch_models_oai_compat(url, api_key=tk)
     except requests.HTTPError:
         models = []
         keys_to_try: list[str] = []
-        if get_textgen_auth_keys is not None:
-            t_a, t_ad = get_textgen_auth_keys()
-            keys_to_try.extend(_unique_keys(t_a, t_ad))
-        if get_api_key is not None:
-            for provider in ("text_gen_webui", "oai_compat"):
-                k = get_api_key(provider)
-                keys_to_try.extend(_unique_keys(k))
-        keys_to_try = _unique_keys(*keys_to_try)
+        if api_keys_for_backend is not None:
+            keys_to_try = api_keys_for_backend("text_gen_webui")
         for key in keys_to_try:
             try:
                 models = _fetch_models_oai_compat(url, api_key=key)
@@ -391,41 +389,45 @@ def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str, str | Non
         ``detection.detect_backend``. For Textgen, ``loaded_model`` is parsed from
         ``GET /v1/internal/model/info`` when an API key is available; otherwise
         ``None``.
+
+    Auth uses the same ``resolve_provider_auth`` / ``api_keys_for_backend``
+    chain as generate so a key only under ``oai_compat`` works for LM Studio /
+    llama.cpp list and chat alike.
     """
     try:
-        from .config import get_api_key, get_textgen_auth_keys
+        from .config.auth import api_keys_for_backend, resolve_provider_auth
     except ImportError:
         try:
-            from config import get_api_key, get_textgen_auth_keys
+            from config.auth import api_keys_for_backend, resolve_provider_auth
         except ImportError:
-            get_api_key = None  # type: ignore[assignment]
-            get_textgen_auth_keys = None  # type: ignore[assignment]
+            api_keys_for_backend = None  # type: ignore[assignment]
+            resolve_provider_auth = None  # type: ignore[assignment]
 
-    api_key_prelim = get_api_key("oai_compat") if get_api_key else None
+    api_key_prelim = None
+    if resolve_provider_auth is not None:
+        api_key_prelim, _ = resolve_provider_auth({"backend": "oai_compat"})
     backend = detect_backend(url, api_key=api_key_prelim)
 
     if backend == "text_gen_webui":
         return _sync_resolve_textgen_models(url)
 
     loaded_model: str | None = None
-    resolved_key: str | None = api_key_prelim
+    resolved_key: str | None = None
+    if resolve_provider_auth is not None:
+        resolved_key, _ = resolve_provider_auth({"backend": backend})
+    else:
+        resolved_key = api_key_prelim
 
     try:
         models = _fetch_models_oai_compat(url, api_key=resolved_key)
     except requests.HTTPError:
         models = []
         keys_to_try: list[str] = []
-        if get_textgen_auth_keys is not None:
-            t_a, t_ad = get_textgen_auth_keys()
-            keys_to_try.extend(_unique_keys(t_a, t_ad))
-        if get_api_key is not None:
-            for provider in (
-                "lm_studio", "openai", "text_gen_webui", "oai_compat",
-            ):
-                k = get_api_key(provider)
-                keys_to_try.extend(_unique_keys(k))
-        keys_to_try = _unique_keys(*keys_to_try)
+        if api_keys_for_backend is not None:
+            keys_to_try = api_keys_for_backend(backend)
         for key in keys_to_try:
+            if key == resolved_key:
+                continue
             try:
                 models = _fetch_models_oai_compat(url, api_key=key)
                 if models:
@@ -436,8 +438,10 @@ def _sync_resolve_oai_compat_models(url: str) -> tuple[list[str], str, str | Non
         if not models:
             logger.info(
                 "OAI-compat: no models from %s after /v1/models key retries — "
-                "check API key in config on this ComfyUI host",
+                "check API key in config on this ComfyUI host "
+                "(providers.%s or providers.oai_compat)",
                 url,
+                backend,
             )
 
     if backend == "lm_studio":
@@ -468,15 +472,17 @@ def sync_ensure_model_loaded(
 
     url_n = normalize_oai_base_url(url)
     try:
-        from .config import get_api_key
+        from .config.auth import resolve_provider_auth
     except ImportError:
         try:
-            from config import get_api_key
+            from config.auth import resolve_provider_auth
         except ImportError:
-            get_api_key = None  # type: ignore[assignment]
+            resolve_provider_auth = None  # type: ignore[assignment]
 
     if backend is None:
-        api_prelim = get_api_key("oai_compat") if get_api_key else None
+        api_prelim = None
+        if resolve_provider_auth is not None:
+            api_prelim, _ = resolve_provider_auth({"backend": "oai_compat"})
         backend = detect_backend(url_n, api_key=api_prelim)
 
     if backend == "text_gen_webui":
@@ -484,8 +490,8 @@ def sync_ensure_model_loaded(
 
     if backend == "lm_studio":
         api_key = None
-        if get_api_key is not None:
-            api_key = get_api_key("lm_studio") or get_api_key("oai_compat")
+        if resolve_provider_auth is not None:
+            api_key, _ = resolve_provider_auth({"backend": "lm_studio"})
         headers: dict[str, str] = {"Content-Type": "application/json"}
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
@@ -505,7 +511,12 @@ def sync_ensure_model_loaded(
             return False, str(e)
 
     if backend == "llamacpp":
+        api_key = None
+        if resolve_provider_auth is not None:
+            api_key, _ = resolve_provider_auth({"backend": "llamacpp"})
         headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
         try:
             response = requests.post(
                 f"{url_n.rstrip('/')}/models/load",
@@ -536,16 +547,20 @@ def sync_textgen_load_model(
         return False, "invalid or placeholder model name"
 
     try:
-        from .config import get_api_key, get_textgen_auth_keys
+        from .config import get_textgen_auth_keys
+        from .config.auth import resolve_provider_auth
     except ImportError:
         try:
-            from config import get_api_key, get_textgen_auth_keys
+            from config import get_textgen_auth_keys
+            from config.auth import resolve_provider_auth
         except ImportError:
-            get_api_key = None  # type: ignore[assignment]
             get_textgen_auth_keys = None  # type: ignore[assignment]
+            resolve_provider_auth = None  # type: ignore[assignment]
 
     url_n = normalize_oai_base_url(url)
-    api_prelim = get_api_key("oai_compat") if get_api_key else None
+    api_prelim = None
+    if resolve_provider_auth is not None:
+        api_prelim, _ = resolve_provider_auth({"backend": "oai_compat"})
     backend = detect_backend(url_n, api_key=api_prelim)
     if backend != "text_gen_webui":
         return False, f"backend is {backend!r}, not Textgen"
