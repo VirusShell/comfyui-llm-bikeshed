@@ -184,6 +184,7 @@ class TestWorkflowJsonKeySecurity:
             _, adv_meta = LLMGenerateAdvanced().generate(
                 system_prompt="",
                 prompt="Hello",
+                seed=-1,
                 provider=provider,
             )
 
