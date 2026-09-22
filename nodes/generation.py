@@ -52,7 +52,15 @@ class LLMGenerate:
                     {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.05},
                 ),
                 "max_tokens": ("INT", {"default": 1024, "min": 1, "max": 128000}),
-                "seed": ("INT", {"default": -1}),
+                "seed": (
+                    "INT",
+                    {
+                        "default": 0,
+                        "min": 0,
+                        "max": 0xffffffffffffffff,
+                        "control_after_generate": True,
+                    },
+                ),
                 "system_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "prompt": ("STRING", {"multiline": True}),
             },
@@ -98,8 +106,7 @@ class LLMGenerate:
             options["temperature"] = temperature
         if max_tokens > 0:
             options["max_tokens"] = max_tokens
-        if seed >= 0:
-            options["seed"] = seed
+        options["seed"] = seed
 
         adapter = get_adapter(provider["adapter"])
 
@@ -136,7 +143,15 @@ class LLMGenerateAdvanced:
             "required": {
                 "system_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "prompt": ("STRING", {"multiline": True}),
-                "seed": ("INT", {"default": -1, "min": -1, "max": 2**31 - 1}),
+                "seed": (
+                    "INT",
+                    {
+                        "default": 0,
+                        "min": 0,
+                        "max": 0xffffffffffffffff,
+                        "control_after_generate": True,
+                    },
+                ),
             },
             "optional": {
                 "provider": ("LLM_PROVIDER",),
@@ -193,8 +208,7 @@ class LLMGenerateAdvanced:
         resolved_options = dict(
             options or (meta.get("options") if meta else None) or {}
         )
-        if seed >= 0:
-            resolved_options["seed"] = seed
+        resolved_options["seed"] = seed
 
         adapter = get_adapter(resolved_provider["adapter"])
 

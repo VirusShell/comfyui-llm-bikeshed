@@ -42,7 +42,7 @@ def _workflow_shell(*nodes: dict) -> dict:
 def _generation_widgets(
     temperature: float = 0.7,
     max_tokens: int = 512,
-    seed: int = -1,
+    seed: int = 0,
     system_prompt: str = "You are helpful.",
     prompt: str = "Hello",
 ) -> list:
@@ -177,14 +177,14 @@ class TestWorkflowJsonKeySecurity:
                 provider=provider,
                 temperature=0.7,
                 max_tokens=512,
-                seed=-1,
+                seed=0,
                 system_prompt="",
                 prompt="Hello",
             )
             _, adv_meta = LLMGenerateAdvanced().generate(
                 system_prompt="",
                 prompt="Hello",
-                seed=-1,
+                seed=0,
                 provider=provider,
             )
 

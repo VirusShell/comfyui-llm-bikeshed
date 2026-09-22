@@ -77,7 +77,7 @@ class TestLMStudioToggle:
             enable_temperature=True, temperature=0.8,
             enable_top_p=True, top_p=0.95,
             enable_max_tokens=True, max_tokens=4096,
-            enable_seed=False, seed=-1,
+            enable_seed=False, seed=0,
         )
         assert result == {"temperature": 0.8, "top_p": 0.95, "max_tokens": 4096}
 

@@ -33,7 +33,7 @@ class LLMOptionsOpenAI:
             "default": 1024, "min": 1, "max": 128000,
         }),
         ("seed", "INT", {
-            "default": -1, "min": -1, "max": 2**31 - 1,
+            "default": 0, "min": 0, "max": 0xffffffffffffffff,
         }),
         ("stop_string", "STRING", {"default": ""}),
         ("presence_penalty", "FLOAT", {

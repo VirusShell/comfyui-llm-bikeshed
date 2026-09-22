@@ -30,7 +30,7 @@ class LLMOptionsLMStudio:
             "default": 2048, "min": 1, "max": 128000,
         }),
         ("seed", "INT", {
-            "default": -1, "min": -1, "max": 2**31 - 1,
+            "default": 0, "min": 0, "max": 0xffffffffffffffff,
         }),
         ("stop_string", "STRING", {"default": ""}),
         ("top_k", "INT", {

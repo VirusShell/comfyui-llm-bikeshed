@@ -30,7 +30,7 @@ class LLMOptionsTextGenWebUI:
             "default": 512, "min": 1, "max": 128000,
         }),
         ("seed", "INT", {
-            "default": 0, "min": 0, "max": 2**31 - 1,
+            "default": 0, "min": 0, "max": 0xffffffffffffffff,
         }),
         ("stop_string", "STRING", {"default": ""}),
         ("top_k", "INT", {

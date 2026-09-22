@@ -49,7 +49,7 @@ class TestLLMGenerateInlineOptions:
         self,
         temperature: float = 0.7,
         max_tokens: int = 1024,
-        seed: int = -1,
+        seed: int = 0,
     ) -> dict:
         """Helper: call generate() with a mock adapter and return the options dict."""
         node = LLMGenerate()
@@ -72,9 +72,9 @@ class TestLLMGenerateInlineOptions:
         call_args = mock_adapter.generate.call_args
         return call_args[0][2]
 
-    def test_seed_negative_one_excluded(self) -> None:
-        opts = self._run_generate(seed=-1)
-        assert "seed" not in opts
+    def test_seed_zero_included(self) -> None:
+        opts = self._run_generate(seed=0)
+        assert opts["seed"] == 0
 
     def test_seed_positive_included(self) -> None:
         opts = self._run_generate(seed=42)
@@ -93,10 +93,10 @@ class TestLLMGenerateInlineOptions:
         opts = self._run_generate(max_tokens=512)
         assert opts["max_tokens"] == 512
 
-    def test_all_defaults_no_seed(self) -> None:
-        """Default seed=-1 excluded, but temperature and max_tokens included."""
+    def test_all_defaults_includes_seed(self) -> None:
+        """Comfy-style seed default 0 is always sent with temperature/max_tokens."""
         opts = self._run_generate()
-        assert "seed" not in opts
+        assert opts["seed"] == 0
         assert "temperature" in opts
         assert "max_tokens" in opts
 
@@ -126,7 +126,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
             text, meta_out = node.generate(
                 system_prompt="",
                 prompt="Hello",
-                seed=-1,
+                seed=0,
                 provider=explicit_prov,
                 meta=meta_input,
             )
@@ -149,7 +149,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
             text, meta_out = node.generate(
                 system_prompt="",
                 prompt="Hello",
-                seed=-1,
+                seed=0,
                 provider=None,
                 meta=meta_input,
             )
@@ -172,7 +172,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
             text, meta_out = node.generate(
                 system_prompt="",
                 prompt="Hello",
-                seed=-1,
+                seed=0,
                 provider=provider,
                 options=explicit_opts,
                 meta=meta_input,
@@ -181,7 +181,10 @@ class TestLLMGenerateAdvancedMetaPrecedence:
         call_options = mock_adapter.generate.call_args[0][2]
         assert call_options["temperature"] == 0.9
         assert call_options["max_tokens"] == 2048
-        assert meta_out["options"] == explicit_opts
+        assert call_options["seed"] == 0
+        assert meta_out["options"]["temperature"] == 0.9
+        assert meta_out["options"]["max_tokens"] == 2048
+        assert meta_out["options"]["seed"] == 0
 
     def test_meta_options_used_when_no_explicit(self) -> None:
         node = LLMGenerateAdvanced()
@@ -197,7 +200,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
             text, meta_out = node.generate(
                 system_prompt="",
                 prompt="Hello",
-                seed=-1,
+                seed=0,
                 provider=provider,
                 options=None,
                 meta=meta_input,
@@ -212,7 +215,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
             node.generate(
                 system_prompt="",
                 prompt="Hello",
-                seed=-1,
+                seed=0,
                 provider=None,
                 meta=None,
             )
@@ -229,7 +232,7 @@ class TestLLMGenerateAdvancedMetaPrecedence:
 
 
 class TestLLMGenerateAdvancedSeed:
-    """Node seed widget merges into options; -1 leaves Options/meta seed alone."""
+    """Node seed widget always merges into options (Comfy-style seed)."""
 
     def _make_provider(self) -> dict:
         return {"adapter": "oai_compat", "url": "http://host:1234"}
@@ -265,13 +268,13 @@ class TestLLMGenerateAdvancedSeed:
         opts = self._run(seed=99, options={"seed": 1})
         assert opts["seed"] == 99
 
-    def test_seed_negative_keeps_options_seed(self) -> None:
-        opts = self._run(seed=-1, options={"seed": 7})
-        assert opts["seed"] == 7
+    def test_seed_zero_overrides_options_seed(self) -> None:
+        opts = self._run(seed=0, options={"seed": 7})
+        assert opts["seed"] == 0
 
-    def test_seed_negative_no_options_seed_absent(self) -> None:
-        opts = self._run(seed=-1, options={"temperature": 0.2})
-        assert "seed" not in opts
+    def test_seed_always_present_even_without_options_seed(self) -> None:
+        opts = self._run(seed=0, options={"temperature": 0.2})
+        assert opts["seed"] == 0
 
     def test_seed_does_not_mutate_input_options_dict(self) -> None:
         original = {"temperature": 0.5}
@@ -301,7 +304,7 @@ class TestMetaSecretStripping:
                 system_prompt="",
                 temperature=0.7,
                 max_tokens=1024,
-                seed=-1,
+                seed=0,
             )
 
         assert "api_key" not in meta["provider"]
