@@ -84,3 +84,38 @@ def resolve_provider_auth(provider: dict) -> tuple[str | None, str | None]:
 def public_provider(provider: dict) -> dict:
     """Return a provider dict safe for ComfyUI outputs (strips secrets)."""
     return {k: v for k, v in provider.items() if k not in _SECRET_KEYS}
+
+
+def describe_auth_status(backend: str) -> str:
+    """Human status line for UI — names/presence only, never key material."""
+    backend = backend or "generic"
+
+    if backend == "text_gen_webui":
+        api_key, admin_key = get_textgen_auth_keys()
+        if api_key and admin_key:
+            return "auth: Textgen API ok, admin ok"
+        if api_key and not admin_key:
+            return "auth: Textgen API ok, admin missing"
+        if admin_key and not api_key:
+            return "auth: Textgen API missing, admin ok"
+        return (
+            "auth: missing (set providers.text_gen_webui.api_key "
+            "or providers.oai_compat.api_key)"
+        )
+
+    slots = consulted_auth_slots(backend)
+    for slot in slots:
+        if get_api_key(slot):
+            if slot == backend:
+                return f"auth: ok ({slot})"
+            return f"auth: ok via {slot} fallback"
+
+    if backend in {"lm_studio", "llamacpp", "generic", "ollama"}:
+        return "auth: n/a (local, no key required)"
+    if backend == "openai":
+        return (
+            "auth: missing (set providers.openai.api_key "
+            "or providers.oai_compat.api_key)"
+        )
+    return "auth: missing (set providers.oai_compat.api_key or …)"
+

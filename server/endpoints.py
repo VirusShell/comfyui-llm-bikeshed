@@ -20,17 +20,37 @@ if HAS_SERVER:
         _sync_resolve_oai_compat_models,
         _sync_resolve_textgen_models,
         sync_ensure_model_loaded,
+        sync_resolve_connection_models,
     )
 
     try:
-        from ..config.auth import resolve_provider_auth
+        from ..config.auth import describe_auth_status, resolve_provider_auth
     except ImportError:
         resolve_provider_auth = None  # type: ignore[assignment]
+        describe_auth_status = None  # type: ignore[assignment]
 
     try:
         from ..detection import detect_backend
     except ImportError:
         detect_backend = None  # type: ignore[assignment]
+
+    try:
+        from ..nodes.providers import (
+            CATALOG_BACKENDS,
+            HOST_MODE_AUTO,
+            resolve_connection_backends,
+        )
+    except ImportError:
+        try:
+            from nodes.providers import (  # type: ignore[no-redef]
+                CATALOG_BACKENDS,
+                HOST_MODE_AUTO,
+                resolve_connection_backends,
+            )
+        except ImportError:
+            CATALOG_BACKENDS = frozenset()  # type: ignore[misc,assignment]
+            HOST_MODE_AUTO = "Auto (detect)"  # type: ignore[misc,assignment]
+            resolve_connection_backends = None  # type: ignore[assignment]
 
     @PromptServer.instance.routes.post("/llm-bikeshed/models/oai-compat")
     async def _endpoint_models_oai_compat(
@@ -104,6 +124,68 @@ if HAS_SERVER:
             logger.exception("detect_backend failed for url=%r", url)
             backend = "generic"
         return web.json_response({"backend": backend})
+
+
+    @PromptServer.instance.routes.post("/llm-bikeshed/models/connection")
+    async def _endpoint_models_connection(
+        request: web.Request,
+    ) -> web.Response:
+        """Models + status for LLM Connection (host_mode aware)."""
+        try:
+            data = await request.json()
+        except (json.JSONDecodeError, TypeError, ValueError, OSError):
+            return web.json_response(
+                {
+                    "models": [],
+                    "detected": "generic",
+                    "effective": "generic",
+                    "backend": "generic",
+                    "loaded_model": None,
+                    "catalog": False,
+                    "auth_status": "auth: n/a",
+                },
+            )
+        url = data.get("url", "")
+        host_mode = data.get("host_mode") or HOST_MODE_AUTO
+        if not url or resolve_connection_backends is None:
+            return web.json_response(
+                {
+                    "models": [],
+                    "detected": "generic",
+                    "effective": "generic",
+                    "backend": "generic",
+                    "loaded_model": None,
+                    "catalog": False,
+                    "auth_status": "auth: n/a",
+                },
+            )
+
+        detected, effective, face = await asyncio.to_thread(
+            resolve_connection_backends, url, host_mode,
+        )
+        catalog = effective in CATALOG_BACKENDS
+        models, _eff, loaded_model = await asyncio.to_thread(
+            sync_resolve_connection_models,
+            url,
+            effective,
+            catalog=catalog,
+        )
+        if describe_auth_status is not None:
+            auth_status = describe_auth_status(effective)
+        else:
+            auth_status = "auth: n/a"
+        return web.json_response(
+            {
+                "models": models,
+                "detected": detected,
+                "effective": effective,
+                "face": face,
+                "backend": effective,
+                "loaded_model": loaded_model,
+                "catalog": catalog,
+                "auth_status": auth_status,
+            },
+        )
 
     @PromptServer.instance.routes.post("/llm-bikeshed/models/ensure-loaded")
     async def _endpoint_models_ensure_loaded(

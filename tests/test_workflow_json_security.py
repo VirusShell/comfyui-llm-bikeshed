@@ -10,7 +10,11 @@ import pytest
 import config as config_module
 from nodes.generation import LLMGenerate, LLMGenerateAdvanced
 from nodes.lifecycle import LLMLifecycleLMStudio
-from nodes.providers import LLMProviderOAICompat, LLMProviderTextGenWebUI
+from nodes.providers import (
+    LLMConnection,
+    LLMProviderOAICompat,
+    LLMProviderTextGenWebUI,
+)
 
 CFG_API_KEY = "S3-FIXTURE-CFG-API-KEY-abc123xyz"
 CFG_ADMIN_KEY = "S3-FIXTURE-CFG-ADMIN-KEY-admin789"
@@ -76,6 +80,16 @@ class TestWorkflowJsonKeySecurity:
         (tg_prov,) = LLMProviderTextGenWebUI().build_provider(
             "http://127.0.0.1:5000", "m.gguf", True, "",
         )
+        with patch("nodes.providers.detect_backend", return_value="lm_studio"):
+            with patch(
+                "nodes.providers.resolve_provider_auth",
+                return_value=(None, None),
+            ):
+                (conn_prov,) = LLMConnection().build_provider(
+                    url="http://127.0.0.1:1234",
+                    host_mode="LM Studio",
+                    model="test-model",
+                )
         (lifecycle,) = LLMLifecycleLMStudio().build_lifecycle(30, 0)
 
         workflow = _workflow_shell(
@@ -108,6 +122,7 @@ class TestWorkflowJsonKeySecurity:
 
         _assert_no_secrets(workflow)
         _assert_no_secrets(oai_prov)
+        _assert_no_secrets(conn_prov)
         _assert_no_secrets(tg_prov)
         _assert_no_secrets(lifecycle)
 

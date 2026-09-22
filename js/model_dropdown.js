@@ -247,6 +247,7 @@ function attachReadOnlyWidget(widget) {
     el.setAttribute("aria-readonly", "true");
     el.style.pointerEvents = "none";
     el.style.cursor = "default";
+    return true;
   };
 
   const tryAttach = (attempt = 0) => {

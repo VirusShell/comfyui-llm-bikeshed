@@ -378,3 +378,31 @@ class TestResolveProviderAuthParity:
         assert adapter._admin_headers(provider) == {
             "Authorization": "Bearer admin-only",
         }
+
+class TestDescribeAuthStatus:
+    def test_ok_via_fallback(self, tmp_path, monkeypatch) -> None:
+        user = tmp_path / "config.yaml"
+        user.write_text(
+            "providers:\n"
+            "  oai_compat:\n"
+            "    api_key: shared\n",
+        )
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.setattr(config_module, "_config", None)
+        from config.auth import describe_auth_status
+
+        line = describe_auth_status("lm_studio")
+        assert "oai_compat" in line
+        assert "shared" not in line
+
+    def test_local_no_key(self, tmp_path, monkeypatch) -> None:
+        user = tmp_path / "config.yaml"
+        user.write_text("providers: {}\n")
+        monkeypatch.setattr(config_module, "_pack_dir", str(tmp_path))
+        monkeypatch.setattr(config_module, "_config", None)
+        from config.auth import describe_auth_status
+
+        line = describe_auth_status("llamacpp")
+        assert "n/a" in line
+        assert "no key required" in line
+

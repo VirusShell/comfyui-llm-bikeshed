@@ -32,10 +32,11 @@ ComfyUI discovers custom nodes by scanning `custom_nodes/` subdirectories. Each 
 2. Imports `server.endpoints` as a side effect — registers PromptServer HTTP routes when ComfyUI's `server` module is available.
 3. On `ImportError` (e.g. running unit tests outside ComfyUI), exports empty mappings so pytest can import submodules.
 
-**Registered nodes (11):**
+**Registered nodes (12):**
 
 | Internal name | Display name | Module |
 |---------------|--------------|--------|
+| `LLMConnection` | LLM Connection | `nodes/providers.py` |
 | `LLMProviderOAICompat` | LLM Provider: OAI Compatible | `nodes/providers.py` |
 | `LLMProviderTextGenWebUI` | LLM Provider: Textgen | `nodes/providers.py` |
 | `LLMLifecycleLMStudio` | LLM Lifecycle: LM Studio | `nodes/lifecycle.py` |
@@ -77,7 +78,7 @@ comfyui-llm-bikeshed/
 │   └── introspection.py        # Downstream generation node detection
 │
 ├── nodes/                      # ComfyUI node class definitions
-│   ├── providers.py            # OAI Compatible + Textgen providers
+│   ├── providers.py            # Connection + OAI Compatible + Textgen providers
 │   ├── lifecycle.py            # LM Studio TTL + Textgen memory widgets
 │   ├── generation.py           # Basic + Advanced generation
 │   ├── options_base.py         # Shared toggle-options builder
@@ -90,7 +91,8 @@ comfyui-llm-bikeshed/
 │   └── endpoints.py            # PromptServer routes (models, detect)
 │
 ├── js/
-│   └── model_dropdown.js       # Dynamic model COMBO + backend label UI
+│   ├── model_dropdown.js       # Dynamic model COMBO + backend label UI
+│   └── llm_connection.js       # LLM Connection face / status / catalog rules
 │
 ├── tests/                      # pytest suite (14 modules + conftest)
 ├── docs/                       # Design, research, reference, proposals

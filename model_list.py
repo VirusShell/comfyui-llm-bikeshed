@@ -600,3 +600,23 @@ def sync_textgen_load_model(
             _log_transport_fail("Textgen model load", url_n, e)
             last_err = str(e)
     return False, last_err or "load failed"
+
+def sync_resolve_connection_models(
+    url: str,
+    effective_backend: str,
+    *,
+    catalog: bool,
+) -> tuple[list[str], str, str | None]:
+    """List models for LLM Connection using the *effective* backend rules.
+
+    Non-catalog modes (llama.cpp / generic) return an empty list — the UI uses
+    a free-text model id. Catalog modes reuse Textgen-internal or OAI list paths.
+    """
+    if not catalog:
+        return [], effective_backend, None
+    if effective_backend == "text_gen_webui":
+        models, _backend, loaded = _sync_resolve_textgen_models(url)
+        return models, effective_backend, loaded
+    models, _detected, loaded = _sync_resolve_oai_compat_models(url)
+    return models, effective_backend, loaded
+

@@ -6,13 +6,18 @@ try:
     from .nodes.options_lm_studio import LLMOptionsLMStudio
     from .nodes.options_openai import LLMOptionsOpenAI
     from .nodes.options_text_gen_webui import LLMOptionsTextGenWebUI
-    from .nodes.providers import LLMProviderOAICompat, LLMProviderTextGenWebUI
+    from .nodes.providers import (
+        LLMConnection,
+        LLMProviderOAICompat,
+        LLMProviderTextGenWebUI,
+    )
     from .nodes.utils import LLMLoadTextFile, LLMPresetLoader
 
     # Import server module to trigger PromptServer endpoint registration
     from .server import endpoints as _endpoints  # noqa: F401
 
     NODE_CLASS_MAPPINGS = {
+        "LLMConnection": LLMConnection,
         "LLMProviderOAICompat": LLMProviderOAICompat,
         "LLMProviderTextGenWebUI": LLMProviderTextGenWebUI,
         "LLMLifecycleLMStudio": LLMLifecycleLMStudio,
@@ -27,6 +32,7 @@ try:
     }
 
     NODE_DISPLAY_NAME_MAPPINGS = {
+        "LLMConnection": "LLM Connection",
         "LLMProviderOAICompat": "LLM Provider: OAI Compatible",
         "LLMProviderTextGenWebUI": "LLM Provider: Textgen",
         "LLMLifecycleLMStudio": "LLM Lifecycle: LM Studio",
