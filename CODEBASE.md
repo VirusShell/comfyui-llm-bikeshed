@@ -96,7 +96,7 @@ comfyui-llm-bikeshed/
 │
 ├── tests/                      # pytest suite (14 modules + conftest)
 ├── docs/                       # Design, research, reference, proposals
-├── example_workflows/          # 3 shipped workflow JSON templates
+├── example_workflows/          # 4 shipped workflow JSON templates
 ├── presets/
 │   ├── README.txt              # Format + how LLM Preset Loader lists files
 │   └── llamacpp_oai_system.txt # Example system prompt (llama.cpp / OAI Compatible)
@@ -140,8 +140,8 @@ flowchart LR
   G -->|LLM_META chain| G
 ```
 
-1. **Provider nodes** build an `LLM_PROVIDER` dict: `backend`, `adapter`, `url`, `model`, `timeout`, optional `lifecycle`.
-2. **Lifecycle nodes** output `LLM_LIFECYCLE` (LM Studio `ttl`/`context_length`, or Textgen `manage_model_memory`).
+1. **Connection / Provider nodes** build an `LLM_PROVIDER` dict: `backend`, `adapter`, `url`, `model`, `timeout`, optional `lifecycle` (and Connection may set `load_before_generate`). Prefer **LLM Connection** for new graphs; legacy Provider nodes remain.
+2. **Lifecycle nodes** (legacy) output `LLM_LIFECYCLE` (LM Studio `ttl`/`context_length`, or Textgen `manage_model_memory`). Connection embeds the same face knobs on-node.
 3. **Options nodes** output `LLM_OPTIONS` — only toggle-enabled parameters are included (`nodes/options_base.py`).
 4. **Generation nodes** call `get_adapter(provider["adapter"]).generate(...)`, return `(text, meta)`. Advanced node accepts upstream `meta` for chaining; `graph.introspection.has_downstream_gen_node` sets `skip_unload` when another generation node is downstream on the `meta` output.
 5. **Caching / `IS_CHANGED` (deliberate):** Both `LLMGenerate` and `LLMGenerateAdvanced` implement `IS_CHANGED` as `return float("NaN")`. ComfyUI treats NaN fingerprints as never-equal, so generate nodes **always re-execute** on queue. That is intentional for LLM calls (non-deterministic / external HTTP); do not "fix" to a stable hash or seed fingerprint unless product explicitly wants cached skips. Standards note: `IS_CHANGED` is an equality fingerprint, not a boolean — `True` every time would incorrectly skip reruns.
@@ -180,22 +180,37 @@ Registered only when `aiohttp`, `PromptServer`, and relative imports succeed:
 
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/llm-bikeshed/models/oai-compat` | POST | Model list + backend label for OAI Compatible node |
-| `/llm-bikeshed/models/textgen` | POST | Textgen-only model list (no fingerprinting) |
-| `/llm-bikeshed/detect` | POST | Backend detection for UI |
+| `/llm-bikeshed/models/connection` | POST | Model list + status for **LLM Connection** (`url` + `host_mode`) |
+| `/llm-bikeshed/models/oai-compat` | POST | Model list + backend label for legacy OAI Compatible node |
+| `/llm-bikeshed/models/textgen` | POST | Textgen-only model list (no fingerprinting; legacy Textgen provider) |
+| `/llm-bikeshed/detect` | POST | Backend detection for UI (legacy OAI Compatible label) |
 | `/llm-bikeshed/models/ensure-loaded` | POST | Load-on-select helper (Textgen / LM Studio / llama.cpp when supported) |
 
-Request body: JSON `{ "url": "<base URL>" }` (ensure-loaded also takes `model` / `backend`).
+Request body: JSON `{ "url": "<base URL>" }` (Connection also takes `host_mode`; ensure-loaded also takes `model` / `backend`).
 
 **Not ComfyUI API-mode compatible:** These custom `/llm-bikeshed/*` routes are **client↔server** helpers for the browser UI (model COMBO, backend label, load-on-select). Official Comfy guidance: nodes that *require* direct client↔server traffic are **not** compatible with API/headless queue mode. **Graph dataflow remains the source of truth for generation** (`LLM_PROVIDER` → generate nodes → `POST {url}/v1/chat/completions`). Headless/API runners can still execute generation if provider URL/model are set in the workflow JSON; they will not get dynamic Refresh Models / detect / ensure-loaded from the JS extension.
 
-### Frontend (`js/model_dropdown.js`)
+### Frontend (`js/`)
 
-ComfyUI extension loaded via `WEB_DIRECTORY`. Hooks provider node creation:
+ComfyUI extensions loaded via `WEB_DIRECTORY`. Two scripts share debounce / read-only status / ensure-loaded patterns:
+
+#### `js/llm_connection.js` (LLM Connection)
+
+Extension name `llm-bikeshed.llm-connection`. Hooks **`LLMConnection`** only:
+
+- Calls **`POST /llm-bikeshed/models/connection`** with `{ url, host_mode }` (debounced initial fetch ~600ms; URL / host_mode refetch ~500ms).
+- **Refresh Models** button; read-only status chrome (serialize:false text widgets + DOM lock) for detected/effective backend, loaded model, auth hint — same Q1 pattern as `model_dropdown.js`.
+- **Model widget rules (Q2):** one Python name `model` (COMBO). Catalog backends (Textgen / LM Studio / OpenAI) keep COMBO; llama.cpp / generic switch the same widget to free-text and restore COMBO when mode flips back.
+- Face VRAM widgets shown/hidden by effective face (`manage_model_memory` for Textgen; `ttl` / `context_length` for LM Studio); optional **ensure_load_on_select** debounced (~400ms) to `POST /llm-bikeshed/models/ensure-loaded` (URL changes never load).
+
+#### `js/model_dropdown.js` (legacy providers)
+
+Hooks **`LLMProviderOAICompat`** / **`LLMProviderTextGenWebUI`**:
 
 - Debounced initial fetch (~600ms) to avoid duplicate requests when backends are offline.
-- **Refresh Models** button repopulates the `model` COMBO widget.
+- **Refresh Models** button repopulates the `model` COMBO widget via `/models/oai-compat` or `/models/textgen`.
 - Textgen provider shows read-only **loaded** model line when the server returns `loaded_model`.
+- Same read-only widget options and URL-refetch / ensure-loaded debounce constants as Connection.
 
 ### Configuration (`config/`)
 
@@ -362,9 +377,10 @@ Or uv: `[dependency-groups].dev` mirrors optional `[project.optional-dependencie
 
 | File | Description |
 |------|-------------|
-| [`example_workflows/basic_generation.json`](example_workflows/basic_generation.json) | Minimal provider + Basic generate |
-| [`example_workflows/advanced_with_options.json`](example_workflows/advanced_with_options.json) | Provider + Options + Advanced generate |
-| [`example_workflows/textgen_basic.json`](example_workflows/textgen_basic.json) | Textgen provider with memory management |
+| [`example_workflows/connection_basic.json`](example_workflows/connection_basic.json) | **LLM Connection** + Basic generate (recommended) |
+| [`example_workflows/basic_generation.json`](example_workflows/basic_generation.json) | Legacy OAI Compatible provider + Basic generate |
+| [`example_workflows/advanced_with_options.json`](example_workflows/advanced_with_options.json) | Legacy provider + Options + Advanced generate |
+| [`example_workflows/textgen_basic.json`](example_workflows/textgen_basic.json) | Legacy Textgen provider with memory management |
 
 [`presets/`](presets/) — users add `.txt` files; **LLM Preset Loader** lists and reads them (skips `README.txt`). See [`presets/README.txt`](presets/README.txt). Shipped example: [`presets/llamacpp_oai_system.txt`](presets/llamacpp_oai_system.txt) for llama.cpp / OAI Compatible system prompts.
 

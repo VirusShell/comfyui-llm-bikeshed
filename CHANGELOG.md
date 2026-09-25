@@ -7,17 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Docs: lead README / CODEBASE / examples on **LLM Connection**; demote OAI Compatible, Textgen provider, and Lifecycle nodes to **Legacy / old graphs**; document `POST /llm-bikeshed/models/connection`.
+
+## [1.0.3] - 2026-09-22
+
+Pack version files already read **1.0.3** (no semver bump in the docs pass). Catches up CHANGELOG for tip work under that version line.
+
 ### Added
+- **LLM Connection** (v4 surface) - adaptive `LLMConnection` node with `host_mode` (Auto or pinned backend), embedded Textgen / LM Studio VRAM face, secret-free status chrome, and catalog COMBO vs free-text model rules for llama.cpp / generic. Old Provider + Lifecycle nodes stay registered.
+- **`POST /llm-bikeshed/models/connection`** - host_mode-aware model list + status (`detected` / `effective` / `face` / `catalog` / `auth_status` / `loaded_model`) for the Connection UI (`js/llm_connection.js`).
+- **`js/llm_connection.js`** - Connection face extension (parity patterns with `model_dropdown.js`: debounced fetch, Refresh Models, read-only status widgets, ensure-loaded on select when enabled).
+- Seed widgets on **LLM Generate (Advanced)** aligned to ComfyUI standard (Basic already had seed).
+- Load-on-select / `POST /llm-bikeshed/models/ensure-loaded` helpers for backends that support explicit load (earlier on this version line).
 - `presets/llamacpp_oai_system.txt` example system prompt for llama.cpp / OAI Compatible; `presets/README.txt` documents loader format.
+
+### Fixed
+- **Auth** - unify OAI-shaped key fallback with `oai_compat` so Refresh Models and Generate share the same resolution path.
+- **CI / registry** - gate registry publish on `project.version` bumps; Ruff-friendly `version.py`; soften manual publish failures.
 
 ### Changed
 - Docs: custom `/llm-bikeshed/*` client↔server routes called out as **not ComfyUI API-mode compatible**; generation remains graph dataflow (`CODEBASE.md`, README Architecture).
 - `requirements.txt` now mirrors `pyproject.toml` runtime deps (`pyyaml`, `requests`) for honest git/Manager installs.
-- README: llama.cpp via **LLM Provider: OAI Compatible** quickstart (base URL without duplicated `/v1`); LM Studio / Textgen called out on the same path.
+- README: llama.cpp via Connection / OAI Compatible quickstart (base URL without duplicated `/v1`).
 - Docs: generate-node `IS_CHANGED` → `float("NaN")` documented as deliberate always-rerun (`CODEBASE.md`, node docstrings).
 - `AGENTS.md`: short tool-neutral pointer to README / CODEBASE / docs (replaces root `CLAUDE.md`).
 - Removed tracked `.claude/` and `specs/` Ralph artifacts from the git index (already gitignored).
 - Docs: neutralized Claude Code / Ralph agent dialect in CODEBASE, lessons, blargh, concept, and research pointers.
+
+## [1.0.2] - 2026-06-12
+
+### Fixed
+- **CI** - let `publish-node-action` own checkout (remove duplicate/invalid checkout flags) so registry publish can run.
 
 ## [1.0.1] - 2026-06-12
 
