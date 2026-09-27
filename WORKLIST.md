@@ -1,6 +1,6 @@
 # Worklist - comfyui-llm-bikeshed
 
-**Updated:** 2026-09-27 (systems map written; Options polish still deferred) - Ordered by what is reversible and documented. Older backlog docs (`docs/qol-backlog.md`, `docs/resolution_tracker.md`, proposals, CODEBASE open-design notes) remain **sources for candidates**, not the live queue. This file is the actionable queue.
+**Updated:** 2026-09-27 (systems map folded comfydesk deltas; Options polish still deferred) - Ordered by what is reversible and documented. Older backlog docs (`docs/qol-backlog.md`, `docs/resolution_tracker.md`, proposals, CODEBASE open-design notes) remain **sources for candidates**, not the live queue. This file is the actionable queue.
 
 Legend: `[ ]` todo / `[x]` done / `[~]` deferred (intentionally out of scope now)
 
@@ -23,7 +23,7 @@ Legend: `[ ]` todo / `[x]` done / `[~]` deferred (intentionally out of scope now
 
 ## Done (recent)
 
-- [x] **Systems map / composition** - documented in [`docs/research/2026-09-27-pack-systems-map.md`](docs/research/2026-09-27-pack-systems-map.md) (sockets, overlap, dual paths, debt, keep/demote/kill *hypotheses*, open questions for Vir). **Docs only; no code.** Ask Vir before any overhaul. Sources: CODEBASE node map + data-flow, Connection lead (`2be26be`), tracker / qol candidates.
+- [x] **Systems map / composition** - documented in [`docs/research/2026-09-27-pack-systems-map.md`](docs/research/2026-09-27-pack-systems-map.md) (sockets, overlap, dual paths, debt, keep/demote/kill *hypotheses*, open questions for Vir). Folded richer deltas from comfydesk `notes/2026-09-27-bikeshed-systems-map.md` (VRAM knob conflict, code-voice lag, Options A-1/A-13 evidence, examples gaps, extra Vir Qs). **Docs only; no code.** Ask Vir before any overhaul. Sources: CODEBASE node map + data-flow, Connection lead (`2be26be`), tracker / qol candidates, comfydesk 2026-09-27 systems map.
 - [x] **Docs lead on LLM Connection** - README / CHANGELOG / CODEBASE + `example_workflows/connection_basic.json` (`2be26be`, 2026-09-25). Remaining comfydesk UI/UX items (Options height, max_tokens, V3 spike) held pending systems direction / Vir.
 
 

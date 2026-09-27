@@ -1,25 +1,51 @@
 # Pack systems map (pre-overhaul)
 
 **Date:** 2026-09-27  
-**Status:** Docs-only orientation for Vir. Describes how surfaces compose **today**. Hypotheses are labeled; this is **not** a ship plan.  
-**Scope:** Connection, legacy providers, lifecycle, generate, options, utils, socket types — composition, overlap, debt.  
+**Status:** **NOT greenlit.** Docs-only orientation for Vir. Describes how surfaces compose **today**. Hypotheses are labeled; this is **not** a ship plan and **not** an implementation list. Options height polish stays deferred.  
+**Scope:** Connection, legacy providers, lifecycle, generate, options, utils, socket types - composition, overlap, debt.  
 **Non-goals:** No V3 spike, no registry work, no implementing Options split/polish, no product overhaul in this note.
 
-Sources (cite, don’t re-invent): [`CODEBASE.md`](../../CODEBASE.md), [`README.md`](../../README.md), [`docs/text_gen_processing_concept.md`](../text_gen_processing_concept.md), [`docs/resolution_tracker.md`](../resolution_tracker.md) (A-25, D-2, A-15/A-18/A-22), [`docs/qol-backlog.md`](../qol-backlog.md), [`docs/proposals/product-direction-and-scope.md`](../proposals/product-direction-and-scope.md), [`docs/research/cancel-interrupt-status.md`](cancel-interrupt-status.md), [`docs/research/textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md), [`docs/research/lm-studio-lifecycle-verified.md`](lm-studio-lifecycle-verified.md), [`docs/research/user-feedback-2026-06-17.md`](user-feedback-2026-06-17.md), Connection docs lead `2be26be`, worklist `7ad0758`.
+**Pack tip (this fold):** in-repo note updated to fold richer findings from comfydesk; prior pack tip before fold was `6a0dc86` (systems item pointed here). Comfydesk note was written against pack tip `7ad0758`.
+
+**External provenance:** comfydesk systems map — `D:\ai\bot-grok\comfydesk\notes\2026-09-27-bikeshed-systems-map.md` (cite below as **“comfydesk 2026-09-27 systems map”**). Pack structure kept; their deltas folded in.
+
+Sources (cite, don't re-invent): [`CODEBASE.md`](../../CODEBASE.md), [`README.md`](../../README.md), [`docs/text_gen_processing_concept.md`](../text_gen_processing_concept.md), [`docs/resolution_tracker.md`](../resolution_tracker.md) (A-1, A-13, A-25, D-2, A-15/A-18/A-22), [`docs/qol-backlog.md`](../qol-backlog.md), [`docs/proposals/product-direction-and-scope.md`](../proposals/product-direction-and-scope.md), [`docs/research/cancel-interrupt-status.md`](cancel-interrupt-status.md), [`docs/research/textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md), [`docs/research/lm-studio-lifecycle-verified.md`](lm-studio-lifecycle-verified.md), [`docs/research/user-feedback-2026-06-17.md`](user-feedback-2026-06-17.md), Connection docs lead `2be26be`, worklist `7ad0758` / `6a0dc86`, **comfydesk 2026-09-27 systems map**.
+
+---
+
+## TLDR (intended spine)
+
+*(Provenance: comfydesk 2026-09-27 systems map; aligned with pack sections below.)*
+
+Twelve registered nodes form **five product layers** that share **four** dict sockets (`LLM_PROVIDER`, `LLM_LIFECYCLE`, `LLM_OPTIONS`, `LLM_META`):
+
+| Layer | Surfaces |
+|-------|----------|
+| Connection | `LLM Connection` |
+| Legacy providers + Lifecycle | OAI Compatible, Textgen provider, Lifecycle LM/Textgen |
+| Options | LM Studio / OpenAI / Textgen Options |
+| Generate | Basic, Advanced |
+| Utils | Preset Loader, Load Text File |
+
+**Intended new-graph spine:** **Connection → Generate Basic**. Modular work adds **Options → Advanced** (Options are **orthogonal to Connection** — they attach only to Advanced; Basic inlines temp/max_tokens/seed). Optional **meta chaining** across gen nodes. Legacy Provider + Lifecycle still emit the same `LLM_PROVIDER` shape and stay registered (docs-demoted, not deleted).
+
+Overlap that needs a Vir call: **three ways to build a provider**, and **three places VRAM knobs live** (see §3). Options stay/go is a separate spine question (separate nodes vs widgets-on-gen), not height polish.
 
 ---
 
 ## 1. Job of each surface
 
-Plain-language “what is this node *for*” — not a full widget catalog.
+Plain-language "what is this node *for*" - not a full widget catalog.
 
-### LLM Connection (`LLMConnection`) — **recommended entry**
+### LLM Connection (`LLMConnection`) - **recommended entry**
 
 One adaptive node: host mode (Auto or pin LM Studio / Textgen / llama.cpp / OpenAI / Generic), URL + model, on-node VRAM face knobs for Textgen (`manage_model_memory`) and LM Studio (`ttl` / `context_length`), optional `ensure_load_on_select` (UI-only; JS → `POST /llm-bikeshed/models/ensure-loaded`). Outputs **`LLM_PROVIDER`**. No API-key widgets. Status chrome + Refresh Models via `POST /llm-bikeshed/models/connection`. Prefer this over Provider + Lifecycle for new graphs (`README`, `CODEBASE`, `2be26be`).
 
 ### Legacy: LLM Provider OAI Compatible (`LLMProviderOAICompat`)
 
-Fingerprints backend at URL; optional **`LLM_LIFECYCLE`** input. Models via `/llm-bikeshed/models/oai-compat`. Still first-class for mixed/migrated graphs and llama.cpp `/v1` when not using Connection. Hint-logs when detected backend is Textgen (“prefer Textgen provider”). Sets `load_before_generate` True when backend is Textgen even without lifecycle (unload still lifecycle-gated).
+Fingerprints backend at URL; optional **`LLM_LIFECYCLE`** input. Models via `/llm-bikeshed/models/oai-compat`. Still first-class for mixed/migrated graphs and llama.cpp `/v1` when not using Connection. Hint-logs when detected backend is Textgen ("prefer Textgen provider"). Sets `load_before_generate` True when backend is Textgen even without lifecycle (unload still lifecycle-gated).
+
+**Code-voice lag** *(comfydesk 2026-09-27 systems map):* OAI Compatible docstring/log still steers Textgen fingerprints toward the **Textgen provider**, while README / Connection lead prefer **Connection** for new graphs. Dual product voice until docs/code strings align.
 
 ### Legacy: LLM Provider Textgen (`LLMProviderTextGenWebUI`)
 
@@ -27,7 +53,7 @@ Textgen-only URL/defaults; no fingerprinting; models via `/llm-bikeshed/models/t
 
 ### Lifecycle: LM Studio / Textgen (`LLMLifecycle*`)
 
-Output **`LLM_LIFECYCLE`** only. Wire into **OAI Compatible’s** `lifecycle` input (not into Connection — Connection embeds the face). LM Studio: `ttl` + `context_length`. Textgen: `manage_model_memory` BOOLEAN (needed so ComfyUI renders the node — A-24). Product direction: lifecycle **UX** still under full rethink (D-2); code is operational, not “final mental model.”
+Output **`LLM_LIFECYCLE`** only. Wire into **OAI Compatible's** `lifecycle` input (not into Connection - Connection embeds the face). LM Studio: `ttl` + `context_length`. Textgen: `manage_model_memory` BOOLEAN (needed so ComfyUI renders the node - A-24). Product direction: lifecycle **UX** still under full rethink (D-2); code is operational, not "final mental model."
 
 ### Generate Basic (`LLMGenerate`)
 
@@ -39,7 +65,7 @@ Modular: `provider`, optional **`LLM_OPTIONS`**, optional upstream **`LLM_META`*
 
 ### Options: LM Studio / OpenAI / Textgen (`LLMOptions*`)
 
-Per-backend sampling params with enable toggles; only ON params enter the dict (`options_base.build_toggle_options`). Wire into Advanced’s `options`. Optional — disconnect → model defaults. Tall walls: Textgen ~12 params × enable = ~24 widgets; LM Studio ~9 × enable = ~18 (`qol-backlog`). Helper supports `options_in` merge, but **shipped Options nodes do not expose an `options_in` socket** in `INPUT_TYPES` today.
+Per-backend sampling params with enable toggles; only ON params enter the dict (`options_base.build_toggle_options`). Wire into Advanced's `options`. Optional - disconnect → model defaults. Tall walls: Textgen ~12 params x enable = ~24 widgets; LM Studio ~9 x enable = ~18 (`qol-backlog`). Helper supports `options_in` merge, but **shipped Options nodes do not expose an `options_in` socket** in `INPUT_TYPES` today.
 
 ### Utilities: Preset Loader / Load Text File
 
@@ -52,7 +78,7 @@ STRING sources for `system_prompt` / `prompt`. Presets from pack `presets/`; Loa
 | **`LLM_PROVIDER`** | `backend`, `adapter` (`oai_compat`), `url`, `model`, `timeout`, optional `lifecycle`, `load_before_generate` | Connection / Providers → Generate |
 | **`LLM_LIFECYCLE`** | `{type: lm_studio\|text_gen_webui, …}` | Lifecycle → OAI Compatible only (legacy) |
 | **`LLM_OPTIONS`** | Toggle-selected sampling keys | Options → Advanced |
-| **`LLM_META`** | `{provider: public_provider(...), options}` — **no secrets** | Gen → Gen chaining; Advanced can ingest |
+| **`LLM_META`** | `{provider: public_provider(...), options}` - **no secrets** | Gen → Gen chaining; Advanced can ingest |
 
 Secrets never live in these dicts; adapters resolve keys at HTTP time (`config.auth`).
 
@@ -84,9 +110,22 @@ E) Meta chaining
    Mid nodes: skip_unload=True; last node: unload / TTL settle if lifecycle active
 ```
 
-Shipped examples: `example_workflows/connection_basic.json` (A); `basic_generation.json` / `textgen_basic.json` / `advanced_with_options.json` (legacy C/D/B-shaped).
+### Examples inventory (what ships vs what's missing)
 
-### What’s redundant now that Connection exists
+*(Provenance: comfydesk 2026-09-27 systems map.)*
+
+| File | Nodes | Family path |
+|------|-------|-------------|
+| `example_workflows/connection_basic.json` | Connection + Generate Basic | **A** (docs lead) |
+| `basic_generation.json` | OAI Compatible + Generate Basic | **C**-shaped without Lifecycle |
+| `textgen_basic.json` | Textgen provider + Generate Basic | **D** |
+| `advanced_with_options.json` | OAI Compatible + Options LM Studio + Generate Advanced | **B**-shaped with **legacy** provider |
+
+**Not in examples today:** Lifecycle nodes; **Connection + Options + Advanced** (recommended B); meta-chain graphs; OpenAI Options; Textgen Options.
+
+CODEBASE mermaid still draws Provider + optional Lifecycle as the provider layer, with prose that Connection embeds faces — diagram lags Connection-first wording slightly *(comfydesk 2026-09-27 systems map)*.
+
+### What's redundant now that Connection exists
 
 | Legacy path | Connection equivalent |
 |-------------|------------------------|
@@ -103,41 +142,67 @@ All providers still produce the same **`LLM_PROVIDER`** shape and call the singl
 
 ---
 
-## 3. Conflicts / debt (cite in-repo; don’t invent)
+## 3. Conflicts / debt (cite in-repo; don't invent)
 
 ### Dual provider story (A-25, feedback 2026-06-17)
 
-Three ways to say “talk to Textgen”: Connection Textgen face, Textgen Provider, or OAI Compatible URL pointed at Textgen (+ optional Lifecycle). Lifecycle sockets only attach to OAI Compatible; Textgen Provider already embeds the same toggle. Tracker: A-25 Unresolved → D-2 rethink. Connection docs lead demoted legacy in README/CODEBASE but did not remove nodes.
+Three ways to say "talk to Textgen": Connection Textgen face, Textgen Provider, or OAI Compatible URL pointed at Textgen (+ optional Lifecycle). Lifecycle sockets only attach to OAI Compatible; Textgen Provider already embeds the same toggle. Tracker: A-25 Unresolved → D-2 rethink. Connection docs lead demoted legacy in README/CODEBASE but did not remove nodes.
 
-### Options walls
+### Three places VRAM knobs live (explicit conflict)
 
-Tall toggle nodes (qol-backlog: evaluate Textgen / LM Studio height). Worklist **defers** Options height polish until systems direction says Options stay. Split vs keep vs fold into Advanced/Connection is open (see §4). `options_in` merge exists in helper but is unused by node INPUT_TYPES — latent API, not a user-facing chain today.
+*(Provenance: comfydesk 2026-09-27 systems map.)*
+
+| Place | Where the knobs sit | Who consumes |
+|-------|---------------------|--------------|
+| **1. Connection faces** | On-node Textgen `manage_model_memory`; LM Studio `ttl` / `context_length` | Embedded into `LLM_PROVIDER` (recommended path) |
+| **2. Lifecycle → OAI** | Separate Lifecycle nodes → `LLM_LIFECYCLE` → OAI Compatible `lifecycle` input | Legacy modular VRAM path |
+| **3. Textgen-on-provider** | Textgen Provider's on-node `manage_model_memory` | Same lifecycle dict shape, no separate Lifecycle node |
+
+Same product intent (load/unload / TTL) expressed three ways. Not height polish — composition debt that feeds A-25 / D-2. *Hypothesis:* Connection-only world collapses 2 and 3 for new graphs; legacy keeps 2–3 for load-compat.
+
+### Code-voice lag (OAI vs Connection)
+
+*(Provenance: comfydesk 2026-09-27 systems map.)*
+
+When OAI Compatible fingerprints Textgen, docstring/log still prefers the **Textgen provider**. README + Connection DESCRIPTION prefer **Connection** for new graphs. Users following code hints diverge from the docs lead until strings catch up. *Hypothesis only — not a string-edit task in this note.*
+
+### Options walls (height ≠ existence)
+
+Tall toggle nodes (qol-backlog: evaluate Textgen / LM Studio height). Worklist **defers** Options height polish until systems direction says Options stay. Split vs keep vs fold into Advanced/Connection is open (see §4). `options_in` merge exists in helper but is unused by node INPUT_TYPES - latent API, not a user-facing chain today.
+
+**Stay/go evidence — not accidental debt** *(comfydesk 2026-09-27 systems map):*
+
+- **A-1 Decided:** per-provider Options + enable toggles (omit when OFF).
+- **A-13 Decided:** Basic = compact inline params; Advanced = modular provider/options/meta.
+- design_review shipped single Options walls then evaluate height — **height is polish, not existence**.
+
+So "Options might go away" in §4 is a *product* hypothesis about the spine, not evidence that separate Options were a mistake. Do **not** promote height polish from this map.
 
 ### Auth / status uneven
 
-- Keys: config/env only; OAI-shaped fallback via `providers.oai_compat`; Textgen dual api/admin keys (`get_textgen_auth_keys`) — documented in README / `textgen-lifecycle-verified.md`.
+- Keys: config/env only; OAI-shaped fallback via `providers.oai_compat`; Textgen dual api/admin keys (`get_textgen_auth_keys`) - documented in README / `textgen-lifecycle-verified.md`.
 - Status chrome: Connection has richer face (detected/effective/loaded/auth hint). Legacy providers use `model_dropdown.js` status widgets (P-12 fixed). Headless/API mode: `/llm-bikeshed/*` client routes **not** API-mode compatible; generation still works from baked URL/model in graph JSON (`CODEBASE`).
-- No browser set-key / reload-config in normal user path (tracker once mentioned reload endpoint; product still “edit yaml + restart ComfyUI” in README).
+- No browser set-key / reload-config in normal user path (tracker once mentioned reload endpoint; product still "edit yaml + restart ComfyUI" in README).
 
 ### `ensure_load_on_select` policy
 
-Connection widget default **OFF**; URL changes never load; model-dropdown change may POST ensure-loaded when ON (`CODEBASE` / `llm_connection.js`). Python `build_provider` marks the flag UI-only (`ARG002`) — does **not** enter `LLM_PROVIDER`. Load-at-queue still driven by `load_before_generate` + lifecycle inside the adapter. Policy surface is frontend + ensure-loaded route, not the provider dict.
+Connection widget default **OFF**; URL changes never load; model-dropdown change may POST ensure-loaded when ON (`CODEBASE` / `llm_connection.js`). Python `build_provider` marks the flag UI-only (`ARG002`) - does **not** enter `LLM_PROVIDER`. Load-at-queue still driven by `load_before_generate` + lifecycle inside the adapter. Policy surface is frontend + ensure-loaded route, not the provider dict.
 
 ### Cancel / VRAM gaps (documented)
 
 From [`cancel-interrupt-status.md`](cancel-interrupt-status.md):
 
 - ComfyUI Cancel **unblocks** the execution thread (interruptible HTTP) for generation/lifecycle GETs used that way.
-- **Textgen:** host stop via `POST /v1/internal/stop-generation` — empirical PASS (v4.9, 2026-06-17).
-- **LM Studio:** no stop API in pack — empirical FAIL/expected (v0.4.16); inference can continue after Cancel.
+- **Textgen:** host stop via `POST /v1/internal/stop-generation` - empirical PASS (v4.9, 2026-06-17).
+- **LM Studio:** no stop API in pack - empirical FAIL/expected (v0.4.16); inference can continue after Cancel.
 - **No unload-on-interrupt:** successful-path unload only; interrupt can leave model loaded (product choice unresolved).
 - Lifecycle chain empirical QA (A-15 / A-18 / A-19 / A-22) still open; worklist defers behind systems direction.
 
-VRAM sharing intent remains core (`CODEBASE` purpose; concept doc A-15/A-18): Textgen explicit load/unload; LM Studio TTL (+ explicit load for context — JIT #1463 still open per lm-studio research note).
+VRAM sharing intent remains core (`CODEBASE` purpose; concept doc A-15/A-18): Textgen explicit load/unload; LM Studio TTL (+ explicit load for context - JIT #1463 still open per lm-studio research note).
 
 ---
 
-## 4. Keep / demote / kill — *hypotheses* (not recommendations to ship)
+## 4. Keep / demote / kill - *hypotheses* (not recommendations to ship)
 
 Label: **hypothesis**. Ask Vir before any overhaul.
 
@@ -147,23 +212,25 @@ Label: **hypothesis**. Ask Vir before any overhaul.
 | **OAI Compatible provider** | **Demote** in docs/UX; possibly long-lived compatibility | Still useful for exotic OAI hosts / old graphs; overlapping with Connection Auto. |
 | **Textgen provider** | **Demote** or eventually fold into Connection | A-25 overlap; Connection Textgen face covers new work. |
 | **Lifecycle nodes** | **Demote** for new graphs; fate tied to D-2 | Only needed for legacy OAI Compatible wiring. |
-| **Generate Basic + Advanced** | **Keep** split for now (A-13 decided) | *Hypothesis:* someday one node with optional breakouts — not proposed here. |
-| **Options nodes** | **Open — might go away, merge, or stay** | Height debt + backend-specific walls. Alternatives (*hypotheses*): fold common knobs into Advanced; single Options with backend allowlist; keep toggles but split/collapse UI. **Do not implement Options polish until this is answered** (worklist). |
+| **Generate Basic + Advanced** | **Keep** split for now (A-13 decided) | *Hypothesis:* someday one node with optional breakouts - not proposed here. A-13 is evidence the split was intentional, not debt. |
+| **Options nodes** | **Open - might go away, merge, or stay** | A-1/A-13 decided separate Options + Basic/Advanced — **not** accidental debt; height ≠ existence *(comfydesk 2026-09-27)*. Alternatives (*hypotheses*): fold common knobs into Advanced; single Options with backend allowlist; keep toggles but split/collapse UI. **Do not implement Options polish until this is answered** (worklist). |
 | **Preset / Load Text** | **Keep** | Independent STRING utilities. |
 | **Socket types** | **Keep** `PROVIDER` / `OPTIONS` / `META`; **`LIFECYCLE` may shrink** if Connection-only world wins | *Hypothesis:* lifecycle becomes fields-only inside PROVIDER (already true on Connection). |
 
 ---
 
-## 5. Open questions for Vir (product choices — not height polish)
+## 5. Open questions for Vir (product choices - not height polish)
 
 1. **Canonical connectivity:** Is Connection the only *taught* path, with legacy providers frozen indefinitely, or is there a timeline to unregister / hide them?
-2. **Lifecycle mental model (D-2):** Stay “face knobs on Connection,” revive separate Lifecycle nodes, or a different VRAM metaphor entirely?
+2. **Lifecycle mental model (D-2):** Stay "face knobs on Connection," revive separate Lifecycle nodes, or a different VRAM metaphor entirely?
 3. **Options future:** Keep per-backend Options nodes, merge into Advanced/Connection, or replace with a thinner sampling surface? (Height polish blocked on this.)
 4. **Basic vs Advanced:** Keep two generate nodes, or converge once Options direction is clear?
-5. **Interrupt + VRAM policy:** On Cancel, should Textgen/LM Studio **unload**, leave loaded, or defer — and is LM Studio “Cancel doesn’t stop GPU” acceptable as documented limit?
-6. **`ensure_load_on_select`:** Stay default OFF forever, or become part of a clearer “when does the pack load weights?” story with Manage model memory?
-7. **Auth UX:** Stay yaml/env + restart only, or invest in status/reload so Connection’s auth hint is actionable without doc diving?
+5. **Interrupt + VRAM policy:** On Cancel, should Textgen/LM Studio **unload**, leave loaded, or defer - and is LM Studio "Cancel doesn't stop GPU" acceptable as documented limit?
+6. **`ensure_load_on_select`:** Stay default OFF forever, or become part of a clearer "when does the pack load weights?" story with Manage model memory?
+7. **Auth UX:** Stay yaml/env + restart only, or invest in status/reload so Connection's auth hint is actionable without doc diving?
 8. **llama.cpp:** Connection/OAI `/v1` forever enough, or revisit dedicated node later (D-4 still tabled)?
+9. **OpenAI / cloud knobs:** Stay first-class on Connection host_mode + Options OpenAI (A-23), or demote cloud surfaces while leaving nodes loadable? *(comfydesk 2026-09-27 systems map)*
+10. **Example / docs truth:** Bring `advanced_with_options.json` (and CODEBASE mermaid if any) onto the **Connection → Options → Advanced** spine so examples match the recommended composition? *(comfydesk 2026-09-27 systems map)*
 
 ---
 
@@ -172,7 +239,8 @@ Label: **hypothesis**. Ask Vir before any overhaul.
 - No ComfyUI **V3** node API spike  
 - No Comfy Registry / publish changes  
 - No implementing Options split, height collapse, or provider deletion  
-- No resolving D-2 / A-25 in code — only framing for Vir  
+- No resolving D-2 / A-25 in code - only framing for Vir  
+- No promoting Options height polish from stay/go evidence  
 
 ---
 
@@ -181,11 +249,11 @@ Label: **hypothesis**. Ask Vir before any overhaul.
 ```text
                     ┌─ (legacy) Lifecycle ─┐
                     │                      ▼
- Connection ────┐   │              OAI Compatible ──┐
- Textgen Prov. ─┼───┴───────────────────────────────┤
+ Connection ──┐     │              OAI Compatible ──┐
+ Textgen Prov.┼─────┴───────────────────────────────┤
                 │         LLM_PROVIDER              ▼
-                └─────────────────────────────► Generate Basic
- Options* ──LLM_OPTIONS───────────────────────► Generate Advanced
+                └─────────────────────────────────► Generate Basic
+ Options* ──LLM_OPTIONS───────────────────────────► Generate Advanced
                                                     │
                                               LLM_META chain
                                                     ▼
@@ -198,4 +266,4 @@ Adapter underneath: always `oai_compat` → `POST {url}/v1/chat/completions` (+ 
 
 ## Related worklist
 
-Live queue: [`WORKLIST.md`](../../WORKLIST.md) — systems map item should point here; Options height remains deferred until Vir answers §5 item 3.
+Live queue: [`WORKLIST.md`](../../WORKLIST.md) - systems map item points here (folded comfydesk deltas 2026-09-27); Options height remains deferred until Vir answers §5 item 3 (and related spine questions 9–10).
