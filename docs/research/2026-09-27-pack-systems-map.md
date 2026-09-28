@@ -1,7 +1,7 @@
 # Pack systems map (pre-overhaul)
 
 **Date:** 2026-09-27  
-**Status:** **NOT greenlit.** Docs-only orientation for Vir. Describes how surfaces compose **today**. Hypotheses are labeled; this is **not** a ship plan and **not** an implementation list. Options height polish stays deferred.  
+**Status:** **NOT greenlit.** Docs-only orientation for Vir. Describes how surfaces compose **today**. Hypotheses are labeled; this is **not** a ship plan and **not** an implementation list. Options height polish stays deferred. Vir Q1 is answered: legacy providers remain only for compatibility/testing and existing workflows until the Connection path is confirmed; then unregister/hide them. This does **not** greenlight unrelated overhaul code.
 **Scope:** Connection, legacy providers, lifecycle, generate, options, utils, socket types - composition, overlap, debt.  
 **Non-goals:** No V3 spike, no registry work, no implementing Options split/polish, no product overhaul in this note.
 
@@ -27,7 +27,7 @@ Twelve registered nodes form **five product layers** that share **four** dict so
 | Generate | Basic, Advanced |
 | Utils | Preset Loader, Load Text File |
 
-**Intended new-graph spine:** **Connection → Generate Basic**. Modular work adds **Options → Advanced** (Options are **orthogonal to Connection** — they attach only to Advanced; Basic inlines temp/max_tokens/seed). Optional **meta chaining** across gen nodes. Legacy Provider + Lifecycle still emit the same `LLM_PROVIDER` shape and stay registered (docs-demoted, not deleted).
+**Intended new-graph spine:** **Connection → Generate Basic**. Modular work adds **Options → Advanced** (Options are **orthogonal to Connection** — they attach only to Advanced; Basic inlines temp/max_tokens/seed). Optional **meta chaining** across gen nodes. Legacy Provider + Lifecycle still emit the same `LLM_PROVIDER` shape and remain temporarily registered for compatibility/testing and existing workflows while the Connection path is confirmed; then unregister/hide them rather than maintain a second product.
 
 Overlap that needs a Vir call: **three ways to build a provider**, and **three places VRAM knobs live** (see §3). Options stay/go is a separate spine question (separate nodes vs widgets-on-gen), not height polish.
 
@@ -134,7 +134,7 @@ CODEBASE mermaid still draws Provider + optional Lifecycle as the provider layer
 | Textgen Provider + embedded memory toggle | Connection Textgen face |
 | Separate `/models/oai-compat` + `/detect` UX | `/models/connection` + host_mode |
 
-Legacy nodes stay registered so old workflows keep working (`README` Legacy section). New graphs should not need Provider+Lifecycle pairs.
+Legacy nodes remain registered only long enough to keep old workflows working and confirm the Connection path (`README` Legacy section); then unregister/hide them. New graphs should not need Provider+Lifecycle pairs.
 
 ### Shared under the hood
 
@@ -228,8 +228,8 @@ Label: **hypothesis**. Ask Vir before any overhaul.
 | Surface | Hypothesis | Notes |
 |---------|------------|--------|
 | **LLM Connection** | **Keep** as primary connectivity | Already documented lead (`2be26be`). |
-| **OAI Compatible provider** | **Demote** in docs/UX; possibly long-lived compatibility | Still useful for exotic OAI hosts / old graphs; overlapping with Connection Auto. |
-| **Textgen provider** | **Demote** or eventually fold into Connection | A-25 overlap; Connection Textgen face covers new work. |
+| **OAI Compatible provider** | **Compatibility/test path until Connection is confirmed** | Keep existing workflows working; then unregister/hide rather than maintain a second product. |
+| **Textgen provider** | **Compatibility/test path until Connection is confirmed** | Keep existing workflows working; then unregister/hide rather than maintain a second product. |
 | **Lifecycle nodes** | **Demote** for new graphs; fate tied to D-2 | Only needed for legacy OAI Compatible wiring. |
 | **Generate Basic + Advanced** | **Keep** split for now (A-13 decided) | *Hypothesis:* someday one node with optional breakouts - not proposed here. A-13 is evidence the split was intentional, not debt. |
 | **Options nodes** | **Open - might go away, merge, or stay** | A-1/A-13 decided separate Options + Basic/Advanced — **not** accidental debt; height ≠ existence *(comfydesk 2026-09-27)*. Alternatives (*hypotheses*): fold common knobs into Advanced; single Options with backend allowlist; keep toggles but split/collapse UI. **Do not implement Options polish until this is answered** (worklist). |
@@ -240,7 +240,7 @@ Label: **hypothesis**. Ask Vir before any overhaul.
 
 ## 5. Open questions for Vir (product choices - not height polish)
 
-1. **Canonical connectivity:** Is Connection the only *taught* path, with legacy providers frozen indefinitely, or is there a timeline to unregister / hide them?
+1. **Canonical connectivity — ANSWERED (Vir, 2026-09-28):** Connection is the new path. Keep legacy providers only for compatibility/testing and to avoid breaking existing workflows; as soon as Connection is confirmed to work, unregister/hide them. They are not a second maintained product.
 2. **Lifecycle mental model (D-2):** Stay "face knobs on Connection," revive separate Lifecycle nodes, or a different VRAM metaphor entirely?
 3. **Options future:** Keep per-backend Options nodes, merge into Advanced/Connection, or replace with a thinner sampling surface? (Height polish blocked on this.)
 4. **Basic vs Advanced:** Keep two generate nodes, or converge once Options direction is clear?
