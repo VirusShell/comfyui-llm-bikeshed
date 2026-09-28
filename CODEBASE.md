@@ -309,11 +309,7 @@ Not authoritative product. Read for background. Do not implement from these file
 |----------|---------|
 | [`docs/resolution_tracker.md`](docs/resolution_tracker.md) | Historical item log (A-*, P-*, API-*). Status words are write-time intent. |
 | [`docs/text_gen_processing_concept.md`](docs/text_gen_processing_concept.md) | Early node-architecture concept |
-| [`docs/qol-backlog.md`](docs/qol-backlog.md) | Quality-of-life candidates (Options height, inline presets) |
-| [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md) | 2026-05 / 2026-09-14 direction notes. Connection spine superseded the OAI-only llama.cpp lead. |
-| [`docs/proposals/textgen-rehaul.md`](docs/proposals/textgen-rehaul.md) | Textgen lifecycle-manager proposal. Not shipped. |
-| [`docs/proposals/textgen-rehaul-tasks.md`](docs/proposals/textgen-rehaul-tasks.md) | Task breakdown for that proposal |
-| [`docs/proposals/ollama-removal-plan.md`](docs/proposals/ollama-removal-plan.md) | Historical removal plan (shipped 0.3.0) |
+| [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md) | 2026-05 / 2026-09-14 direction notes. Connection spine superseded the OAI-only llama.cpp lead. Historical banner stays. |
 
 ### Research and handoffs (`docs/research/`)
 
@@ -334,9 +330,7 @@ Not authoritative product. Read for background. Do not implement from these file
 | Path | Notes |
 |------|-------|
 | [`docs/the-archive/`](docs/the-archive/) | Timestamped evidence captures; see [`docs/the-archive/README.md`](docs/the-archive/README.md) |
-| `docs/old/` | **Superseded** concept docs — still tracked; stamped historical. `.gitignore` blocks new files here. Not deleted. |
-| [`docs/thorough-audit-2026-04-27.md`](docs/thorough-audit-2026-04-27.md) | Point-in-time audit snapshot (stamped historical) |
-| [`docs/design_review_update_2026-03-10.md`](docs/design_review_update_2026-03-10.md) | Design review update (stamped historical; reload-config removed) |
+| Removed in honesty cleanup | `docs/old/` (concept, research brief, general Comfy node reference), April 2026 thorough audit, 2026-03-10 design review, QoL backlog, Textgen rehaul proposal and tasks, Ollama removal plan. Record: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased] and [0.3.0] for the Ollama removal. QoL items are on [`WORKLIST.md`](WORKLIST.md) Deferred. DOC-1 / DOC-2 stay ask-first; the in-repo general Comfy reference is gone. |
 
 ---
 
@@ -405,12 +399,12 @@ These paths are excluded from normal git workflow or never committed:
 | `config.yaml` | User secrets and host overrides |
 | `.venv/`, `__pycache__/`, `*.egg-info/`, `dist/`, `build/` | Python build/env artifacts |
 | `.pytest_cache/`, `.ruff_cache/`, `uv.lock` | Tool caches / lockfile (local uv use) |
-| `docs/old/` (new files), `docs/blargh.md`, `docs/Screenshot-*.png` | Superseded or scratch docs |
+| `docs/old/` (gitignored; tracked files removed), `docs/blargh.md`, `docs/Screenshot-*.png` | Superseded or scratch docs. Tracked `docs/old/` was removed in the honesty cleanup. |
 | `specs/**` (local only) | Ignored local scratch under `specs/` — not project source of truth |
 | `.claude/`, `*.code-workspace`, `.vscode/` | IDE/agent local config |
 | `Thumbs.db`, `.DS_Store` | OS cruft |
 
-**Note:** Root `CLAUDE.md` was removed in favor of `AGENTS.md`. `CLAUDE.md` remains in `.gitignore` so it is not re-added; `docs/old/*` may still appear in both `.gitignore` and history. This branch drops tracked `specs/` and `.claude/` from the index; ignore rules keep them local-only going forward.
+**Note:** Root `CLAUDE.md` was removed in favor of `AGENTS.md`. `CLAUDE.md` remains in `.gitignore` so it is not re-added. `docs/old/` stays in `.gitignore`; its tracked files were removed in the honesty cleanup and are not in the tree. This branch drops tracked `specs/` and `.claude/` from the index; ignore rules keep them local-only going forward.
 
 **Not gitignored but excluded from Comfy Registry archive:** see [`.comfyignore`](.comfyignore) (`docs/`, `tests/`, `.github/`, `specs/`, `CONTRIBUTING.md`, `AGENTS.md`, `.claude/`).
 

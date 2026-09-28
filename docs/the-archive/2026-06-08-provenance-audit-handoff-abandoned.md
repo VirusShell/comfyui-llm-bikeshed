@@ -25,7 +25,7 @@
 
 **Separate concerns:**
 
-- [`docs/thorough-audit-2026-04-27.md`](../thorough-audit-2026-04-27.md) — April 2026 **static** code/doc review; background only.
+- April 2026 **static** code/doc review — removed in the honesty cleanup (CHANGELOG [Unreleased]); background only, not a live file.
 - [`cancel-interrupt-status.md`](cancel-interrupt-status.md) — Cancel **shipped vs gaps**; update when interrupt behavior changes.
 - [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md) — optional live cancel QA for humans with GPU + backends (protocol **not** in this doc).
 
@@ -87,7 +87,7 @@ Work top-down. Update **Status** as you verify. Goal: every external claim has t
 | 1.5 | **External citation freshness** | Per `provenance-and-reverification.md`: re-fetch issues/PRs cited in tracker, lessons-learned, reference docs; record open/closed/superseded | Cross-cutting | **Partial** — LM Studio #1463 re-fetched open 2026-06-08; Textgen `script.py` re-read 2026-06-08; wiki URLs in backend-api-parameters replaced with upstream repo |
 | 1.6 | **Off-repo corpus disposition** | DOC-1/DOC-2 — inventory complete; owner decision still open | `external-comfyui-reference-corpus.md`, tracker DOC-1, DOC-2 | **Unresolved** (owner) |
 | 1.7 | **Lessons-learned URL audit** | External URLs inside `docs/lessons-learned.md` — incident narrative may be trusted; citations need separate freshness check | `docs/lessons-learned.md` | **Verified** — no external URLs in file (2026-06-08); narrative references in-repo paths only |
-| 1.8 | **Proposals vs reality** | Flag proposal assumptions contradicted by code or upstream changes | `docs/proposals/*.md`, D-1–D-4 rows | **Partial** — `product-direction-and-scope.md` reality-check note added; textgen-rehaul lifecycle still correctly marked on hold |
+| 1.8 | **Proposals vs reality** | Flag proposal assumptions contradicted by code or upstream changes | `docs/proposals/*.md`, D-1–D-4 rows | **Partial** — `product-direction-and-scope.md` reality-check note added; Textgen lifecycle-manager proposal was on hold at audit time (files removed in the honesty cleanup; did not ship) |
 
 **Tier 1 done when:** Each row above is **Verified** (sweep complete, gaps documented) or explicitly **Deferred** with owner reason — not when cancel QA finishes.
 
@@ -175,7 +175,7 @@ These were the **first runtime fixes** that motivated the audit branch; they do 
 ## Out of scope
 
 - **Textgen-rehaul lifecycle manager** — separate epic
-- **Full April audit re-run** — `thorough-audit-2026-04-27.md`
+- **Full April audit re-run** — snapshot removed in the honesty cleanup (CHANGELOG [Unreleased])
 - **Declaring all research invalid** without per-claim audit
 - **Skipping Tier 1** to run live cancel QA
 

@@ -12,7 +12,8 @@ Project truth lives in:
 
 - [`docs/resolution_tracker.md`](docs/resolution_tracker.md)
 - [`docs/text_gen_processing_concept.md`](docs/text_gen_processing_concept.md)
-- [`docs/qol-backlog.md`](docs/qol-backlog.md)
-- rehaul and product-direction proposals under [`docs/proposals/`](docs/proposals/)
+- [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md)
+
+The QoL backlog, Textgen rehaul notes, Ollama removal plan, `docs/old/`, and the dated audit and design-review snapshots were removed in the honesty cleanup. See [`CHANGELOG.md`](CHANGELOG.md) [Unreleased].
 
 Prefer README, CODEBASE, and WORKLIST over this stub. Naming in artifacts: **am_Vir** / **user** only. Do not rename `LLM*` node class IDs.

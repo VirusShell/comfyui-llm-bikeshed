@@ -241,7 +241,7 @@ System: Absolute vs Relative" entry above for the full details.
 **Severity:** Moderate — wrong `skip_unload` when chaining meta into/out of test generation nodes  
 **What happened:** `GENERATION_CLASS_TYPES` in `graph/introspection.py` listed only `LLMGenerate` and `LLMGenerateAdvanced`. `LLMGenerateTest` still called `has_downstream_gen_node` for meta output index 1, but downstream test nodes were never recognized, so upstream nodes could unload or shorten TTL while a chained test generation still needed the model.  
 **Root cause:** Whitelist drift — a new generation `class_type` was added without updating the introspection set.  
-**Fix:** Add `LLMGenerateTest` to `GENERATION_CLASS_TYPES`; add `tests/test_graph_introspection.py`; document in `docs/thorough-audit-2026-04-27.md`. Remove stray `logger.warning` debug block from `LLMGenerateTest.generate`.  
+**Fix:** Add `LLMGenerateTest` to `GENERATION_CLASS_TYPES`; add `tests/test_graph_introspection.py`. The April 2026 audit write-up that recorded this was removed in the honesty cleanup. Remove stray `logger.warning` debug block from `LLMGenerateTest.generate`.  
 **Prevention:** Whenever a new node outputs `LLM_META` and participates in unload chains, extend `GENERATION_CLASS_TYPES` (or centralize a single registry keyed by node class). Run / extend graph introspection tests.
 
 ## Pytest vs ComfyUI root `__init__.py`

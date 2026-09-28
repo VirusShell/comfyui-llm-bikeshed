@@ -2,6 +2,8 @@
 
 **Historical evidence (stamp only, 2026-09-28).** Not the live queue ([`WORKLIST.md`](../../WORKLIST.md)) and not authoritative product. Do not delete these files to "clean up" status.
 
+Superseded notes outside this directory — `docs/old/`, the April 2026 audit, the 2026-03-10 design review, the QoL backlog, the unshipped Textgen rehaul notes, and the shipped Ollama removal plan — were removed in the honesty cleanup. The record is [`CHANGELOG.md`](../../CHANGELOG.md) [Unreleased] (Ollama removal itself is [0.3.0]). DOC-1 and DOC-2 stay ask-first on the worklist. The in-repo general Comfy node reference is gone.
+
 Structured research captures for this project.
 
 ## Purpose

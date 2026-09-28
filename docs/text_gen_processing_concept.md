@@ -6,7 +6,7 @@
 **Status:** **Historical / candidate source.** Not authoritative product. Live queue: [`WORKLIST.md`](../WORKLIST.md). Shipped behavior: README and CODEBASE.
 **Companion doc:** [`resolution_tracker.md`](resolution_tracker.md) is a historical item log, not the live queue and not the source of truth for status.
 
-**Post–0.3.0 scope note:** Native **Ollama** is **not** implemented in this pack (D-3). Earlier text that lists Ollama as an in-pack backend or documents Ollama-specific nodes remains as **design history** unless a paragraph is explicitly refreshed; see `CHANGELOG.md` [0.3.0] and `docs/proposals/ollama-removal-plan.md`.
+**Post–0.3.0 scope note:** Native **Ollama** is **not** implemented in this pack (D-3). Earlier text that lists Ollama as an in-pack backend or documents Ollama-specific nodes remains as **design history** unless a paragraph is explicitly refreshed; see `CHANGELOG.md` [0.3.0]. The removal-plan note was removed in the honesty cleanup.
 
 ---
 
