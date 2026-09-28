@@ -1,5 +1,7 @@
 # The Archive
 
+**Historical evidence (stamp only, 2026-09-28).** Not the live queue ([`WORKLIST.md`](../../WORKLIST.md)) and not authoritative product. Do not delete these files to "clean up" status.
+
 Structured research captures for this project.
 
 ## Purpose

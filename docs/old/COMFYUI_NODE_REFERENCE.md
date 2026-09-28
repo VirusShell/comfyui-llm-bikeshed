@@ -1,5 +1,7 @@
 # ComfyUI Custom Node Development Reference
 
+**Historical (stamp only, 2026-09-28).** Not the live queue ([`WORKLIST.md`](../../WORKLIST.md)). Do not delete. Not authoritative product. Platform behavior that this pack still relies on is in [`docs/reference/comfyui-platform-findings.md`](../reference/comfyui-platform-findings.md), with P-3 / P-5 stamps.
+
 > **Last updated:** 2026-02-22
 > **Verified against:** ComfyUI frontend v1.38.13, Comfy-Org/ComfyUI master branch
 > **Scope:** General ComfyUI node development knowledge, not project-specific

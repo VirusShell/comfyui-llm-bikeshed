@@ -1,5 +1,7 @@
 # Textgen Lifecycle Rehaul Proposal
 
+**Historical / candidate source (honesty scrub 2026-09-28).** Not authoritative product. Live queue: [`WORKLIST.md`](../../WORKLIST.md). **A-25 shipped** a single Connection **Manage VRAM** toggle instead of this policy manager. Do not implement the schema, idle timers, or manager from this file.
+
 ## Status & scope
 
 **Research authority:** Implementation and future lifecycle work **must not contradict** findings in [`docs/research/textgen-lifecycle-verified.md`](../research/textgen-lifecycle-verified.md) without updating that research file with new upstream sources (routes, auth split, response shapes).

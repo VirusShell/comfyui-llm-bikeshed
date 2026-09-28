@@ -1,6 +1,8 @@
 # Ollama removal — execution plan
 
-**Status:** Executed 2026-05-12 (code + docs). Aligns with product direction ([`product-direction-and-scope.md`](product-direction-and-scope.md) § Ollama) and tracker **D-3** ([`resolution_tracker.md`](../resolution_tracker.md)).
+**Historical record.** Executed 2026-05-12 (code + docs). Not the live queue ([`WORKLIST.md`](../../WORKLIST.md)). Aligns with tracker **D-3** ([`resolution_tracker.md`](../resolution_tracker.md), also historical).
+
+**Superseded line in §1:** a dedicated llama.cpp node is not "still deferred." **D-4 is closed.** llama.cpp is **LLM Connection** (or legacy OAI Compatible) speaking `/v1`. **Q6** removed load-on-select.
 
 ## 1. Goal / non-goals
 
@@ -10,7 +12,7 @@
 
 - Replacing ecosystem Ollama support (other Comfy packs remain the right place for native Ollama UX).
 - Removing **URL/backend auto-detection** for the **OAI Compatible** provider solely because the probe can return `ollama` (see § Inventory — `detection.py`).
-- Dedicated llama.cpp / llama-server **node** (still deferred); OAI Compatible path for llama.cpp `/v1` is first-class per product-direction.
+- Dedicated llama.cpp / llama-server **node** — this sentence is **superseded**. D-4 is closed. Connection (or legacy OAI Compatible) `/v1` is the path. See the stamp at the top.
 
 ## 2. Inventory (repo grep / read, 2026-05-12)
 

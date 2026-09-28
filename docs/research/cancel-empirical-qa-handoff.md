@@ -118,7 +118,7 @@ For each run: source URL (if citing upstream behavior), **source date** (backend
 ## Follow-ups after empirical QA (optional)
 
 1. ~~**Integration test**~~ — **Done** (`7c9bbc6`): `TestOAICompatTextgenCancel` in `tests/test_interrupt.py`.
-2. **Interrupt cleanup policy** — unload-on-cancel vs leave-loaded (human decision; VRAM vs latency).
+2. ~~**Interrupt cleanup policy** — unload-on-cancel vs leave-loaded~~ — **Superseded by Q5 (2026-09-28).** Default is leave-loaded. Properties `unload_on_interrupt` (default off) unloads on Cancel only when Manage VRAM or a legacy lifecycle embedded a lifecycle.
 3. ~~**User docs (README)**~~ — **Done** (`7c9bbc6`). Optional: generation node inline help.
 
 See [`cancel-interrupt-status.md`](cancel-interrupt-status.md) § Recommended next steps for ordered minimal list.

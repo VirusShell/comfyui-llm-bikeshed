@@ -4,7 +4,9 @@ Thanks for your interest in **comfyui-llm-bikeshed**.
 
 ## Scope
 
-This pack covers **LLM text generation** for ComfyUI (LM Studio, Textgen, OpenAI-compatible hosts). Out of scope: image/video generation, native Ollama, chat history nodes, and additional cloud APIs unless explicitly scoped in the tracker.
+This pack covers **LLM text generation** for ComfyUI (LM Studio, Textgen, OpenAI-compatible hosts, llama.cpp via Connection). Out of scope: image/video generation, native Ollama, chat history nodes, and additional cloud APIs unless explicitly scoped in [`WORKLIST.md`](WORKLIST.md).
+
+**Live queue:** [`WORKLIST.md`](WORKLIST.md). [`docs/resolution_tracker.md`](docs/resolution_tracker.md), [`docs/text_gen_processing_concept.md`](docs/text_gen_processing_concept.md), [`docs/qol-backlog.md`](docs/qol-backlog.md), and the rehaul / product-direction proposals are **historical or candidate sources**. They do not authorize work by themselves. Ask-first items on the worklist stay candidates until Vir says to start.
 
 ## Getting started
 

@@ -74,9 +74,11 @@ This is how comfyui-ollama does it (POST `/ollama/get_models`).
 
 ### Fallback for Offline
 
-Instead of COMBO-to-text dynamic switching (complex, fragile), use a STRING input with `defaultInput: True`. User can type a model name manually or connect from another node. The COMBO dropdown is a convenience, not the authoritative input.
+The original finding rejected COMBO-to-text switching as fragile, and preferred a STRING input with `defaultInput: True` (`model_fallback` on legacy providers).
 
-**Confidence:** Likely (follows established ecosystem patterns)
+**Shipped exception (Connection):** llama.cpp and generic **intentionally** switch the same `model` widget from COMBO to free text and restore COMBO when the face flips back (`js/llm_connection.js`). That is current product, not a bug against this finding. Legacy **OAI Compatible** and **Textgen** providers still use a COMBO plus `model_fallback`.
+
+**Confidence:** Likely for the legacy STRING-fallback pattern. The Connection COMBO→text switch is intentional shipped behavior.
 
 ---
 
@@ -95,13 +97,15 @@ Instead of COMBO-to-text dynamic switching (complex, fragile), use a STRING inpu
 
 ---
 
-## P-5: Config Reload/Caching (DECIDED)
+## P-5: Config Reload/Caching (DECIDED, endpoint superseded)
 
 No official ComfyUI guidance. Ecosystem convention: load at import time, cache in module-level variable.
 
-**Decision:** Cache on module load. Provide `/llm-bikeshed/reload-config` PromptServer endpoint. Frontend can offer "Reload Config" button. Per-execution reload is unnecessary overhead.
+**Historical decision:** cache on module load and expose `POST /llm-bikeshed/reload-config` plus a frontend Reload Config button.
 
-**Confidence:** Assumed (reasonable engineering decision, no authoritative source)
+**Superseded (1.0.0):** that route was removed (unused, and it was an unauthenticated config reload). The pack still caches config on first access. After editing `config.yaml`, **restart ComfyUI** (or call `reload_config()` from Python). There is no Reload Config button and no `/llm-bikeshed/reload-config` route.
+
+**Confidence:** The removal is shipped code (CHANGELOG 1.0.0). The original endpoint decision is historical.
 
 ---
 

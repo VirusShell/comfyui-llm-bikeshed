@@ -1,5 +1,7 @@
 # Textgen Rehaul Implementation Checklist
 
+**Historical / candidate source (honesty scrub 2026-09-28).** Not the live queue ([`WORKLIST.md`](../../WORKLIST.md)) and not a license to change lifecycle nodes. The policy-manager work in [`textgen-rehaul.md`](textgen-rehaul.md) did not ship. Connection **Manage VRAM** (A-25) is the shipped VRAM face.
+
 This checklist is intentionally separated from active project specs/docs.  
 It is scoped to implementing `docs/proposals/textgen-rehaul.md`.
 

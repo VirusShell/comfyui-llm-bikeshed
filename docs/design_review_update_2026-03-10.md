@@ -1,8 +1,10 @@
 # Design Review Update — 2026-03-10
 
+**Historical point-in-time (stamp only, 2026-09-28).** Not the live queue ([`WORKLIST.md`](../WORKLIST.md)). Where this file conflicts with README, CODEBASE, or WORKLIST, those win. It is not a spec to implement. The `POST /llm-bikeshed/reload-config` endpoint described below was **removed in 1.0.0**. Seed defaults of `-1` are not current widgets (seed min is `0`).
+
 ## Purpose
 
-This document contains corrections, additions, and clarifications from the final design review. It is self-contained — all information needed to act on it is included here. Where this document conflicts with prior docs, this document wins.
+This document contains corrections, additions, and clarifications from the 2026-03-10 design review. It was written to be self-contained. The "this document wins" rule applied to older concept drafts at the time. It does not win over shipped behavior.
 
 ---
 

@@ -1,6 +1,8 @@
 # Product direction & scope (proposal)
 
-**Status:** Living document - captures stakeholder direction as of 2026-05, with a **2026-09-14** clarification on llama.cpp via OAI Compatible. It does **not** by itself change shipped code or supersede every row in `docs/resolution_tracker.md`; reconciling older "Decided" rows with this direction is a separate documentation pass when implementation catches up.
+**Status:** **Historical / candidate source** (honesty scrub 2026-09-28). Not authoritative product and not the live queue ([`WORKLIST.md`](../../WORKLIST.md)). Captures stakeholder direction as of 2026-05, with a **2026-09-14** clarification that treated llama.cpp as an OAI Compatible path. It does not authorize implementation. The resolution tracker is also historical.
+
+**Shipped since this note (v1.1.0):** the intended graph is **LLM Connection → LLM Generate (Advanced)**. **Q6** removed model-pick preload (do not read "load-on-select" below as current UX). **A-25** shipped one Connection **Manage VRAM** toggle (Textgen / LM Studio). Manage VRAM OFF does not embed a lifecycle. **Q5** shipped Properties `unload_on_interrupt` (default off). The Textgen lifecycle-manager rehaul did not ship.
 
 **Reality check (2026-06-08):** Core v1 nodes are **shipped** (OAI/Textgen providers, lifecycle nodes, Basic/Advanced generation, per-provider options). Lifecycle **UX** remains under rethink below - existing lifecycle wiring is operational, not validated as the final product model.
 
@@ -10,7 +12,9 @@ Engineering and UX attention should favor **text-generation-webui (Textgen)** in
 
 ## Lifecycle: full rethink (do not assume current designs)
 
-Current **lifecycle code** (Textgen/LM Studio lifecycle nodes, adapter load/unload paths) and the **Textgen lifecycle overhaul** described in [`textgen-rehaul.md`](textgen-rehaul.md) are **not** treated as validated as the long-term mental model for users. They may be technically coherent yet still wrong for how people expect ComfyUI graphs to behave.
+**Shipped instead (A-25, v1.1.0):** new graphs use one Connection **Manage VRAM** toggle. OFF does not embed a lifecycle. The policy manager in the rehaul did not ship. Legacy Lifecycle nodes stay registered.
+
+Current **lifecycle code** (Textgen/LM Studio lifecycle nodes, adapter load/unload paths) and the **Textgen lifecycle overhaul** described in [`textgen-rehaul.md`](textgen-rehaul.md) were **not** treated as the long-term mental model when this section was written. They may be technically coherent yet still wrong for how people expect ComfyUI graphs to behave.
 
 Expect a **full rethink** of lifecycle UX and architecture-not incremental polish on the existing proposal-before treating any lifecycle manager design as authoritative. The rehaul document may still **inform** a future design or may be **largely superseded** once the rethink lands; cross-links between these files stay explicit so readers do not merge them into one "approved spec" in their heads.
 
@@ -22,7 +26,9 @@ Expect a **full rethink** of lifecycle UX and architecture-not incremental polis
 
 ## llama.cpp: OAI Compatible first-class; dedicated node deferred
 
-**In scope now (2026-09-14):** llama.cpp servers that expose OpenAI-compatible HTTP (`/v1/chat/completions`, typically `/health` and `/v1/models`) are a **first-class path on LLM Provider: OAI Compatible**. Detection labels, docs, UX (model list, loaded-model status, load-on-select where the server supports it), allowlists, and presets for that path are in-scope and should not be treated as "deferred."
+**In scope as of 2026-09-14 (wording below is historical):** llama.cpp servers that expose OpenAI-compatible HTTP (`/v1/chat/completions`, typically `/health` and `/v1/models`) were called a first-class path on **LLM Provider: OAI Compatible**, including load-on-select where the server supported it.
+
+**Superseded (v1.1.0):** the first-class path is **LLM Connection** (host mode llama.cpp or Auto) into **LLM Generate (Advanced)**. Legacy **OAI Compatible** still loads old graphs. **Q6 removed load-on-select.** A dedicated llama-server node stays dead (D-4 closed). Presets still apply; wire them through Connection (see `presets/README.txt`).
 
 **Still deferred:** a **dedicated** llama-server / llama.cpp provider or lifecycle node, and any pack-owned process manager for starting/stopping llama-server. Using **llama.cpp engines inside LM Studio or Textgen** remains a normal indirect path and is unchanged.
 

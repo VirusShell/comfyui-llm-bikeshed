@@ -7,7 +7,7 @@
 
 **Date discovered:** 2026-03-15
 **Severity:** Breaks all functionality at runtime
-**Status:** Fix in progress
+**Status:** **Shipped.** Relative imports landed. The old "Fix in progress" line is **superseded**. Nodes use relative imports, with `try/except ImportError` absolute fallbacks so pytest can import the same modules (see the 2026-05-12 providers entry). Do not reopen this as an open fix.
 
 All 18 cross-module imports used absolute paths (`from nodes.generation import ...`)
 which resolve correctly in a local venv but collide with ComfyUI's own `nodes.py` and
@@ -107,7 +107,7 @@ See `docs/blargh.md` for historical forensics (tooling-specific; not product beh
 
 **Date discovered:** 2026-03-15
 **Severity:** Wasted effort / false confidence
-**Status:** Needs rethink
+**Status:** Historical. **Pytest runs** in CI (`python -m pytest`, `.github/workflows/test.yml`) via `tests/conftest.py` and the try/except import pattern. The "tests can't run after relative imports" state below is the 2026-03-15 incident, not current collection.
 
 150 unit tests were built assuming the code runs as standalone Python packages in an
 isolated venv. This assumption was wrong — the code runs as a plugin inside ComfyUI's
@@ -366,8 +366,8 @@ System: Absolute vs Relative" entry above for the full details.
 |-------|--------|
 | **Severity** | Medium |
 | **What happened** | After v1.0.0 published successfully, a packaging-only pyproject.toml commit re-ran publish and failed (duplicate 1.0.0). Later release commits failed when publish-node-action@1.0.1 was pinned with unsupported skip_checkout. |
-| **Root cause** | Workflow paths: pyproject.toml fires on any edit to that file, not only semver bumps. Action tag 1.0.1 lacks skip_checkout (present on @main). |
-| **Fix** | Gate publish on project.version diff; use publish-node-action@main with skip_checkout: true and explicit checkout@v6. Document in VERSIONING.md. |
+| **Root cause** | Workflow paths: pyproject.toml fires on any edit to that file, not only semver bumps. Action tag 1.0.1 lacks skip_checkout (that input existed on `@main` at the time). |
+| **Fix** | Gate publish on a `project.version` diff, with `skip_checkout: true` and explicit `checkout@v6`. **Superseded pin:** `.github/workflows/publish_registry.yml` uses `Comfy-Org/publish-node-action@d2366e7abb6ab16f3bb03e3520ae25c8cf749bc9`, **not** `@main`. Do not move the action back to `@main` from this lesson. |
 | **Prevention** | Bump project.version whenever pyproject.toml must land without a registry release; use workflow_dispatch for intentional republish. |
 
 ## Default-port backend probe invalid for workflow QA (2026-06-17)
@@ -389,4 +389,5 @@ System: Absolute vs Relative" entry above for the full details.
 | **Root cause** | (1) Textgen does not JIT-load on chat — load only ran when lifecycle was wired, while OAI Compatible at Textgen URLs had no default load path. (2) `updateModelWidget` could prefer stale saved values over the user's current COMBO selection after refresh. (3) `loaded_model` JSON was Textgen-only; LM Studio / llama.cpp never queried. (4) `disabled`/`read_only` widget options are ignored on some frontend builds without DOM enforcement. |
 | **Fix** | `load_before_generate` on provider dict (Textgen provider respects `manage_model_memory`; OAI Compatible enables for Textgen URLs). `POST /llm-bikeshed/models/ensure-loaded` + COMBO callback loads on selection. LM Studio REST + llama.cpp `/v1/models` status parsing for `loaded_model`. `VALIDATE_INPUTS` rejects placeholder COMBO values. `attachReadOnlyWidget()` DOM hardening. |
 | **Prevention** | Backends that require explicit load must not rely on lifecycle nodes alone for the happy path; dynamic COMBO updates must preserve `widget.value` when still valid; status widgets need DOM-level read-only fallback; loaded-model probes should follow each backend's native list API shape. |
+| **Superseded (Q6, 2026-09-28)** | The "COMBO callback loads on selection" part of **Fix** is not current behavior. Model pick does not call ensure-loaded. The route remains for generate / Manage VRAM. See WORKLIST Q6. |
 

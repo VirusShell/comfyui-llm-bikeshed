@@ -1,5 +1,7 @@
 # comfyui-llm-bikeshed — Resolution Tracker
 
+**Historical record (not the live queue).** Generated 2026-02-25. Status words below are write-time intent, not current product authority. The actionable queue is [`WORKLIST.md`](../WORKLIST.md). Shipped surface at v1.1.0 is **LLM Connection → LLM Generate (Advanced)** (README / CODEBASE). Do not implement from a row here unless WORKLIST says so.
+
 Generated: 2026-02-25
 
 ## Status definitions
@@ -68,9 +70,9 @@ Promote toward **Confirmed** only after updating a `docs/research/` note (templa
 |---|------|--------|-------|
 | P-1 | `OUTPUT_IS_LIST` behavior for STRING outputs | Tabled | Only needed for Image Describe batch output (deferred from v1). Documented in external ComfyUI reference corpus (`05-backend-advanced.md`; see `docs/research/external-comfyui-reference-corpus.md`). |
 | P-2 | Dynamic COMBO widget behavior on workflow load with missing options | Decided | Use frontend JS + PromptServer endpoint for model lists (not backend INPUT_TYPES). Saved model name persists in `widgets_values`. JS populates COMBO from endpoint, shows fallback if backend offline. Ecosystem pattern for dynamic refresh COMBOs. |
-| P-3 | COMBO → text input dynamic widget switching via JS | Decided | Not needed. Use STRING input with `defaultInput: True` as manual fallback instead. COMBO-to-text switching is complex and fragile. |
+| P-3 | COMBO → text input dynamic widget switching via JS | Decided | Historical decision: prefer a STRING fallback over COMBO-to-text. **Shipped exception:** on **LLM Connection**, llama.cpp and generic switch the same `model` widget from COMBO to free text on purpose (`js/llm_connection.js`). Legacy providers still use COMBO plus `model_fallback`. |
 | P-4 | ComfyUI error display mechanisms | Confirmed | Exception in FUNCTION halts workflow (red outline, error notification). VALIDATE_INPUTS for pre-execution checks. Toast API for non-fatal warnings. Python logging for console output. |
-| P-5 | Config reload — caching behavior | Decided | Cache on module load. Provide `/llm-bikeshed/reload-config` PromptServer endpoint. Per-execution reload is unnecessary overhead. |
+| P-5 | Config reload — caching behavior | Decided | Historical decision: cache on module load. **Superseded in code (1.0.0):** `POST /llm-bikeshed/reload-config` was removed. Restart ComfyUI (or call `reload_config()` from Python) after editing `config.yaml`. There is no Reload Config button. |
 | P-6 | `forceInput` behavior and serialization prevention | Confirmed | Well-documented. Prevents widget creation → no value in workflow JSON. |
 | P-7 | ComfyUI widget initialization order on workflow load | Moot | Only mattered for inline COMBO→STRING preset interaction (A-6). Preset Loader node chosen instead. |
 | P-8 | Batch dimension handling for IMAGE type | Confirmed | [B,H,W,C] format. Handle both [H,W,C] and [B,H,W,C] defensively. |

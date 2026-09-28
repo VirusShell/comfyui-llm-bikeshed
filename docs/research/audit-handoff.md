@@ -8,6 +8,7 @@ The project-wide backward provenance inventory (Tier 1 checklist, session log, a
 
 | Doc | Role |
 |-----|------|
+| [`WORKLIST.md`](../../WORKLIST.md) | **Live queue.** Tracker and proposals are historical or candidate sources. |
 | [`provenance-and-reverification.md`](provenance-and-reverification.md) | Decision-time gates for new cites and shipped behavior |
 | [`fresh-context-prevention-prompt.md`](fresh-context-prevention-prompt.md) | Default fresh-chat paste for feature/bug work |
 | [`research-note-template.md`](research-note-template.md) | Structure for new `docs/research/*.md` notes |

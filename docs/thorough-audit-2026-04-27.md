@@ -1,5 +1,7 @@
 # Thorough audit — LLM Bikeshed (2026-04-27)
 
+**Historical snapshot (stamp only, 2026-09-28).** Not the live queue ([`WORKLIST.md`](../WORKLIST.md)) and not current product status. Findings below are the 2026-04-27 review.
+
 This document **scopes** what was reviewed, **records methodology**, and **lists findings** with follow-ups. Static review and new unit tests were executed in-repo; live ComfyUI QA remains optional.
 
 ## 1. Audit scope

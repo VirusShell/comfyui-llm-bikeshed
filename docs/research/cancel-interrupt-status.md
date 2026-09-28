@@ -1,8 +1,10 @@
 # Cancel / interrupt implementation status
 
 **Created:** 2026-06-07  
-**Last updated:** 2026-06-17  
+**Last updated:** 2026-06-17 (body); **Q5 stamp 2026-09-28**  
 **Status:** ComfyUI-side cooperative cancel **shipped** (commit `1006400`); Textgen host-side **stop-generation wired** (code read 2026-06-07, re-confirmed 2026-06-08); mock Textgen stop-generation integration test added (`7c9bbc6`); README cancel section shipped (`7c9bbc6`); **partial empirical runs** 2026-06-17 — Textgen v4.9 cancel **PASS**; LM Studio v0.4.16 cancel **FAIL** (expected, no stop API). Lifecycle chain QA (A-15, A-18, A-19, A-22) still open.
+
+**Q5 shipped (2026-09-28, v1.1.0):** unload-on-cancel is no longer an open product question. Both Generate nodes have right-click Properties `unload_on_interrupt` (default off). Cancel unloads only when a lifecycle is embedded (Connection **Manage VRAM** ON, or a legacy lifecycle). Manage VRAM OFF does not unload. API queues that omit the workflow properties blob stay off. Sections below that call lifecycle cleanup on interrupt "not shipped" or "unresolved" are **superseded** for that policy. Host stop gaps (LM Studio / OpenAI have no stop API in this pack) are unchanged.
 
 ---
 
@@ -58,7 +60,7 @@ This is **not** the project-wide provenance audit. For decision-time gates and t
 |-------|------------|
 | **ComfyUI** | Cancel sets a global interrupt flag (`interrupt_current_processing()`). It does **not** terminate in-flight HTTP, subprocesses, or worker threads in custom nodes. Nodes must poll cooperatively. |
 | **This pack (shipped)** | Adapter HTTP used for generation and lifecycle management **unblocks the ComfyUI execution thread** on Cancel: polling detects the flag, aborts the client read, and propagates `InterruptProcessingException`. The workflow queue can proceed. **Textgen:** `POST /v1/internal/stop-generation` is called on cancel during chat completions (API key when configured). |
-| **This pack (not shipped)** | **Host inference stop** for LM Studio / OpenAI / generic OAI, **lifecycle cleanup on interrupt** (unload / TTL follow-through), and **user-facing docs** on limits. |
+| **This pack (not shipped)** | **Host inference stop** for LM Studio / OpenAI / generic OAI. **Superseded (Q5):** "lifecycle cleanup on interrupt" is no longer an open gap — it is the opt-in property `unload_on_interrupt` (default off, only when a lifecycle is embedded). README cancel limits are documented. |
 
 ### Test coverage (`tests/test_interrupt.py`)
 
@@ -80,7 +82,7 @@ This is **not** the project-wide provenance audit. For decision-time gates and t
 
 | Gap | Priority | Notes |
 |-----|----------|-------|
-| **Unload on interrupt is opt-in** | Medium | Default stays success-path unload only. Generate Properties `unload_on_interrupt` (default off) calls the same lifecycle unload on Cancel when a lifecycle is embedded (Manage VRAM ON or legacy lifecycle). Manage VRAM OFF does not unload. LM Studio / Textgen unload paths still use **bare `requests.post`**. |
+| **Unload on interrupt is opt-in** | **Shipped (Q5)** | Not an open "decide unload-on-cancel" gap. Default stays success-path unload only. Generate Properties `unload_on_interrupt` (default off) calls the same lifecycle unload on Cancel when a lifecycle is embedded (Manage VRAM ON or legacy lifecycle). Manage VRAM OFF does not unload. LM Studio / Textgen unload HTTP still uses **bare `requests.post`**. |
 | **`stream: false` in API body** | Medium (design constraint) | Chat payload always sets `"stream": False`. Transport uses streaming reads for cancel, but many hosts treat non-streaming completions as “run to completion server-side”; client disconnect may **not** stop inference. |
 | **Model list endpoints not interruptible** | Low (acceptable) | `model_list.py` and server dropdown paths use bare `requests.get` / `requests.post` — short calls; not routed through `interruptible_request()`. |
 | **User-facing README / node help** | Low (README done) | README § Cancel during generation documents Comfy unblocks vs host limits (`7c9bbc6`). Generation node inline help still minimal. |
@@ -105,7 +107,7 @@ This is **not** the project-wide provenance audit. For decision-time gates and t
 | Does `POST /v1/internal/stop-generation` still exist and which key (`--api-key` vs `--admin-key`)? | https://github.com/oobabooga/textgen/blob/main/modules/api/script.py (access 2026-06-07) | **Confirmed** — route exists; `check_key` → API key |
 | Does `stop-generation` affect **blocking** `/v1/chat/completions` with `stream: false`? | Upstream sets `shared.stop_everything`; generation loop checks it | **Empirical PASS** — Textgen v4.9, operator run 2026-06-17 |
 | Does LM Studio stop GPU work when the client closes a non-streaming chat connection? | Lessons-learned prevention note (2026-06-03) | **Empirical FAIL** — LM Studio v0.4.16, operator run 2026-06-17; documents user-facing limit |
-| Should interrupt trigger lifecycle unload (immediate vs defer vs skip)? | Product / VRAM policy | **Unresolved** — design choice |
+| Should interrupt trigger lifecycle unload (immediate vs defer vs skip)? | Product / VRAM policy | **Superseded by Q5 (2026-09-28)** — Properties `unload_on_interrupt`, default off. Unload on Cancel only when Manage VRAM (or a legacy lifecycle) embedded a lifecycle. Manage VRAM OFF does not unload. |
 | ComfyUI interrupt API stability | ComfyUI `comfy.model_management` | **Assumed** — matches lessons-learned fix; re-check on major ComfyUI upgrades |
 
 ---
@@ -126,7 +128,7 @@ This is **not** the project-wide provenance audit. For decision-time gates and t
 2. ~~**Empirical [VERIFY]** — live LM Studio cancel~~ — **Done** 2026-06-17 (v0.4.16 FAIL/expected). See § Empirical runs.
 3. **Empirical [VERIFY]** — lifecycle chains (A-15, A-18, A-19, A-22). **Procedure:** [`cancel-empirical-qa-handoff.md`](cancel-empirical-qa-handoff.md) § C–D.
 4. ~~**Integration test**~~ — **Done** (`7c9bbc6`): mock Textgen cancel → assert `POST …/stop-generation`.
-5. **Interrupt cleanup policy** — decide unload-on-cancel vs leave-loaded; implement minimally if VRAM impact confirmed.
+5. ~~**Interrupt cleanup policy** — decide unload-on-cancel vs leave-loaded~~ — **Superseded by Q5 (2026-09-28).** Default stays leave-loaded. Opt-in Properties flag unloads on Cancel only when a lifecycle is embedded.
 6. ~~**User docs (README)**~~ — **Done** (`7c9bbc6`). Optional: generation node inline help.
 
 ---

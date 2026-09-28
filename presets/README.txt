@@ -11,7 +11,7 @@ Drop UTF-8 `.txt` files in this directory. **LLM Preset Loader** lists them in a
 
 ## Example shipped
 
-- `llamacpp_oai_system.txt` — short system prompt for llama.cpp / other OAI-compatible local servers via **LLM Provider: OAI Compatible**.
+- `llamacpp_oai_system.txt` — short system prompt for llama.cpp and other OpenAI-compatible local servers. Prefer **LLM Connection** (host mode llama.cpp or Auto) → **LLM Generate (Advanced)**, and wire **LLM Preset Loader** into `system_prompt`. The legacy **LLM Provider: OAI Compatible** node can still take the same STRING.
 
 ## Adding your own
 
