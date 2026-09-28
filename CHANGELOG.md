@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Docs honesty scrub (no version bump): [`WORKLIST.md`](WORKLIST.md) is the live queue. The resolution tracker, concept doc, QoL backlog, and rehaul / product-direction notes are marked historical or candidate sources. Older notes that still described model-pick preload, always-on lifecycle embed, an open unload-on-cancel choice, in-progress relative imports, or publish-action `@main` now say what shipped (Q6, A-25, Q5, relative imports, action SHA pin).
+
 ## [1.1.0] - 2026-09-28
 
 ### Changed

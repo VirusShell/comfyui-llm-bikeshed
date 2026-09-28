@@ -1,6 +1,6 @@
 # Codebase Guide — comfyui-llm-bikeshed
 
-Orientation map for developers and AI agents working on this ComfyUI custom node pack. Describes the repository as tracked in git (~**97 files** as of the current tree: **39** Python modules, **15** test files, **32** docs paths).
+Orientation map for developers and AI agents working on this ComfyUI custom node pack. File set at v1.1.0 (`b61be6b`; this scrub did not add or remove files): ~**100** tracked files, **40** Python files (**24** pack modules and **16** under `tests/`), **35** paths under `docs/`.
 
 ---
 
@@ -97,7 +97,7 @@ comfyui-llm-bikeshed/
 │   ├── llm_connection.js       # LLM Connection face / status / catalog rules
 │   └── generate_properties.js  # Generate Properties: unload_on_interrupt
 │
-├── tests/                      # pytest suite (14 modules + conftest)
+├── tests/                      # pytest suite (15 modules + conftest)
 ├── docs/                       # Design, research, reference, proposals
 ├── example_workflows/          # 5 workflow JSON templates (1 intended, 4 legacy)
 ├── presets/
@@ -266,6 +266,7 @@ Implements P-10 chain-aware unload deferral: walks the ComfyUI `PROMPT` dict to 
 | `test_options.py` | Toggle options building |
 | `test_providers.py` | Provider dict construction |
 | `test_pack_no_ollama.py` | Ensures Ollama nodes/adapters are absent |
+| `test_workflow_json_security.py` | Workflow-shaped JSON must not contain API keys (S-3) |
 
 **Run locally:**
 
@@ -287,28 +288,32 @@ Tests import pack modules directly (not through ComfyUI's loader). `__init__.py`
 
 | Document | Purpose |
 |----------|---------|
-| [`docs/text_gen_processing_concept.md`](docs/text_gen_processing_concept.md) | Node architecture, categories, design rationale |
-| [`docs/resolution_tracker.md`](docs/resolution_tracker.md) | Source of truth for open questions (A-*, P-*, API-*) |
+| [`WORKLIST.md`](WORKLIST.md) | **Live queue.** Older backlog docs are candidate sources only. |
+| [`README.md`](README.md) | User install, nodes, quick start |
+| [`CODEBASE.md`](CODEBASE.md) | This map: layout, architecture, packaging |
+| [`CHANGELOG.md`](CHANGELOG.md) | Release history |
+| [`docs/VERSIONING.md`](docs/VERSIONING.md) | Semver, release checklist, registry. Current surface is the Connection spine at v1.1.0. |
 | [`docs/research/textgen-lifecycle-verified.md`](docs/research/textgen-lifecycle-verified.md) | Verified Textgen HTTP/auth/routes |
 | [`docs/research/lm-studio-lifecycle-verified.md`](docs/research/lm-studio-lifecycle-verified.md) | Verified LM Studio lifecycle behavior |
 | [`docs/research/provenance-and-reverification.md`](docs/research/provenance-and-reverification.md) | Rules for citing external facts |
-| [`docs/reference/comfyui-platform-findings.md`](docs/reference/comfyui-platform-findings.md) | ComfyUI platform behavior (P-9, P-10, COMBO) |
+| [`docs/reference/comfyui-platform-findings.md`](docs/reference/comfyui-platform-findings.md) | ComfyUI platform behavior (P-9, P-10, COMBO). P-3 and P-5 carry shipped stamps. |
 | [`docs/reference/implementation-patterns.md`](docs/reference/implementation-patterns.md) | Copy-paste node patterns |
 | [`docs/reference/backend-api-parameters.md`](docs/reference/backend-api-parameters.md) | Per-backend parameter mapping |
 | [`docs/lessons-learned.md`](docs/lessons-learned.md) | Post-incident notes (required after non-obvious fixes) |
-| [`docs/VERSIONING.md`](docs/VERSIONING.md) | Semver, release checklist, registry |
-| [`README.md`](README.md) | User install, nodes, quick start |
-| [`CHANGELOG.md`](CHANGELOG.md) | Release history |
 
-### Non-authoritative / roadmap signals
+### Historical / candidate sources (not the live queue)
+
+Not authoritative product. Read for background. Do not implement from these files alone. Ask-first archive items stay candidates on [`WORKLIST.md`](WORKLIST.md).
 
 | Document | Purpose |
 |----------|---------|
-| [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md) | Roadmap signals (Textgen-first, lifecycle rethink) |
-| [`docs/proposals/textgen-rehaul.md`](docs/proposals/textgen-rehaul.md) | Textgen provider redesign notes |
-| [`docs/proposals/textgen-rehaul-tasks.md`](docs/proposals/textgen-rehaul-tasks.md) | Task breakdown for Textgen rehaul |
+| [`docs/resolution_tracker.md`](docs/resolution_tracker.md) | Historical item log (A-*, P-*, API-*). Status words are write-time intent. |
+| [`docs/text_gen_processing_concept.md`](docs/text_gen_processing_concept.md) | Early node-architecture concept |
+| [`docs/qol-backlog.md`](docs/qol-backlog.md) | Quality-of-life candidates (Options height, inline presets) |
+| [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md) | 2026-05 / 2026-09-14 direction notes. Connection spine superseded the OAI-only llama.cpp lead. |
+| [`docs/proposals/textgen-rehaul.md`](docs/proposals/textgen-rehaul.md) | Textgen lifecycle-manager proposal. Not shipped. |
+| [`docs/proposals/textgen-rehaul-tasks.md`](docs/proposals/textgen-rehaul-tasks.md) | Task breakdown for that proposal |
 | [`docs/proposals/ollama-removal-plan.md`](docs/proposals/ollama-removal-plan.md) | Historical removal plan (shipped 0.3.0) |
-| [`docs/qol-backlog.md`](docs/qol-backlog.md) | Quality-of-life backlog |
 
 ### Research and handoffs (`docs/research/`)
 
@@ -317,7 +322,9 @@ Tests import pack modules directly (not through ComfyUI's loader). `__init__.py`
 | `research-note-template.md` | Template for new verified research notes |
 | `fresh-context-prevention-prompt.md` | Paste into new agent chats |
 | `fresh-context-audit-prompt.md` | Audit-oriented fresh-context prompt |
-| `cancel-interrupt-status.md` | Cancel/interrupt shipped vs gaps |
+| `cancel-interrupt-status.md` | Cancel/interrupt shipped vs gaps (Q5 unload policy stamped) |
+| `2026-09-27-pack-systems-map.md` | Composition map. Overhaul still not greenlit; tip stamped at v1.1.0 |
+| `2026-09-28-model-vs-loaded-per-backend.md` | Q11 research. Select-preload and always-embed sentences are pre-ship |
 | `cancel-empirical-qa-handoff.md` | Human-run cancel QA protocol |
 | `audit-handoff.md` | Audit handoff notes |
 | `external-comfyui-reference-corpus.md` | Off-repo ComfyUI doc mirror pointer (DOC-1) |
@@ -327,9 +334,9 @@ Tests import pack modules directly (not through ComfyUI's loader). `__init__.py`
 | Path | Notes |
 |------|-------|
 | [`docs/the-archive/`](docs/the-archive/) | Timestamped evidence captures; see [`docs/the-archive/README.md`](docs/the-archive/README.md) |
-| `docs/old/` | **Superseded** concept docs — still tracked in git but listed in `.gitignore` for new files |
-| [`docs/thorough-audit-2026-04-27.md`](docs/thorough-audit-2026-04-27.md) | Point-in-time audit snapshot |
-| [`docs/design_review_update_2026-03-10.md`](docs/design_review_update_2026-03-10.md) | Design review update |
+| `docs/old/` | **Superseded** concept docs — still tracked; stamped historical. `.gitignore` blocks new files here. Not deleted. |
+| [`docs/thorough-audit-2026-04-27.md`](docs/thorough-audit-2026-04-27.md) | Point-in-time audit snapshot (stamped historical) |
+| [`docs/design_review_update_2026-03-10.md`](docs/design_review_update_2026-03-10.md) | Design review update (stamped historical; reload-config removed) |
 
 ---
 
@@ -411,7 +418,7 @@ These paths are excluded from normal git workflow or never committed:
 
 ## Conventions for contributors
 
-1. **Scope:** LLM text generation only — see [`CONTRIBUTING.md`](CONTRIBUTING.md) and tracker before adding backends or node types.
+1. **Scope:** LLM text generation only — see [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`WORKLIST.md`](WORKLIST.md) before adding backends or node types. The resolution tracker is a historical log, not the queue.
 2. **Imports:** Node and adapter modules use `try/except ImportError` with relative (`..`) and absolute fallbacks so code works both inside ComfyUI's custom-node loader and in pytest.
 3. **Secrets:** Never put API keys in widgets, provider dicts, or `LLM_META` outputs. Use `config.auth.resolve_provider_auth` at HTTP time.
 4. **Parameters:** Unsupported backend params are dropped with info-level logs, not user-facing errors.

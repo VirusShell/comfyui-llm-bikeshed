@@ -1,5 +1,7 @@
 # Research Brief: ComfyUI Custom Node Development Reference
 
+**Historical (stamp only, 2026-09-28).** Not the live queue ([`WORKLIST.md`](../../WORKLIST.md)). Do not delete. Not authoritative product.
+
 ## Objective
 
 Create a comprehensive, practical reference document for ComfyUI custom node

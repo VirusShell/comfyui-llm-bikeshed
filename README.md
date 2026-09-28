@@ -163,7 +163,7 @@ The Generate node for new graphs. Outputs `text` (STRING) and `meta` (LLM_META).
 | **LLM Preset Loader** | Lists `.txt` files from the [`presets/`](presets/) directory, outputs file content as STRING |
 | **LLM Load Text File** | Lists `.txt` files from ComfyUI's input folder, outputs file content as STRING |
 
-Connect either to a generation node's `system_prompt` or `prompt` input. See [`presets/README.txt`](presets/README.txt) for format; shipped example [`presets/llamacpp_oai_system.txt`](presets/llamacpp_oai_system.txt) (llama.cpp / OAI Compatible).
+Connect either to a generation node's `system_prompt` or `prompt` input. See [`presets/README.txt`](presets/README.txt) for format. Shipped example [`presets/llamacpp_oai_system.txt`](presets/llamacpp_oai_system.txt): use it on **LLM Connection** → **LLM Generate (Advanced)** (host mode llama.cpp or Auto). The legacy OAI Compatible node can still take the same STRING.
 
 ### Legacy / compatibility
 
@@ -216,14 +216,14 @@ Point Connection at any llama.cpp server that speaks OpenAI-compatible HTTP. The
 
 ### Older examples (migration)
 
-These files stay in the repo so old graphs have a picture to copy from. They are not the new-graph path.
+These files stay in the repo so old graphs have a picture to copy from. They are **legacy**. They are not the new-graph path. [`connection_generate.json`](example_workflows/connection_generate.json) is the intended example. Widget values match current nodes (seed is `0`, not `-1`; Advanced includes face `max_tokens` and `seed`) so the graphs still load.
 
 | File | Graph |
 |------|--------|
-| [`connection_basic.json`](example_workflows/connection_basic.json) | Connection + **Basic** |
-| [`basic_generation.json`](example_workflows/basic_generation.json) | Legacy OAI Compatible + Basic |
-| [`textgen_basic.json`](example_workflows/textgen_basic.json) | Legacy Textgen provider + Basic |
-| [`advanced_with_options.json`](example_workflows/advanced_with_options.json) | Legacy OAI Compatible + Options + Advanced |
+| [`connection_basic.json`](example_workflows/connection_basic.json) | **Legacy:** Connection + Basic |
+| [`basic_generation.json`](example_workflows/basic_generation.json) | **Legacy:** OAI Compatible + Basic |
+| [`textgen_basic.json`](example_workflows/textgen_basic.json) | **Legacy:** Textgen provider + Basic |
+| [`advanced_with_options.json`](example_workflows/advanced_with_options.json) | **Legacy:** OAI Compatible + Options + Advanced |
 
 ## Cancel during generation
 

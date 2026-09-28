@@ -12,15 +12,16 @@ Apply **decision-time prevention** before external claims become durable project
 
 | Doc | Why |
 |-----|-----|
-| [`provenance-and-reverification.md`](provenance-and-reverification.md) | **Gate A–C:** research notes, tracker status, shipping behavior |
+| [`WORKLIST.md`](../../WORKLIST.md) | **Live queue.** What to do next. Not the tracker. |
+| [`provenance-and-reverification.md`](provenance-and-reverification.md) | **Gate A–C:** research notes, evidence, shipping behavior |
 | [`research-note-template.md`](research-note-template.md) | Structure for new/updated `docs/research/*.md` (gold example: [`textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md)) |
-| [`resolution_tracker.md`](../resolution_tracker.md) | § Status definitions — status ≠ proof; use `[VERIFY]` when evidence is incomplete |
-| [`AGENTS.md`](../../AGENTS.md) | Pointer to README / CODEBASE / docs (stub only) |
+| [`resolution_tracker.md`](../resolution_tracker.md) | **Historical** item log. Status words ≠ proof and ≠ the live queue. |
+| [`AGENTS.md`](../../AGENTS.md) | Pointer to README / CODEBASE / WORKLIST (stub only) |
 
 ## Before you cite or ship
 
 1. **External fact** → source URL, access date (`YYYY-MM-DD`), verified how (`code read` / `empirical` / `docs only`), applies-to files/tracker IDs.
-2. **Tracker promotion** → matching research note row; `docs only` alone is **not** enough for **Confirmed**.
+2. **Queue** → actionable work belongs in [`WORKLIST.md`](../../WORKLIST.md). A tracker row is historical intent, not a license to implement. `docs only` alone is **not** enough for **Confirmed** on an external claim.
 3. **Textgen routes/auth** → read [`textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md).
 4. **LM Studio lifecycle** → read [`lm-studio-lifecycle-verified.md`](lm-studio-lifecycle-verified.md).
 5. **Runtime surprise with non-obvious root cause** → entry in [`docs/lessons-learned.md`](../lessons-learned.md) per `AGENTS.md`.

@@ -1,4 +1,6 @@
 > **Status: ABANDONED** (2026-06-11). Archived copy of the backward-inventory paste prompt. For normal work, use [`fresh-context-prevention-prompt.md`](../research/fresh-context-prevention-prompt.md) instead.
+>
+> **Honesty stamp (2026-09-28):** the live queue is [`WORKLIST.md`](../../WORKLIST.md). This paste still names `docs/resolution_tracker.md` as project status. That file is a **historical** record, not authoritative product. Do not paste this prompt.
 
 You are resuming **optional project-wide provenance inventory** for the ComfyUI custom node pack **comfyui-llm-bikeshed**.
 

@@ -1,5 +1,7 @@
 # comfyui-llm-bikeshed — Concept Document
 
+**Historical (stamp only, 2026-09-28).** Not the live queue ([`WORKLIST.md`](../../WORKLIST.md)). Do not delete. Shipped product is README / CODEBASE.
+
 > **Phase:** Conceptual / Early Ideation
 > **Date:** 2025-02-18
 > **Status:** Exploring ideas — nothing here is locked in stone

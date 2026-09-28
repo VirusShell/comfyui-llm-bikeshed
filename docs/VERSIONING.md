@@ -15,7 +15,7 @@ This pack uses [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 | New nodes, backends, or user-visible features; non-breaking behavior improvements | **MINOR** |
 | Bug fixes, docs-only, internal refactors with no user-visible contract change | **PATCH** |
 
-Pre-1.0 history (0.1.0–0.3.0) reflected early development and the Ollama removal at 0.3.0. **1.0.0** marks the first public GitHub and ComfyUI Registry release with the current provider, lifecycle, generation, and cancel-interrupt surface.
+Pre-1.0 history (0.1.0–0.3.0) reflected early development and the Ollama removal at 0.3.0. **1.0.0** was the first public GitHub and ComfyUI Registry release (legacy Provider, Lifecycle, Generate, and cancel-interrupt). **Current surface is v1.1.0:** the Connection spine (**LLM Connection** → **LLM Generate (Advanced)**), Manage VRAM, face `max_tokens`, and Properties interrupt unload. Legacy Provider, Lifecycle, Basic, and Options nodes stay registered.
 
 ## Release checklist
 

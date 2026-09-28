@@ -1,6 +1,8 @@
 # Quality of Life Backlog
 
-Tracked UX/polish improvements that aren't blocking v1 but should be addressed.
+**Historical / candidate source.** Not the live queue. Actionable work is [`WORKLIST.md`](../WORKLIST.md). Options height and inline presets stay **ask-first candidates**. Do not implement from this file alone.
+
+Tracked UX/polish notes that were not blocking v1.
 
 ## Pending
 

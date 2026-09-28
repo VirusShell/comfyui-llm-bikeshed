@@ -6,6 +6,13 @@ Project truth lives in:
 
 - [`README.md`](README.md) — install, nodes, user docs
 - [`CODEBASE.md`](CODEBASE.md) — layout, architecture, packaging
-- [`docs/`](docs/) — proposals, research, lessons, tracker
+- [`WORKLIST.md`](WORKLIST.md) — **live queue** (what to do next)
 
-Prefer those over this stub. Naming in artifacts: **am_Vir** / **user** only. Do not rename `LLM*` node class IDs.
+[`docs/`](docs/) holds research, lessons, and **historical / candidate** notes. These are not the live queue and not authoritative product:
+
+- [`docs/resolution_tracker.md`](docs/resolution_tracker.md)
+- [`docs/text_gen_processing_concept.md`](docs/text_gen_processing_concept.md)
+- [`docs/qol-backlog.md`](docs/qol-backlog.md)
+- rehaul and product-direction proposals under [`docs/proposals/`](docs/proposals/)
+
+Prefer README, CODEBASE, and WORKLIST over this stub. Naming in artifacts: **am_Vir** / **user** only. Do not rename `LLM*` node class IDs.

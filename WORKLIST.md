@@ -1,6 +1,6 @@
 # Worklist - comfyui-llm-bikeshed
 
-**Updated:** 2026-09-28 (Vir authorized implementing settled Q1–Q10/max_tokens locks; Q6 preload rip **landed**; **A-25 / D-2** Connection Manage VRAM toggle **landed** (llama.cpp router path not wired); **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens) landed** — Advanced stays the intended spine, both Generate nodes stay registered, interrupt unload is a node property; **DOC-3** README / examples / CODEBASE now lead with Connection → Advanced Generate; Q11/R-1 research note started; still escalate publish/registry/deletes/credentials; Options merge/delete and height remain deferred) - Ordered by what is reversible and documented. Older backlog docs (`docs/qol-backlog.md`, `docs/resolution_tracker.md`, proposals, CODEBASE open-design notes) remain **sources for candidates**, not the live queue. This file is the actionable queue.
+**Updated:** 2026-09-28 (**honesty scrub landed** — pointers and shipped-behavior stamps only; no archive deletes; no version bump). Vir authorized implementing settled Q1–Q10/max_tokens locks; Q6 preload rip **landed**; **A-25 / D-2** Connection Manage VRAM toggle **landed** (llama.cpp router path not wired); **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens) landed** — Advanced stays the intended spine, both Generate nodes stay registered, interrupt unload is a node property; **DOC-3** README / examples / CODEBASE now lead with Connection → Advanced Generate; Q11/R-1 research note started; still escalate publish/registry/deletes/credentials; Options merge/delete and height remain deferred. Ordered by what is reversible and documented. Older backlog docs (`docs/qol-backlog.md`, `docs/resolution_tracker.md`, proposals, rehaul notes) remain **historical / candidate sources**, not the live queue. This file is the actionable queue. Ask-first archive items stay candidates.
 
 Legend: `[ ]` todo / `[x]` done / `[~]` deferred (intentionally out of scope now)
 
@@ -30,14 +30,16 @@ Direction for Q1–Q10 + max_tokens is locked; code/docs work may proceed under 
 ## Deferred (only after systems direction)
 
 - [~] **LLM Options node / height** (Textgen 24 toggles / LM Studio 18) - Vir Q3 docs direction is probably no separate Options node; at most expose average-user knobs on Generate and leave the rest to host defaults. Keep current nodes for compatibility, but do not implement merge/delete or height polish until explicitly tasked.
-- [~] Empirical lifecycle chain QA (A-15 / A-18 / A-19 / A-22); P-11 URL->model refresh; Cancel cleanup gap — same gate: after composition direction, or ask Vir
+- [~] Empirical lifecycle chain QA (A-15 / A-18 / A-19 / A-22); P-11 URL->model refresh. Q5 interrupt unload **shipped** (property, default off) — do not reopen unload-on-cancel as an open design choice. Same gate: after composition direction, or ask Vir.
 - [~] Inline preset dropdown on generation nodes (post-v1; A-6 / qol)
 - [~] Chat nodes, Image Describe, Structured Output, extra cloud APIs (tracker tabled; CODEBASE open-design pointer only)
 - [~] Cooperative interrupt for long llama.cpp reasoning without unloading the model (qol Future / research)
 
 ## Done (recent)
 
-- [x] **DOC-3** — README, `example_workflows/connection_generate.json`, and CODEBASE lead with Connection → **LLM Generate (Advanced)** (Manage VRAM, face `max_tokens` above `seed`, Properties interrupt). No Options on that path. Legacy examples kept and labeled. Included in 1.1.0 (2026-09-28).
+- [x] **Honesty scrub (docs)** — WORKLIST named as the live queue in AGENTS, CODEBASE, CONTRIBUTING, and the fresh-context pointer. Tracker, concept doc, QoL backlog, and rehaul / product-direction proposals stamped historical / candidate. Shipped stamps for Q6 (no select-preload), Q5 (interrupt unload), A-25 (Manage VRAM; OFF does not embed lifecycle), relative imports, and the publish-action SHA pin. Platform findings P-3 (Connection COMBO→text is intentional for llama.cpp/generic) and P-5 (reload-config removed). No archive deletes. No version bump. Ask-first items stay candidates (2026-09-28).
+
+- [x] **DOC-3** — README, `example_workflows/connection_generate.json`, and CODEBASE lead with Connection → **LLM Generate (Advanced)** (Manage VRAM, face `max_tokens` above `seed`, Properties interrupt). No Options on that path. Legacy examples kept and labeled. Included in 1.1.0 (2026-09-28). Presets README now names the Connection path for llama.cpp as well as legacy OAI Compatible.
 
 - [x] **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens)** - **LLM Generate (Advanced)** is the intended spine: optional provider / options / meta, face `max_tokens` above `seed` (default 1024, min 0). Basic stays registered with the same min-0 cap (temperature already on Basic; not added to Advanced). `0` omits the face cap (Options/meta limits kept); `>= 1` sends. OpenAI face values go out as `max_completion_tokens`. Legacy hosts and an Options `max_tokens` toggle still send `max_tokens`. Seed is sent when set, including 0. No cloud strip. No native Anthropic. Right-click Properties `unload_on_interrupt` (default off) unloads on Cancel only when a lifecycle is embedded (Manage VRAM ON or legacy lifecycle). API prompts without the workflow blob keep that default. Options nodes stay; their token widgets also allow 0 (2026-09-28).
 
