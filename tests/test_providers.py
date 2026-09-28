@@ -8,6 +8,7 @@ from nodes.providers import (
     LLMConnection,
     LLMProviderOAICompat,
     LLMProviderTextGenWebUI,
+    connection_manage_vram,
     resolve_connection_backends,
 )
 
@@ -208,7 +209,7 @@ class TestLLMConnection:
                         model="foo",
                         ttl=45,
                         context_length=4096,
-                        manage_model_memory=True,  # ignored off-mode
+                        manage_model_memory=True,
                     )
         assert p["backend"] == "lm_studio"
         assert p["lifecycle"] == {
@@ -216,6 +217,29 @@ class TestLLMConnection:
             "ttl": 45,
             "context_length": 4096,
         }
+        assert p["load_before_generate"] is False
+
+    def test_lm_studio_manage_memory_off(self) -> None:
+        from nodes import providers as providers_mod
+
+        node = LLMConnection()
+        with patch.object(
+            providers_mod, "detect_backend", return_value="lm_studio",
+        ):
+            with patch.object(
+                providers_mod, "resolve_provider_auth",
+                return_value=(None, None),
+            ):
+                with patch.object(providers_mod, "get_config", return_value={}):
+                    (p,) = node.build_provider(
+                        url="http://localhost:1234",
+                        host_mode="LM Studio",
+                        model="foo",
+                        ttl=45,
+                        context_length=4096,
+                        manage_model_memory=False,
+                    )
+        assert p["lifecycle"] is None
         assert p["load_before_generate"] is False
 
     def test_llamacpp_no_lifecycle(self) -> None:
@@ -241,6 +265,32 @@ class TestLLMConnection:
         assert p["backend"] == "llamacpp"
         assert p["lifecycle"] is None
         assert p["load_before_generate"] is False
+        assert connection_manage_vram("llamacpp") is False
+
+    def test_openai_manage_on_is_inert(self) -> None:
+        from nodes import providers as providers_mod
+
+        node = LLMConnection()
+        with patch.object(
+            providers_mod, "detect_backend", return_value="openai",
+        ):
+            with patch.object(
+                providers_mod, "resolve_provider_auth",
+                return_value=(None, None),
+            ):
+                with patch.object(providers_mod, "get_config", return_value={}):
+                    (p,) = node.build_provider(
+                        url="https://api.openai.com",
+                        host_mode="OpenAI / OAI-compat",
+                        model="gpt-4o-mini",
+                        manage_model_memory=True,
+                        ttl=5,
+                        context_length=1024,
+                    )
+        assert p["backend"] == "openai"
+        assert p["lifecycle"] is None
+        assert p["load_before_generate"] is False
+        assert connection_manage_vram("openai") is False
 
     def test_generic_no_lifecycle(self) -> None:
         from nodes import providers as providers_mod
@@ -337,6 +387,19 @@ class TestLLMConnection:
         assert "ensure_load_on_select" not in optional
         required = LLMConnection.INPUT_TYPES()["required"]
         assert "ensure_load_on_select" not in required
+
+    def test_single_manage_toggle_defaults_on(self) -> None:
+        """One Manage VRAM boolean, default ON. No second lifecycle knob."""
+        optional = LLMConnection.INPUT_TYPES()["optional"]
+        required = LLMConnection.INPUT_TYPES()["required"]
+        names = set(optional) | set(required)
+        assert "manage_model_memory" in names
+        assert "manage_vram" not in names
+        spec = optional["manage_model_memory"][1]
+        assert spec["default"] is True
+        assert connection_manage_vram("text_gen_webui") is True
+        assert connection_manage_vram("lm_studio") is True
+        assert connection_manage_vram("generic") is False
 
     def test_class_id_unchanged_old_providers(self) -> None:
         assert LLMProviderOAICompat.__name__ == "LLMProviderOAICompat"

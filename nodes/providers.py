@@ -225,7 +225,17 @@ CATALOG_BACKENDS = frozenset({"text_gen_webui", "lm_studio", "openai"})
 # Modes with on-node VRAM / lifecycle face knobs.
 FACE_TEXTGEN = "text_gen_webui"
 FACE_LM_STUDIO = "lm_studio"
-LOAD_CAPABLE_BACKENDS = frozenset({"text_gen_webui", "lm_studio"})
+# Faces where the single Manage VRAM toggle is live.
+# Textgen: load before generate / unload after chain.
+# LM Studio: TTL + context_length on load while the toggle is ON.
+# llama.cpp is absent on purpose: detection does not probe router
+# ``/models/load`` + ``/models/unload``, and the adapter has no unload.
+LOAD_CAPABLE_BACKENDS = frozenset({FACE_TEXTGEN, FACE_LM_STUDIO})
+
+
+def connection_manage_vram(face: str) -> bool:
+    """Whether Connection should show and honor Manage VRAM for *face*."""
+    return face in LOAD_CAPABLE_BACKENDS
 
 
 def resolve_connection_backends(
@@ -272,14 +282,18 @@ def _connection_lifecycle(
     ttl: int,
     context_length: int,
 ) -> tuple[dict | None, bool]:
-    """Embed lifecycle for face mode; ignore off-mode knobs.
+    """Embed lifecycle when Manage VRAM is ON for a capable face.
+
+    Textgen ON: load-before / unload-after. LM Studio ON: TTL and
+    ``context_length``. OFF, or any other face (including llama.cpp):
+    no lifecycle and no load-before.
 
     Returns ``(lifecycle, load_before_generate)``.
     """
-    if face == FACE_TEXTGEN:
-        if manage_model_memory:
-            return {"type": "text_gen_webui"}, True
+    if not connection_manage_vram(face) or not manage_model_memory:
         return None, False
+    if face == FACE_TEXTGEN:
+        return {"type": "text_gen_webui"}, True
     if face == FACE_LM_STUDIO:
         return (
             {
@@ -306,9 +320,10 @@ class LLMConnection:
     FUNCTION = "build_provider"
     CATEGORY = "LLM Bikeshed/providers"
     DESCRIPTION = (
-        "Adaptive LLM connection: pick host mode (or Auto), set URL/model, use "
-        "on-node VRAM knobs for Textgen/LM Studio. API keys stay in config.yaml / "
-        "env. Prefer this over separate Provider + Lifecycle nodes for new graphs."
+        "Adaptive LLM connection: host mode (or Auto), URL, and model. "
+        "One Manage VRAM / Manage memory toggle for Textgen and LM Studio. "
+        "API keys stay in config.yaml / env. Prefer this over separate "
+        "Provider + Lifecycle nodes for new graphs."
     )
 
     @classmethod
@@ -344,8 +359,13 @@ class LLMConnection:
                         "label_on": "ON",
                         "label_off": "OFF",
                         "tooltip": (
-                            "Textgen face: load before generate and unload after "
-                            "chain when ON. Ignored in other host modes."
+                            "Manage VRAM / Manage memory (default ON). "
+                            "Textgen: load before generate and unload after "
+                            "the chain. LM Studio: TTL and context length on "
+                            "load. OFF: pack does not load, unload, or set "
+                            "TTL. Hidden for OpenAI, generic, and llama.cpp "
+                            "(router /models/load + /models/unload are not "
+                            "verified here)."
                         ),
                     },
                 ),
@@ -355,8 +375,10 @@ class LLMConnection:
                         "default": 30,
                         "min": 0,
                         "tooltip": (
-                            "LM Studio face: seconds to keep model loaded after "
-                            "each request. Ignored in other host modes."
+                            "LM Studio only, while Manage VRAM is ON: seconds "
+                            "to keep the model loaded after each request. "
+                            "0 = unload immediately. Ignored when Manage VRAM "
+                            "is OFF or the face is not LM Studio."
                         ),
                     },
                 ),
@@ -367,8 +389,10 @@ class LLMConnection:
                         "min": 0,
                         "max": 1048576,
                         "tooltip": (
-                            "LM Studio face: context window on explicit load. "
-                            "0 = model default. Ignored in other host modes."
+                            "LM Studio only, while Manage VRAM is ON: context "
+                            "window on explicit load. 0 = model default. "
+                            "Ignored when Manage VRAM is OFF or the face is "
+                            "not LM Studio."
                         ),
                     },
                 ),

@@ -415,6 +415,45 @@ class TestLMStudioLoadUnload:
         assert unload_payloads
         assert unload_payloads[0]["instance_id"] == "publisher/model:2"
 
+    def test_manage_off_skips_load_ttl_and_unload(
+        self, mock_oai_response, monkeypatch
+    ):
+        """Connection Manage VRAM OFF embeds no lifecycle: chat only."""
+        post_urls: list[str] = []
+        payloads: list[dict] = []
+
+        def fake_post(url, **kwargs):
+            post_urls.append(url)
+            payloads.append(kwargs.get("json") or {})
+            return mock_oai_response
+
+        def fake_get(*_args, **_kwargs):
+            raise AssertionError("manage off must not GET LM Studio models")
+
+        monkeypatch.setattr("adapters.base.requests.post", fake_post)
+        monkeypatch.setattr("adapters.base.requests.get", fake_get)
+
+        provider = self._lm_studio_provider()
+        provider["lifecycle"] = None
+        provider["load_before_generate"] = False
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            provider,
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert any("/v1/chat/completions" in u for u in post_urls)
+        assert not any("/models/load" in u or "/models/unload" in u for u in post_urls)
+        chat = [
+            payload
+            for url, payload in zip(post_urls, payloads)
+            if "/v1/chat/completions" in url
+        ]
+        assert chat
+        assert "ttl" not in chat[0]
+
 
 # ---------------------------------------------------------------------------
 # OAI-compat adapter — LM Studio path: auth headers
@@ -798,6 +837,41 @@ class TestTextGenWebuiModelLifecycle:
         unload_urls = [u for u in post_urls if "/v1/internal/model/unload" in u]
         assert len(unload_urls) == 0
 
+    def test_textgen_manage_off_skips_load_and_unload(
+        self, mock_oai_response, monkeypatch
+    ):
+        """Connection Manage VRAM OFF: no Textgen load or unload."""
+        post_urls: list[str] = []
+
+        def fake_post(url, **kwargs):
+            post_urls.append(url)
+            return mock_oai_response
+
+        def fake_get(*_args, **_kwargs):
+            raise AssertionError("manage off must not GET Textgen model info")
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", fake_get)
+
+        adapter = OAICompatAdapter()
+        adapter.generate(
+            {
+                "backend": "text_gen_webui",
+                "adapter": "oai_compat",
+                "url": "http://localhost:5000",
+                "model": "my-model",
+                "timeout": 120,
+                "lifecycle": None,
+                "load_before_generate": False,
+            },
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert any("/v1/chat/completions" in u for u in post_urls)
+        assert not any("/v1/internal/model/load" in u for u in post_urls)
+        assert not any("/v1/internal/model/unload" in u for u in post_urls)
+
     def test_text_gen_webui_load_sends_model_name(
         self, text_gen_webui_provider, mock_oai_response, monkeypatch
     ):
@@ -824,6 +898,36 @@ class TestTextGenWebuiModelLifecycle:
 
         assert len(load_payloads) == 1
         assert load_payloads[0]["model_name"] == "my-model"
+
+    def test_llamacpp_chat_does_not_call_router_load(
+        self, mock_oai_response, monkeypatch
+    ):
+        """No verified llama.cpp router lifecycle: chat does not load/unload."""
+        post_urls: list[str] = []
+
+        def fake_post(url, **kwargs):
+            post_urls.append(url)
+            return mock_oai_response
+
+        monkeypatch.setattr("adapters.base.requests.post", fake_post)
+
+        adapter = OAICompatAdapter()
+        text = adapter.generate(
+            {
+                "backend": "llamacpp",
+                "adapter": "oai_compat",
+                "url": "http://localhost:8080",
+                "model": "m.gguf",
+                "timeout": 30,
+                "lifecycle": None,
+                "load_before_generate": False,
+            },
+            [{"role": "user", "content": "hi"}],
+            {},
+        )
+
+        assert text
+        assert post_urls == ["http://localhost:8080/v1/chat/completions"]
 
     def test_text_gen_webui_get_info_uses_api_key_load_unload_use_admin(
         self, text_gen_webui_provider, mock_oai_response, monkeypatch

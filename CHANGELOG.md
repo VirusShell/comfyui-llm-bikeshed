@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **A-25 / D-2 / Manage VRAM** - **LLM Connection** uses one `manage_model_memory` toggle (default ON, UI label Manage VRAM). Textgen ON/OFF is the existing load-before / unload-after path. LM Studio ON keeps TTL and `context_length`; OFF embeds no lifecycle. The toggle is hidden for OpenAI, generic, and llama.cpp (router `/models/load` + `/models/unload` are not verified; chat still works; status says so). `POST /llm-bikeshed/models/connection` returns `manage_vram`. Model pick still does not load (Vir Q6). Legacy Provider and Lifecycle nodes stay registered.
+
 ### Fixed
 - **Vir Q6 / no model-pick preload** - remove `ensure_load_on_select` from **LLM Connection** and stop select-triggered `POST /llm-bikeshed/models/ensure-loaded` in `js/llm_connection.js` and legacy `js/model_dropdown.js`. Changing the model COMBO no longer loads weights; load remains on generate / Manage VRAM. The `ensure-loaded` route stays for those paths.
 

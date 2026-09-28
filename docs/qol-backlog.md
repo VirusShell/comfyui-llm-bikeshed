@@ -12,8 +12,7 @@ Tracked UX/polish improvements that aren't blocking v1 but should be addressed.
 - [x] **`detected_backend` / `loaded_model_status` read-only (P-12)**
   Status widgets use `disabled` + `read_only` options (ComfyUI frontend ~1.39+).
 
-- [ ] **Provider architecture clarity (A-25 / D-2)**
-  Document or redesign overlap between OAI Compatible, Textgen provider, and lifecycle nodes.
+- [x] **Provider architecture clarity (A-25 / D-2)** — Connection Manage VRAM toggle shipped (2026-09-28). Legacy OAI Compatible, Textgen provider, and Lifecycle nodes stay registered until an explicit unregister.
 
 ### Tooltips / Hints
 

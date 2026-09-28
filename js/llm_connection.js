@@ -23,13 +23,12 @@ const READ_ONLY_WIDGET_OPTIONS = {
 
 const PLACEHOLDER_VALUES = new Set(["(refresh to load)", "(no models found)"]);
 
-const FACE_WIDGETS_TEXTGEN = new Set(["manage_model_memory"]);
-const FACE_WIDGETS_LM = new Set(["ttl", "context_length"]);
 const FACE_WIDGETS_ALL = new Set([
   "manage_model_memory",
   "ttl",
   "context_length",
 ]);
+const LM_SECONDARY_WIDGETS = new Set(["ttl", "context_length"]);
 
 const BACKEND_LABELS = {
   lm_studio: "LM Studio",
@@ -150,19 +149,31 @@ function setWidgetVisible(widget, visible) {
   }
 }
 
-function applyFaceVisibility(node, face) {
-  const showTextgen = face === "text_gen_webui";
-  const showLm = face === "lm_studio";
+function manageToggleOn(node) {
+  const mem = node.widgets?.find((w) => w.name === "manage_model_memory");
+  return mem ? Boolean(mem.value) : true;
+}
+
+/**
+ * Server flag wins when present. Fallback matches Textgen + LM Studio only.
+ * llama.cpp stays unmanaged: router load/unload is not verified in this pack.
+ */
+function resolveCanManage(face, data) {
+  if (data && typeof data.manage_vram === "boolean") {
+    return data.manage_vram;
+  }
+  return face === "text_gen_webui" || face === "lm_studio";
+}
+
+function applyFaceVisibility(node, face, canManage) {
+  const showManage = Boolean(canManage);
+  const showLmParams = face === "lm_studio" && showManage && manageToggleOn(node);
   for (const w of node.widgets || []) {
-    if (!FACE_WIDGETS_ALL.has(w.name)) {
-      continue;
-    }
-    if (FACE_WIDGETS_TEXTGEN.has(w.name) && FACE_WIDGETS_LM.has(w.name)) {
-      setWidgetVisible(w, showTextgen || showLm);
-    } else if (FACE_WIDGETS_TEXTGEN.has(w.name)) {
-      setWidgetVisible(w, showTextgen);
-    } else if (FACE_WIDGETS_LM.has(w.name)) {
-      setWidgetVisible(w, showLm);
+    if (w.name === "manage_model_memory") {
+      setWidgetVisible(w, showManage);
+      w.disabled = !showManage;
+    } else if (LM_SECONDARY_WIDGETS.has(w.name)) {
+      setWidgetVisible(w, showLmParams);
     }
   }
   markNodeDirty(node);
@@ -235,21 +246,28 @@ function updateModelCombo(widget, models, savedValue) {
   }
 }
 
-function vramPolicyLine(face, node) {
+function vramPolicyLine(face, node, canManage) {
+  if (face === "llamacpp") {
+    return (
+      "VRAM: chat only — Manage memory hidden " +
+      "(llama.cpp /models/load + /models/unload not verified)"
+    );
+  }
+  if (!canManage) {
+    return "VRAM: Manage memory hidden (host has no pack load path)";
+  }
+  if (!manageToggleOn(node)) {
+    return "VRAM: manage off — pack will not load/unload";
+  }
   if (face === "text_gen_webui") {
-    const mem = node.widgets?.find((w) => w.name === "manage_model_memory");
-    const on = mem ? Boolean(mem.value) : true;
-    if (on) {
-      return "VRAM: load before gen, unload after chain";
-    }
-    return "VRAM: pack will not load/unload (manage memory off)";
+    return "VRAM: manage on — load before gen, unload after chain";
   }
   if (face === "lm_studio") {
     const ttlW = node.widgets?.find((w) => w.name === "ttl");
     const ttl = ttlW != null ? ttlW.value : 30;
-    return `VRAM: TTL ${ttl}s (LM Studio)`;
+    return `VRAM: manage on — LM Studio TTL ${ttl}s`;
   }
-  return "VRAM: pack will not load (host has no pack load path)";
+  return "VRAM: manage on";
 }
 
 function loadedStatusLine(catalog, loadedModel, face) {
@@ -294,8 +312,12 @@ app.registerExtension({
     const modelWidget = node.widgets?.find((w) => w.name === "model");
     const urlWidget = node.widgets?.find((w) => w.name === "url");
     const hostModeWidget = node.widgets?.find((w) => w.name === "host_mode");
+    const manageWidget = node.widgets?.find((w) => w.name === "manage_model_memory");
     if (!modelWidget) {
       return;
+    }
+    if (manageWidget) {
+      manageWidget.label = "Manage VRAM";
     }
 
     const statusDetected = node.addWidget(
@@ -344,6 +366,7 @@ app.registerExtension({
     }
 
     let lastFace = null;
+    let lastCanManage = false;
 
     const applyStatus = (data) => {
       const detected = data?.detected;
@@ -352,6 +375,7 @@ app.registerExtension({
       const catalog = Boolean(data?.catalog);
       const hostMode = getHostMode(node);
       const override = hostMode !== HOST_MODE_AUTO;
+      const canManage = resolveCanManage(face, data);
 
       statusDetected.value = `detected: ${formatBackendName(detected)}`;
       if (override) {
@@ -361,7 +385,9 @@ app.registerExtension({
       }
       statusLoaded.value = loadedStatusLine(catalog, data?.loaded_model, face);
       statusAuth.value = data?.auth_status || "auth: —";
-      statusVram.value = vramPolicyLine(face, node);
+      lastFace = face;
+      lastCanManage = canManage;
+      statusVram.value = vramPolicyLine(face, node, canManage);
 
       for (const w of [
         statusDetected,
@@ -373,8 +399,7 @@ app.registerExtension({
         attachReadOnlyWidget(w);
       }
 
-      lastFace = face;
-      applyFaceVisibility(node, face);
+      applyFaceVisibility(node, face, canManage);
       applyModelWidgetMode(modelWidget, catalog);
       markNodeDirty(node);
     };
@@ -464,10 +489,11 @@ app.registerExtension({
       }
       // Vir Q6: model pick must NOT load weights; load only on generate / Manage VRAM.
       markNodeDirty(node);
-      statusVram.value = vramPolicyLine(lastFace, node);
+      statusVram.value = vramPolicyLine(lastFace, node, lastCanManage);
     };
 
-    // Refresh face VRAM line when manage/ttl toggles change.
+    // Refresh VRAM line when the toggle or LM Studio TTL/context changes.
+    // Toggling Manage VRAM also shows/hides TTL and context_length.
     for (const name of FACE_WIDGETS_ALL) {
       const w = node.widgets?.find((x) => x.name === name);
       if (!w) {
@@ -478,7 +504,10 @@ app.registerExtension({
         if (orig) {
           orig.call(this, value);
         }
-        statusVram.value = vramPolicyLine(lastFace, node);
+        if (name === "manage_model_memory") {
+          applyFaceVisibility(node, lastFace, lastCanManage);
+        }
+        statusVram.value = vramPolicyLine(lastFace, node, lastCanManage);
         markNodeDirty(node);
       };
     }
@@ -488,8 +517,8 @@ app.registerExtension({
       runFetch(modelWidget.value);
     });
 
-    // Initial face hide based on default Auto until first fetch returns.
-    applyFaceVisibility(node, null);
+    // Hide VRAM widgets until the first status fetch names a capable face.
+    applyFaceVisibility(node, null, false);
   },
 
   loadedGraphNode(node) {

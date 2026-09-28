@@ -10,7 +10,7 @@ Orientation map for developers and AI agents working on this ComfyUI custom node
 
 Supported backends (via a single OpenAI-compatible adapter path): **LM Studio**, **Textgen** (oobabooga text-generation-webui), **OpenAI Chat Completions**, and generic OAI-compatible hosts (including llama.cpp servers that expose `/v1/chat/completions`). **Native Ollama** (`/api/chat`) was removed in v0.3.0; fingerprinting may still label a host as Ollama on the OAI Compatible provider UI, but this pack does not ship Ollama nodes or adapters.
 
-VRAM sharing with diffusion is a core requirement: LM Studio uses TTL-based model memory; Textgen uses explicit load/unload via internal HTTP routes when lifecycle or **Manage model memory** is enabled. API keys are resolved from `config.yaml` or environment variables at HTTP time — never stored in workflow JSON or node execution outputs.
+VRAM sharing with diffusion is a core requirement. On **LLM Connection**, one **Manage VRAM / Manage memory** toggle (`manage_model_memory`, default ON) gates it: Textgen uses explicit load/unload via internal HTTP when the toggle is ON; LM Studio uses TTL and optional `context_length` on load when the toggle is ON; OFF means the pack does not load, unload, or set TTL. OpenAI, generic hosts, and llama.cpp hide that toggle (llama.cpp router `/models/load` + `/models/unload` are not verified in detection or the adapter; chat still works). Legacy lifecycle nodes keep their own paths. API keys are resolved from `config.yaml` or environment variables at HTTP time — never stored in workflow JSON or node execution outputs.
 
 **Current release:** v1.0.3 (`pyproject.toml`, `version.py`). Core v1 is shipped; open design work (lifecycle UX, chat nodes, additional cloud APIs) lives in the tracker and proposals.
 
@@ -140,8 +140,8 @@ flowchart LR
   G -->|LLM_META chain| G
 ```
 
-1. **Connection / Provider nodes** build an `LLM_PROVIDER` dict: `backend`, `adapter`, `url`, `model`, `timeout`, optional `lifecycle` (and Connection may set `load_before_generate`). Prefer **LLM Connection** for new graphs; legacy Provider nodes remain.
-2. **Lifecycle nodes** (legacy) output `LLM_LIFECYCLE` (LM Studio `ttl`/`context_length`, or Textgen `manage_model_memory`). Connection embeds the same face knobs on-node.
+1. **Connection / Provider nodes** build an `LLM_PROVIDER` dict: `backend`, `adapter`, `url`, `model`, `timeout`, optional `lifecycle` (and Connection may set `load_before_generate`). Prefer **LLM Connection** for new graphs; legacy Provider nodes remain. Connection embeds lifecycle only when **Manage VRAM** is ON for Textgen or LM Studio.
+2. **Lifecycle nodes** (legacy) output `LLM_LIFECYCLE` (LM Studio `ttl`/`context_length`, or Textgen `manage_model_memory`). They stay registered. Connection uses the same adapter hooks behind one toggle; LM Studio `ttl` / `context_length` show only on that face while Manage VRAM is ON.
 3. **Options nodes** output `LLM_OPTIONS` — only toggle-enabled parameters are included (`nodes/options_base.py`).
 4. **Generation nodes** call `get_adapter(provider["adapter"]).generate(...)`, return `(text, meta)`. Advanced node accepts upstream `meta` for chaining; `graph.introspection.has_downstream_gen_node` sets `skip_unload` when another generation node is downstream on the `meta` output.
 5. **Caching / `IS_CHANGED` (deliberate):** Both `LLMGenerate` and `LLMGenerateAdvanced` implement `IS_CHANGED` as `return float("NaN")`. ComfyUI treats NaN fingerprints as never-equal, so generate nodes **always re-execute** on queue. That is intentional for LLM calls (non-deterministic / external HTTP); do not "fix" to a stable hash or seed fingerprint unless product explicitly wants cached skips. Standards note: `IS_CHANGED` is an equality fingerprint, not a boolean — `True` every time would incorrectly skip reruns.
@@ -180,7 +180,7 @@ Registered only when `aiohttp`, `PromptServer`, and relative imports succeed:
 
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/llm-bikeshed/models/connection` | POST | Model list + status for **LLM Connection** (`url` + `host_mode`) |
+| `/llm-bikeshed/models/connection` | POST | Model list + status for **LLM Connection** (`url` + `host_mode`), including `manage_vram` |
 | `/llm-bikeshed/models/oai-compat` | POST | Model list + backend label for legacy OAI Compatible node |
 | `/llm-bikeshed/models/textgen` | POST | Textgen-only model list (no fingerprinting; legacy Textgen provider) |
 | `/llm-bikeshed/detect` | POST | Backend detection for UI (legacy OAI Compatible label) |
@@ -201,7 +201,7 @@ Extension name `llm-bikeshed.llm-connection`. Hooks **`LLMConnection`** only:
 - Calls **`POST /llm-bikeshed/models/connection`** with `{ url, host_mode }` (debounced initial fetch ~600ms; URL / host_mode refetch ~500ms).
 - **Refresh Models** button; read-only status chrome (serialize:false text widgets + DOM lock) for detected/effective backend, loaded model, auth hint — same Q1 pattern as `model_dropdown.js`.
 - **Model widget rules (Q2):** one Python name `model` (COMBO). Catalog backends (Textgen / LM Studio / OpenAI) keep COMBO; llama.cpp / generic switch the same widget to free-text and restore COMBO when mode flips back.
-- Face VRAM widgets shown/hidden by effective face (`manage_model_memory` for Textgen; `ttl` / `context_length` for LM Studio). **No model-pick preload** (Vir Q6): changing `model` never loads weights; load only on generate or when Manage VRAM needs it.
+- One **Manage VRAM** widget (`manage_model_memory`, label “Manage VRAM”). Shown when `manage_vram` is true (Textgen, LM Studio). Hidden for OpenAI, generic, and llama.cpp; the VRAM status line says why. `ttl` / `context_length` show only for LM Studio while the toggle is ON. **No model-pick preload** (Vir Q6): changing `model` never loads weights; load only on generate when Manage VRAM is ON.
 
 #### `js/model_dropdown.js` (legacy providers)
 
