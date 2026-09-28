@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Docs honesty scrub (no version bump): [`WORKLIST.md`](WORKLIST.md) is the live queue. The resolution tracker, concept doc, QoL backlog, and rehaul / product-direction notes are marked historical or candidate sources. Older notes that still described model-pick preload, always-on lifecycle embed, an open unload-on-cancel choice, in-progress relative imports, or publish-action `@main` now say what shipped (Q6, A-25, Q5, relative imports, action SHA pin).
+- Docs honesty scrub (no version bump): [`WORKLIST.md`](WORKLIST.md) is the live queue. The resolution tracker, concept doc, and product-direction note are marked historical or candidate sources. Older notes that still described model-pick preload, always-on lifecycle embed, an open unload-on-cancel choice, in-progress relative imports, or publish-action `@main` now say what shipped (Q6, A-25, Q5, relative imports, action SHA pin).
+
+### Removed
+- Docs honesty cleanup (no version bump): superseded notes that are not the live queue. `docs/old/` (`CONCEPT.md`, `RESEARCH_BRIEF.md`, `COMFYUI_NODE_REFERENCE.md`), `docs/thorough-audit-2026-04-27.md`, `docs/design_review_update_2026-03-10.md`, `docs/qol-backlog.md` (items already on WORKLIST Deferred), `docs/proposals/textgen-rehaul.md`, `docs/proposals/textgen-rehaul-tasks.md` (did not ship), and `docs/proposals/ollama-removal-plan.md` (shipped in [0.3.0]; this changelog is the record). DOC-1 and DOC-2 stay ask-first. The in-repo general Comfy node reference is gone.
 
 ## [1.1.0] - 2026-09-28
 

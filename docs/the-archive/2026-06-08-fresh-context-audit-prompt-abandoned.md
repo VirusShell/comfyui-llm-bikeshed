@@ -46,7 +46,7 @@ See `docs/research/audit-handoff.md` § Why agents drifted to cancel QA. For git
 ## Out of scope
 
 - **Textgen-rehaul lifecycle manager** — separate epic/design work
-- **Full April 2026 static audit re-run** — `docs/thorough-audit-2026-04-27.md` is background reference only
+- **Full April 2026 static audit re-run** — that snapshot was removed in the honesty cleanup (see CHANGELOG [Unreleased]); it is not a live reference
 - **Alarmist reframes** — do not declare all code, tracker rows, or shipped decisions invalid without targeted audit of that area's evidence
 - **Empirical cancel QA** — human-run protocol in `docs/research/cancel-empirical-qa-handoff.md`, not this session
 

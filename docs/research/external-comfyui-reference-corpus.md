@@ -75,7 +75,8 @@ The external corpus remains useful only as a **broad ComfyUI custom-node cheat s
 
 | Item | Status |
 |------|--------|
-| `comfyui-node-standards.md` | Referenced in old `CLAUDE.md` as "project memory" — **not in this repo**, not in external corpus; treat as **lost / never committed** |
+| `comfyui-node-standards.md` | Referenced in old `CLAUDE.md` as "project memory" — **not in this repo**, not in external corpus; treat as **lost / never committed** (DOC-2, still ask-first) |
+| General Comfy node reference | The tracked copy under `docs/old/` was removed in the honesty cleanup. It is not a substitute for DOC-2. DOC-1 and DOC-2 stay ask-first. |
 | Machine-specific path | **Not portable** — do not add new references to `D:\ai\tmp\` |
 | Vendoring into `docs/reference/` | **Open** — owner decision (DOC-1) |
 

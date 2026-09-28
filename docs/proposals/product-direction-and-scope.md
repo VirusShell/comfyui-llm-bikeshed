@@ -14,15 +14,15 @@ Engineering and UX attention should favor **text-generation-webui (Textgen)** in
 
 **Shipped instead (A-25, v1.1.0):** new graphs use one Connection **Manage VRAM** toggle. OFF does not embed a lifecycle. The policy manager in the rehaul did not ship. Legacy Lifecycle nodes stay registered.
 
-Current **lifecycle code** (Textgen/LM Studio lifecycle nodes, adapter load/unload paths) and the **Textgen lifecycle overhaul** described in [`textgen-rehaul.md`](textgen-rehaul.md) were **not** treated as the long-term mental model when this section was written. They may be technically coherent yet still wrong for how people expect ComfyUI graphs to behave.
+Current **lifecycle code** (Textgen/LM Studio lifecycle nodes, adapter load/unload paths) and the **Textgen lifecycle overhaul** (proposal removed in the honesty cleanup; it did not ship) were **not** treated as the long-term mental model when this section was written. They may be technically coherent yet still wrong for how people expect ComfyUI graphs to behave.
 
-Expect a **full rethink** of lifecycle UX and architecture-not incremental polish on the existing proposal-before treating any lifecycle manager design as authoritative. The rehaul document may still **inform** a future design or may be **largely superseded** once the rethink lands; cross-links between these files stay explicit so readers do not merge them into one "approved spec" in their heads.
+Expect a **full rethink** of lifecycle UX and architecture, not incremental polish on that proposal, before treating any lifecycle manager design as authoritative. Part of that rethink shipped as Connection **Manage VRAM** (A-25). The rehaul write-up was removed in the honesty cleanup and is not an approved spec.
 
 ## Ollama: removed from this pack (shipped)
 
 **Direction:** **Ollama** is not a supported backend in this node pack as of **v0.3.0** (2026-05-12). Other ComfyUI custom nodes cover native Ollama; this pack focuses on OAI-compat (LM Studio, Textgen, OpenAI, etc.). URL auto-detection may still label a host as `ollama` for the OAI provider indicator only.
 
-**Execution:** See [`ollama-removal-plan.md`](ollama-removal-plan.md) (checklist completed) and `CHANGELOG.md` [0.3.0].
+**Execution:** Checklist completed. The record is `CHANGELOG.md` [0.3.0]. The removal-plan file was removed in the honesty cleanup.
 
 ## llama.cpp: OAI Compatible first-class; dedicated node deferred
 
@@ -36,5 +36,5 @@ Expect a **full rethink** of lifecycle UX and architecture-not incremental polis
 
 ## Relationship to other proposals
 
-- **[`textgen-rehaul.md`](textgen-rehaul.md)** - Detailed Textgen lifecycle ideas and an implementation checklist in [`textgen-rehaul-tasks.md`](textgen-rehaul-tasks.md). Per the stance in that proposal's *Status & scope* section, treat lifecycle-heavy portions as **skeptical / on hold** pending the rethink above; non-lifecycle items may still advance independently where they do not assume a specific lifecycle manager.
+- **Textgen lifecycle-manager proposal** — removed in the honesty cleanup (it did not ship; CHANGELOG [Unreleased] is the record). Treat that lifecycle-manager design as historical and not the UX. Connection **Manage VRAM** (A-25) is the shipped VRAM face. Non-lifecycle ideas from that era may still be read here only where they do not assume a lifecycle manager.
 - **`docs/resolution_tracker.md`** - Minimal **Proposed / Tabled** rows point here so roadmap drift is visible next to historical decisions.

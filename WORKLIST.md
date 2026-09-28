@@ -1,6 +1,6 @@
 # Worklist - comfyui-llm-bikeshed
 
-**Updated:** 2026-09-28 (**honesty scrub landed** — pointers and shipped-behavior stamps only; no archive deletes; no version bump). Vir authorized implementing settled Q1–Q10/max_tokens locks; Q6 preload rip **landed**; **A-25 / D-2** Connection Manage VRAM toggle **landed** (llama.cpp router path not wired); **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens) landed** — Advanced stays the intended spine, both Generate nodes stay registered, interrupt unload is a node property; **DOC-3** README / examples / CODEBASE now lead with Connection → Advanced Generate; Q11/R-1 research note started; still escalate publish/registry/deletes/credentials; Options merge/delete and height remain deferred. Ordered by what is reversible and documented. Older backlog docs (`docs/qol-backlog.md`, `docs/resolution_tracker.md`, proposals, rehaul notes) remain **historical / candidate sources**, not the live queue. This file is the actionable queue. Ask-first archive items stay candidates.
+**Updated:** 2026-09-28 (**honesty cleanup** — archive delete of superseded docs **landed**; no version bump). Vir authorized implementing settled Q1–Q10/max_tokens locks; Q6 preload rip **landed**; **A-25 / D-2** Connection Manage VRAM toggle **landed** (llama.cpp router path not wired); **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens) landed** — Advanced stays the intended spine, both Generate nodes stay registered, interrupt unload is a node property; **DOC-3** README / examples / CODEBASE now lead with Connection → Advanced Generate; Q11/R-1 research note started; still escalate publish/registry/node deletes/credentials; Options merge/delete and height remain deferred. Ordered by what is reversible and documented. Remaining older notes (`docs/resolution_tracker.md`, product-direction) are **historical / candidate sources**, not the live queue. QoL items that used to live in a separate backlog file are on Deferred below. This file is the actionable queue. DOC-1 and DOC-2 stay ask-first.
 
 Legend: `[ ]` todo / `[x]` done / `[~]` deferred (intentionally out of scope now)
 
@@ -18,7 +18,7 @@ Direction for Q1–Q10 + max_tokens is locked; code/docs work may proceed under 
 ## Ask-first / escalate (do not start without Vir)
 
 - [ ] **DOC-1** off-repo ComfyUI reference corpus disposition: vendor / drop / hybrid
-- [ ] **DOC-2** locate or rewrite missing `comfyui-node-standards.md`
+- [ ] **DOC-2** locate or rewrite missing `comfyui-node-standards.md`. The in-repo general Comfy reference (`docs/old/COMFYUI_NODE_REFERENCE.md`) was removed in the honesty cleanup. DOC-1 and DOC-2 stay ask-first.
 - [ ] **Q1 follow-through** — unregister/hide legacy Provider + Lifecycle after Connection path confirmed (**registry**)
 - [ ] **Options merge/delete** — Q3 direction is thin/no Options on new-graph spine; merge/delete and height stay escalate/deferred (**deletes**)
 - [ ] Publish / credential surface changes
@@ -37,7 +37,9 @@ Direction for Q1–Q10 + max_tokens is locked; code/docs work may proceed under 
 
 ## Done (recent)
 
-- [x] **Honesty scrub (docs)** — WORKLIST named as the live queue in AGENTS, CODEBASE, CONTRIBUTING, and the fresh-context pointer. Tracker, concept doc, QoL backlog, and rehaul / product-direction proposals stamped historical / candidate. Shipped stamps for Q6 (no select-preload), Q5 (interrupt unload), A-25 (Manage VRAM; OFF does not embed lifecycle), relative imports, and the publish-action SHA pin. Platform findings P-3 (Connection COMBO→text is intentional for llama.cpp/generic) and P-5 (reload-config removed). No archive deletes. No version bump. Ask-first items stay candidates (2026-09-28).
+- [x] **Archive delete (docs)** — removed superseded `docs/old/` (`CONCEPT.md`, `RESEARCH_BRIEF.md`, `COMFYUI_NODE_REFERENCE.md`), `docs/thorough-audit-2026-04-27.md`, `docs/design_review_update_2026-03-10.md`, shipped Ollama removal plan, unshipped Textgen rehaul notes, and the QoL backlog (items already on Deferred). Record: CHANGELOG [Unreleased]. **DOC-2:** the in-repo general Comfy node reference is gone; DOC-1 and DOC-2 stay ask-first. No code, no node unregister, no version bump (2026-09-28).
+
+- [x] **Honesty scrub (docs)** — WORKLIST named as the live queue in AGENTS, CODEBASE, CONTRIBUTING, and the fresh-context pointer. Tracker, concept doc, and product-direction proposal stamped historical / candidate. Shipped stamps for Q6 (no select-preload), Q5 (interrupt unload), A-25 (Manage VRAM; OFF does not embed lifecycle), relative imports, and the publish-action SHA pin. Platform findings P-3 (Connection COMBO→text is intentional for llama.cpp/generic) and P-5 (reload-config removed). No version bump. Ask-first items stay candidates (2026-09-28). Archive deletes of the superseded notes landed in the item above.
 
 - [x] **DOC-3** — README, `example_workflows/connection_generate.json`, and CODEBASE lead with Connection → **LLM Generate (Advanced)** (Manage VRAM, face `max_tokens` above `seed`, Properties interrupt). No Options on that path. Legacy examples kept and labeled. Included in 1.1.0 (2026-09-28). Presets README now names the Connection path for llama.cpp as well as legacy OAI Compatible.
 
