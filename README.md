@@ -128,14 +128,14 @@ Configure a backend in one node. Outputs `LLM_PROVIDER` (same type as the legacy
 | `url` | Base URL **without** a duplicated `/v1` suffix (e.g. `http://127.0.0.1:1234`) |
 | `host_mode` | `Auto (detect)` or pin **LM Studio** / **Textgen** / **llama.cpp** / **OpenAI / OAI-compat** / **Generic OAI** |
 | `model` | Catalog COMBO for Textgen / LM Studio / OpenAI; free-text for llama.cpp / generic |
-| `manage_model_memory` | Textgen face: load before generate / unload after chain when ON |
-| `ttl` / `context_length` | LM Studio face: keep-alive TTL and optional context on load |
+| `manage_model_memory` | **Manage VRAM / Manage memory** (default ON). Textgen: load before generate / unload after chain when ON. LM Studio: TTL + context on load when ON. OFF: pack does not load, unload, or set TTL. Hidden for OpenAI, generic, and llama.cpp |
+| `ttl` / `context_length` | LM Studio only, and only while Manage VRAM is ON |
 | `model_fallback` | Optional STRING input - overrides dropdown when connected |
 | `timeout` | Advanced; `0` = config for effective backend, then `oai_compat`, then 120 |
 
 **Model pick does not load weights** (Vir Q6): changing the model dropdown never calls load. Weights load when Generate runs (and the face VRAM policy asks for it) or when Manage VRAM needs an explicit load. `POST /llm-bikeshed/models/ensure-loaded` remains available for those paths; it is not wired to model selection.
 
-**Refresh Models** calls `POST /llm-bikeshed/models/connection` with `{ "url", "host_mode" }` and updates the model widget plus read-only status lines (detected / effective backend, loaded model, auth hint). No separate Lifecycle node is required for new graphs.
+**Refresh Models** calls `POST /llm-bikeshed/models/connection` with `{ "url", "host_mode" }` and updates the model widget plus read-only status lines (detected / effective backend, loaded model, auth hint, VRAM policy). The VRAM line follows the toggle (`manage on` / `manage off`) or says the toggle is hidden. No separate Lifecycle node is required for new graphs.
 
 **Migration:** Replace **Provider** (+ optional **Lifecycle**) with **LLM Connection**. Wire `provider` into Generate the same way.
 
@@ -185,7 +185,7 @@ These nodes stay registered for existing workflows. Prefer **LLM Connection** fo
 | **LLM Lifecycle: LM Studio** | TTL + `context_length` into OAI Compatible `lifecycle` | Embedded on Connection's LM Studio face |
 | **LLM Lifecycle: Textgen** | `manage_model_memory` into OAI Compatible `lifecycle` | Prefer Connection or Textgen provider for new work |
 
-Without a lifecycle connection on **OAI Compatible** (and with **Manage model memory** OFF on **Textgen** / Connection Textgen face), the adapter does not run local Textgen load/unload.
+Without a lifecycle connection on **OAI Compatible**, and with **Manage VRAM** OFF on **Connection** (or **Manage model memory** OFF on the legacy **Textgen** provider), the adapter does not run Textgen load/unload. Connection Manage VRAM OFF on an LM Studio face also skips LM Studio load, TTL, and unload.
 
 Shared legacy provider behavior: dynamic model dropdown + **Refresh Models** (first auto-fetch debounced ~600ms); `model_fallback` STRING override; read-only backend / loaded labels where applicable. Fingerprinting on **OAI Compatible** may still show **Ollama** as a label; this pack does not ship Ollama-native generation.
 
@@ -196,7 +196,7 @@ Shared legacy provider behavior: dynamic model dropdown + **Refresh Models** (fi
 1. Add **LLM Connection**. Leave `host_mode` on **Auto (detect)** (or pin your backend).
 2. Set `url` to your server base (LM Studio default `http://localhost:1234`, Textgen `http://localhost:5000`). Do **not** append `/v1`.
 3. Click **Refresh Models**, pick a model (or type an id for llama.cpp / generic).
-4. For Textgen, leave **Manage model memory** ON so the model loads when you queue. For LM Studio, set **TTL** as needed.
+4. For Textgen or LM Studio, leave **Manage VRAM** ON (default) so the pack loads when you queue. LM Studio also shows **TTL** and **context length** while that toggle is ON. OpenAI, generic, and llama.cpp hide the toggle; chat still runs. llama.cpp status says router `/models/load` + `/models/unload` are not verified, so the pack will not load or unload that host.
 5. Add **LLM Generate (Basic)**, connect Connection `provider` -> Generate `provider`.
 6. Type your prompt and system prompt, queue the workflow.
 
@@ -209,7 +209,7 @@ Dedicated llama-server / process-manager nodes are **deferred**. Point Connectio
 1. Start the server so it exposes at least `/v1/chat/completions` (and ideally `/health` + `/v1/models`). Example: `llama-server --port 8080` (flags vary by build).
 2. Add **LLM Connection**; set `host_mode` to **llama.cpp** or leave Auto.
 3. Set `url` to the **base** URL **without** a duplicated `/v1` suffix - e.g. `http://127.0.0.1:8080`.
-4. Click **Refresh Models** (string/type-in model when catalog is empty). Connect **LLM Generate (Basic)** and queue a short prompt.
+4. Click **Refresh Models** (string/type-in model when catalog is empty). **Manage VRAM** stays hidden: this pack does not call llama.cpp router load/unload. Connect **LLM Generate (Basic)** and queue a short prompt.
 
 ### Advanced Setup (Modular Generation)
 
@@ -235,7 +235,7 @@ Pressing **Cancel** in ComfyUI stops the generation node and lets the queue cont
 
 ## Architecture
 
-- **VRAM / model memory (current behavior)** - **Textgen:** model list and loaded label use internal HTTP (`GET /v1/internal/model/list`, `GET /v1/internal/model/info`); generation uses `POST {url}/v1/chat/completions`; with **Manage model memory** ON (Connection Textgen face, dedicated Textgen provider, or lifecycle wired to OAI Compatible), the adapter calls `POST {url}/v1/internal/model/load` / `unload` around generation. Chain-aware unload deferral uses **`skip_unload`** on generation nodes. **LM Studio:** TTL/context via Connection's LM Studio face or the LM Studio lifecycle node. **Ollama** is not supported natively in this pack. **Still open:** lifecycle UX long-term; see [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md).
+- **VRAM / model memory (current behavior)** - **Connection** uses one **Manage VRAM** toggle. **Textgen** (toggle ON, or legacy Textgen provider / lifecycle wired to OAI Compatible): model list and loaded label use internal HTTP (`GET /v1/internal/model/list`, `GET /v1/internal/model/info`); generation uses `POST {url}/v1/chat/completions`; the adapter calls `POST {url}/v1/internal/model/load` / `unload` around generation. Chain-aware unload deferral uses **`skip_unload`** on generation nodes. Toggle OFF: no pack load/unload. **LM Studio** (toggle ON, or the legacy lifecycle node): TTL on chat and optional `context_length` on `POST /api/v1/models/load`; toggle OFF skips that. **llama.cpp:** chat via `/v1/chat/completions` only; Manage VRAM is hidden because router `/models/load` + `/models/unload` are not verified. **Ollama** is not supported natively in this pack. Legacy Lifecycle nodes stay registered.
 - **Adapter pattern** - OpenAI-Compatible adapter: `POST {url}/v1/chat/completions`; optional lifecycle hooks for LM Studio (`/api/v1/models`, `ttl`) and Textgen (`/v1/internal/model/*`) when lifecycle is present (integrated on Connection / Textgen provider, or via **LLM Lifecycle** -> **OAI Compatible**)
 - **Backend detection** - `detection.py` plus Connection `host_mode` / `POST /llm-bikeshed/models/connection`; legacy `POST /llm-bikeshed/detect` and `POST /llm-bikeshed/models/oai-compat` for OAI Compatible; **LLM Provider: Textgen** uses `POST /llm-bikeshed/models/textgen`
 - **Synchronous HTTP** via `requests` (ComfyUI nodes run synchronously)

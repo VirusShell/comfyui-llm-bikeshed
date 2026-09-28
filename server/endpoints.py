@@ -38,6 +38,7 @@ if HAS_SERVER:
         from ..nodes.providers import (
             CATALOG_BACKENDS,
             HOST_MODE_AUTO,
+            connection_manage_vram,
             resolve_connection_backends,
         )
     except ImportError:
@@ -45,12 +46,16 @@ if HAS_SERVER:
             from nodes.providers import (  # type: ignore[no-redef]
                 CATALOG_BACKENDS,
                 HOST_MODE_AUTO,
+                connection_manage_vram,
                 resolve_connection_backends,
             )
         except ImportError:
             CATALOG_BACKENDS = frozenset()  # type: ignore[misc,assignment]
             HOST_MODE_AUTO = "Auto (detect)"  # type: ignore[misc,assignment]
             resolve_connection_backends = None  # type: ignore[assignment]
+
+            def connection_manage_vram(_face: str) -> bool:  # type: ignore[misc]
+                return False
 
     @PromptServer.instance.routes.post("/llm-bikeshed/models/oai-compat")
     async def _endpoint_models_oai_compat(
@@ -143,6 +148,7 @@ if HAS_SERVER:
                     "loaded_model": None,
                     "catalog": False,
                     "auth_status": "auth: n/a",
+                    "manage_vram": False,
                 },
             )
         url = data.get("url", "")
@@ -157,6 +163,7 @@ if HAS_SERVER:
                     "loaded_model": None,
                     "catalog": False,
                     "auth_status": "auth: n/a",
+                    "manage_vram": False,
                 },
             )
 
@@ -184,6 +191,7 @@ if HAS_SERVER:
                 "loaded_model": loaded_model,
                 "catalog": catalog,
                 "auth_status": auth_status,
+                "manage_vram": connection_manage_vram(face),
             },
         )
 
