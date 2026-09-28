@@ -5,11 +5,11 @@
 **Scope:** Connection, legacy providers, lifecycle, generate, options, utils, socket types - composition, overlap, debt.  
 **Non-goals:** No V3 spike, no registry work, no implementing Options split/polish, no product overhaul in this note.
 
-**Pack tip (this fold):** in-repo note updated to fold richer findings from comfydesk; prior pack tip before fold was `6a0dc86` (systems item pointed here). Comfydesk note was written against pack tip `7ad0758`.
+**Pack tip (this fold):** `0250577` base + 2026-09-28 `model` vs `loaded_model` sync smell fold. Prior fold tip was `0250577` (comfydesk systems deltas). Comfydesk note was written against pack tip `7ad0758`.
 
 **External provenance:** comfydesk systems map — `D:\ai\bot-grok\comfydesk\notes\2026-09-27-bikeshed-systems-map.md` (cite below as **“comfydesk 2026-09-27 systems map”**). Pack structure kept; their deltas folded in.
 
-Sources (cite, don't re-invent): [`CODEBASE.md`](../../CODEBASE.md), [`README.md`](../../README.md), [`docs/text_gen_processing_concept.md`](../text_gen_processing_concept.md), [`docs/resolution_tracker.md`](../resolution_tracker.md) (A-1, A-13, A-25, D-2, A-15/A-18/A-22), [`docs/qol-backlog.md`](../qol-backlog.md), [`docs/proposals/product-direction-and-scope.md`](../proposals/product-direction-and-scope.md), [`docs/research/cancel-interrupt-status.md`](cancel-interrupt-status.md), [`docs/research/textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md), [`docs/research/lm-studio-lifecycle-verified.md`](lm-studio-lifecycle-verified.md), [`docs/research/user-feedback-2026-06-17.md`](user-feedback-2026-06-17.md), Connection docs lead `2be26be`, worklist `7ad0758` / `6a0dc86`, **comfydesk 2026-09-27 systems map**.
+Sources (cite, don't re-invent): [`CODEBASE.md`](../../CODEBASE.md), [`README.md`](../../README.md), [`docs/text_gen_processing_concept.md`](../text_gen_processing_concept.md), [`docs/resolution_tracker.md`](../resolution_tracker.md) (A-1, A-13, A-25, D-2, A-15/A-18/A-22), [`docs/qol-backlog.md`](../qol-backlog.md), [`docs/proposals/product-direction-and-scope.md`](../proposals/product-direction-and-scope.md), [`docs/research/cancel-interrupt-status.md`](cancel-interrupt-status.md), [`docs/research/textgen-lifecycle-verified.md`](textgen-lifecycle-verified.md), [`docs/research/lm-studio-lifecycle-verified.md`](lm-studio-lifecycle-verified.md), [`docs/research/user-feedback-2026-06-17.md`](user-feedback-2026-06-17.md), Connection docs lead `2be26be`, worklist `7ad0758` / `6a0dc86`, **comfydesk 2026-09-27 systems map**, **2026-09-28 dig** (`model` vs `loaded_model` selector/status).
 
 ---
 
@@ -184,6 +184,25 @@ So "Options might go away" in §4 is a *product* hypothesis about the spine, not
 - Status chrome: Connection has richer face (detected/effective/loaded/auth hint). Legacy providers use `model_dropdown.js` status widgets (P-12 fixed). Headless/API mode: `/llm-bikeshed/*` client routes **not** API-mode compatible; generation still works from baked URL/model in graph JSON (`CODEBASE`).
 - No browser set-key / reload-config in normal user path (tracker once mentioned reload endpoint; product still "edit yaml + restart ComfyUI" in README).
 
+### `model` vs `loaded_model` (selector vs status) - known smell
+
+*(Provenance: 2026-09-28 dig; Vir complaint. **NOT greenlit** in isolation - same banner as this note.)*
+
+Two different things that look like "the model":
+
+| Widget / field | Role | Where it lives |
+|----------------|------|----------------|
+| **`model`** | **Request identity** | Always becomes `LLM_PROVIDER["model"]` -> payload `"model"` in `oai_compat` generate. `VALIDATE_INPUTS` requires it. |
+| **`loaded_model`** | **Status chrome only** | JS-only, `serialize:false`; never enters the provider dict. Refresh updates status; it does **not** copy into `model`. |
+
+**Observed mismatch (local / single-slot):** external llama.cpp load -> status line can show the newly loaded name, but the request still uses the stale combo `model` until the user changes the combo by hand. The combo does **not** load/unload weights by itself.
+
+**Why it is not total accident:** deliberate for OpenAI / multi-model hosts (pick which id to call while something else may be "loaded" elsewhere). **Debt** for single-slot local hosts where "what's loaded" and "what we will call" should usually match.
+
+**Path nuance:** Connection llama.cpp (`catalog=False`) returns `loaded_model` None - the correct `loaded:` line after an external swap is typically the **OAI Compatible** path, not Connection's llama.cpp face.
+
+**Ownership (honesty, not a ship plan):** there is **no greenlit overhaul** yet. Vir: feels like slop unless an overhaul makes the split irrelevant. So either (a) a future Connection/provider overhaul **owns killing** this dual surface, or (b) we later schedule a **small local-host follow** (auto-follow / use-loaded / warn / omit-when-single) - not leave it unlabeled forever. *Do not implement either from this note.*
+
 ### `ensure_load_on_select` policy
 
 Connection widget default **OFF**; URL changes never load; model-dropdown change may POST ensure-loaded when ON (`CODEBASE` / `llm_connection.js`). Python `build_provider` marks the flag UI-only (`ARG002`) - does **not** enter `LLM_PROVIDER`. Load-at-queue still driven by `load_before_generate` + lifecycle inside the adapter. Policy surface is frontend + ensure-loaded route, not the provider dict.
@@ -231,6 +250,7 @@ Label: **hypothesis**. Ask Vir before any overhaul.
 8. **llama.cpp:** Connection/OAI `/v1` forever enough, or revisit dedicated node later (D-4 still tabled)?
 9. **OpenAI / cloud knobs:** Stay first-class on Connection host_mode + Options OpenAI (A-23), or demote cloud surfaces while leaving nodes loadable? *(comfydesk 2026-09-27 systems map)*
 10. **Example / docs truth:** Bring `advanced_with_options.json` (and CODEBASE mermaid if any) onto the **Connection → Options → Advanced** spine so examples match the recommended composition? *(comfydesk 2026-09-27 systems map)*
+11. **`model` vs `loaded_model`:** Overhaul kills the dual surface, or schedule a small local-host fix (auto-follow / use-loaded / warn / omit-when-single)? Unlabeled forever is not OK - Vir 2026-09-28. *(2026-09-28 dig; **not** greenlit alone)*
 
 ---
 
@@ -266,4 +286,4 @@ Adapter underneath: always `oai_compat` → `POST {url}/v1/chat/completions` (+ 
 
 ## Related worklist
 
-Live queue: [`WORKLIST.md`](../../WORKLIST.md) - systems map item points here (folded comfydesk deltas 2026-09-27); Options height remains deferred until Vir answers §5 item 3 (and related spine questions 9–10).
+Live queue: [`WORKLIST.md`](../../WORKLIST.md) - systems map item points here (folded comfydesk deltas 2026-09-27; `model`/`loaded_model` smell 2026-09-28); Options height remains deferred until Vir answers section 5 item 3 (and related spine questions 9-11).
