@@ -5,7 +5,7 @@
 **Vir Q2 (Lifecycle / VRAM) is answered (2026-09-28):** For new graphs, Connection owns VRAM through one user-facing **Manage VRAM / Manage memory** toggle. The backend may be detected or pinned; the pack sends the backend-appropriate load/unload/TTL commands. Textgen and LM Studio keep their existing API paths under that single-toggle metaphor. llama.cpp VRAM management is setup-gated: only when the host exposes router `/models/load` and `/models/unload`; otherwise chat still works and the toggle is hidden/inert with status.
 **A-25 / D-2 shipped (2026-09-28):** Connection `manage_model_memory` (default ON) is that toggle. Textgen ON loads before generate and unloads after the chain; OFF does neither. LM Studio ON keeps TTL and `context_length` on load; OFF embeds no lifecycle, so the pack does not load, set TTL, or unload. llama.cpp stays chat-only with the toggle hidden: `detection.py` does not probe router `/models/load` + `/models/unload`, and the adapter has no llama.cpp unload. This does not greenlight Options merge, node deletes, Q11 sync, or a new llama.cpp router client.
 **Vir Q3-Q7 (Options, generate shape, interrupt policy, preload, and Auth UX) are answered (2026-09-28):** the docs direction is thin/no separate Options, one Generate node shaped like current Advanced, interrupt/unload policy in node Properties rather than main widgets, no model-pick preload, and off-graph auth with reload via Refresh Node Definitions/config reload rather than a full restart. Q6 preload is implemented. Q4/Q5 code landed (see shipped note below). Options merge/delete and Q7 auth UX are still not implemented.
-**Vir Q8-Q10 + max_tokens (2026-09-28):** Connection/OAI `/v1` is enough for llama.cpp — dedicated node is dead (D-4 closed). OpenAI/cloud knobs: keep current host guidance + legacy; prefer `max_completion_tokens` for new OpenAI paths, keep `max_tokens` for legacy; send `seed` when set; **no** strip-on-cloud; **no** native Anthropic. `max_tokens` is **output-only**; generous values allowed; `0` = omit / host default (send when ≥1); no artificial prompt caps; user owns OOM/timeout. Q9 and the `0` widget floor are implemented (see shipped note). DOC-3 (README/examples/CODEBASE fully onto Connection → one Generate, no Options on the intended path) is still a separate docs task.
+**Vir Q8-Q10 + max_tokens (2026-09-28):** Connection/OAI `/v1` is enough for llama.cpp — dedicated node is dead (D-4 closed). OpenAI/cloud knobs: keep current host guidance + legacy; prefer `max_completion_tokens` for new OpenAI paths, keep `max_tokens` for legacy; send `seed` when set; **no** strip-on-cloud; **no** native Anthropic. `max_tokens` is **output-only**; generous values allowed; `0` = omit / host default (send when ≥1); no artificial prompt caps; user owns OOM/timeout. Q9 and the `0` widget floor are implemented (see shipped note). **DOC-3 landed:** README, CODEBASE, and `example_workflows/connection_generate.json` lead with Connection → Advanced Generate and do not put Options on that path. Basic / Options / Provider / Lifecycle stay registered and are labeled legacy.
 **Q4 / Q5 / Q9 / max_tokens shipped (2026-09-28):** Both Generate class IDs stay registered. **LLM Generate (Advanced)** is the intended spine (optional provider / options / meta, face `max_tokens` above `seed`, default 1024, min 0). Temperature was not added to Advanced. Basic keeps temperature / max_tokens / seed and the same min 0. Face `0` omits the face cap and keeps Options/meta limits; `>= 1` sends (`max_completion_tokens` for backend `openai`, `max_tokens` otherwise). Options `max_tokens` still sends `max_tokens`. Seed is sent when set, including 0. No cloud strip. No native Anthropic. Interrupt unload is LiteGraph property `unload_on_interrupt` (right-click Properties, default off), read from `extra_pnginfo.workflow`. It unloads only when a lifecycle is embedded (Manage VRAM ON or legacy lifecycle). API prompts without that blob stay off. Options nodes were not deleted; their token widgets allow 0.
 **Vir Q11 (`model` vs `loaded_model`) is NOT locked (2026-09-28):** research note [`2026-09-28-model-vs-loaded-per-backend.md`](2026-09-28-model-vs-loaded-per-backend.md). Accidental auto-default must not force an extra model load/OOM. Per-backend pass + recommended common rule (user-owned combo; status-only loaded; no select preload; **reject** naive always-sync). Do **not** implement sync. See WORKLIST R-1.
 **Scope:** Connection, legacy providers, lifecycle, generate, options, utils, socket types - composition, overlap, debt.  
@@ -33,9 +33,9 @@ Twelve registered nodes form **five product layers** that share **four** dict so
 | Generate | Basic, Advanced |
 | Utils | Preset Loader, Load Text File |
 
-**Intended new-graph spine:** **Connection  ->  one Generate node (current Advanced shape).** Expose at most the average-user knobs (likely temperature and `max_tokens`), with `max_tokens` above `seed`; leave the rest to host defaults. No separate Options node is part of this intended spine. Connection owns new-graph VRAM management through one backend-adaptive **Manage VRAM / Manage memory** toggle; Textgen and LM Studio retain their existing API paths behind it. llama.cpp only gets VRAM management when its host exposes router `/models/load` and `/models/unload`; otherwise chat remains available and the toggle is hidden/inert with status. Interrupt/unload policy is an additional node Properties option, not a main-face widget, and must respect Manage VRAM. No model-pick preload: load only on generate or when Manage VRAM needs it. Legacy Provider + Lifecycle still emit the same `LLM_PROVIDER` shape and remain temporarily registered for compatibility/testing and existing workflows while the Connection path is confirmed; then unregister/hide them rather than maintain a second product.
+**Intended new-graph spine:** **Connection  ->  LLM Generate (Advanced).** Shipped face knob is `max_tokens` above `seed` (temperature was not added; it stays on legacy Basic or Options). Leave the rest to host defaults. No separate Options node is part of this intended spine. Connection owns new-graph VRAM management through one backend-adaptive **Manage VRAM / Manage memory** toggle; Textgen and LM Studio retain their existing API paths behind it. llama.cpp only gets VRAM management when its host exposes router `/models/load` and `/models/unload`; otherwise chat remains available and the toggle is hidden/inert with status. Interrupt/unload policy is an additional node Properties option, not a main-face widget, and must respect Manage VRAM. No model-pick preload: load only on generate or when Manage VRAM needs it. Legacy Provider + Lifecycle still emit the same `LLM_PROVIDER` shape and remain temporarily registered for compatibility/testing and existing workflows while the Connection path is confirmed; then unregister/hide them rather than maintain a second product.
 
-The old VRAM split is resolved directionally for new graphs: one Connection toggle, with backend-specific API behavior behind it; the separate Lifecycle path remains legacy/compatibility only. Vir Q3-Q7 are settled: no separate Options node in the new-graph spine, one Advanced-shaped Generate node with only average-user knobs, interrupt/unload policy in node Properties, and no ensure_load_on_select/model-pick preload (Q6 implemented). Q4/Q5/Q9/max_tokens code shipped (header note): Advanced is that spine, both nodes stay registered, `max_tokens` min is 0, OpenAI face uses `max_completion_tokens`, interrupt unload is property `unload_on_interrupt` and respects Manage VRAM. DOC-3 full spine rewrite, Options merge, Generate unregister, and Q11 sync remain ask-first. Q11 (`model`/`loaded_model`) stays open as research — do not naive-sync combo to loaded. The A-25 / D-2 Manage VRAM toggle is shipped for Textgen and LM Studio.
+The old VRAM split is resolved directionally for new graphs: one Connection toggle, with backend-specific API behavior behind it; the separate Lifecycle path remains legacy/compatibility only. Vir Q3-Q7 are settled: no separate Options node in the new-graph spine, one Advanced-shaped Generate node with only average-user knobs, interrupt/unload policy in node Properties, and no ensure_load_on_select/model-pick preload (Q6 implemented). Q4/Q5/Q9/max_tokens code shipped (header note): Advanced is that spine, both nodes stay registered, `max_tokens` min is 0, OpenAI face uses `max_completion_tokens`, interrupt unload is property `unload_on_interrupt` and respects Manage VRAM. DOC-3 wrote that spine into README, examples, and CODEBASE. Options merge, Generate unregister, and Q11 sync remain ask-first. Q11 (`model`/`loaded_model`) stays open as research — do not naive-sync combo to loaded. The A-25 / D-2 Manage VRAM toggle is shipped for Textgen and LM Studio.
 
 ---
 
@@ -45,11 +45,11 @@ Plain-language "what is this node *for*" - not a full widget catalog.
 
 ### LLM Connection (`LLMConnection`) - **recommended entry**
 
-One adaptive node: host mode (Auto or pin LM Studio / Textgen / llama.cpp / OpenAI / Generic), URL + model, and one user-facing **Manage VRAM / Manage memory** toggle for new graphs. The backend may be detected or pinned; the pack sends the appropriate load/unload/TTL commands. Textgen and LM Studio keep their existing API paths behind the toggle. llama.cpp VRAM management is setup-gated: only use/show it when the host exposes router `/models/load` and `/models/unload`; otherwise chat still works and the toggle is hidden/inert with status. No extra backend-specific lifecycle knobs are added to this surface. No model-pick preload or `ensure_load_on_select`: load only when generation runs or Manage VRAM needs it. Outputs **`LLM_PROVIDER`**. No API-key widgets. Status chrome + Refresh Models via `POST /llm-bikeshed/models/connection`. Prefer this over Provider + Lifecycle for new graphs (`README`, `CODEBASE`, `2be26be`).
+One adaptive node: host mode (Auto or pin LM Studio / Textgen / llama.cpp / OpenAI / Generic), URL + model, and one user-facing **Manage VRAM / Manage memory** toggle for new graphs. The backend may be detected or pinned; the pack sends the appropriate load/unload/TTL commands. Textgen and LM Studio keep their existing API paths behind the toggle. llama.cpp VRAM management is setup-gated: only use/show it when the host exposes router `/models/load` and `/models/unload`; otherwise chat still works and the toggle is hidden/inert with status. Shipped face: LM Studio still shows `ttl` and `context_length` while Manage VRAM is ON; other faces do not add lifecycle knobs. No model-pick preload or `ensure_load_on_select`: load only when generation runs or Manage VRAM needs it. Outputs **`LLM_PROVIDER`**. No API-key widgets. Status chrome + Refresh Models via `POST /llm-bikeshed/models/connection`. Prefer this over Provider + Lifecycle for new graphs (`README`, `CODEBASE`, `2be26be`).
 
 ### Legacy: LLM Provider OAI Compatible (`LLMProviderOAICompat`)
 
-Fingerprints backend at URL; optional **`LLM_LIFECYCLE`** input. Models via `/llm-bikeshed/models/oai-compat`. Still first-class for mixed/migrated graphs and llama.cpp `/v1` when not using Connection. Hint-logs when detected backend is Textgen ("prefer Textgen provider"). Sets `load_before_generate` True when backend is Textgen even without lifecycle (unload still lifecycle-gated).
+Fingerprints backend at URL; optional **`LLM_LIFECYCLE`** input. Models via `/llm-bikeshed/models/oai-compat`. Still registered for migrated graphs and for llama.cpp `/v1` when the graph is not using Connection. Hint-logs when detected backend is Textgen ("prefer Textgen provider"). Sets `load_before_generate` True when backend is Textgen even without lifecycle (unload still lifecycle-gated).
 
 **Code-voice lag** *(comfydesk 2026-09-27 systems map):* OAI Compatible docstring/log still steers Textgen fingerprints toward the **Textgen provider**, while README / Connection lead prefer **Connection** for new graphs. Dual product voice until docs/code strings align.
 
@@ -95,13 +95,13 @@ Secrets never live in these dicts; adapters resolve keys at HTTP time (`config.a
 ### Typical graphs (today)
 
 ```text
-A) Intended new graph (docs direction; current implementation is Basic)
-   LLM Connection  --LLM_PROVIDER-->  One Generate node  --> text
+A) Intended new graph (shipped example: connection_generate.json)
+   LLM Connection  --LLM_PROVIDER-->  LLM Generate (Advanced)  --> text
                                               \--> LLM_META (optional chain)
-   (average-user knobs only; no separate Options node)
+   Face max_tokens above seed. No Options node. Manage VRAM on Connection.
 
-B) Current modular/legacy graph
-   Connection --> Advanced
+B) Legacy Options graph (still loads; not the intended path)
+   Connection or Provider --> Advanced
    Options*   --LLM_OPTIONS--> Advanced
    (optional Preset/Load Text --> prompt / system_prompt)
 
@@ -123,14 +123,15 @@ E) Meta chaining
 
 | File | Nodes | Family path |
 |------|-------|-------------|
-| `example_workflows/connection_basic.json` | Connection + Generate Basic | **A** (docs lead) |
+| `example_workflows/connection_generate.json` | Connection + Generate Advanced | **A** (docs lead) |
+| `connection_basic.json` | Connection + Generate Basic | Legacy Basic on Connection |
 | `basic_generation.json` | OAI Compatible + Generate Basic | **C**-shaped without Lifecycle |
 | `textgen_basic.json` | Textgen provider + Generate Basic | **D** |
-| `advanced_with_options.json` | OAI Compatible + Options LM Studio + Generate Advanced | **B**-shaped with **legacy** provider |
+| `advanced_with_options.json` | OAI Compatible + Options LM Studio + Generate Advanced | **B** with **legacy** provider |
 
-**Not in examples today:** Lifecycle nodes; Connection + Options + Advanced (legacy/compat only — **not** the intended spine); meta-chain graphs; OpenAI Options; Textgen Options.
+**Not in examples today:** Lifecycle nodes; Connection + Options + Advanced (not the intended spine); meta-chain graphs; OpenAI Options; Textgen Options.
 
-**Vir Q10 (2026-09-28):** update README / examples / CODEBASE onto the **Connection → one Generate** spine; do **not** put a separate Options node on the intended path. Current CODEBASE mermaid still draws Provider + optional Lifecycle as the provider layer — diagram lags Connection-first wording *(comfydesk 2026-09-27 systems map)*. **Docs lock only; example/diagram edits remain ask-first.**
+**Vir Q10 / DOC-3 (2026-09-28):** README, examples, and CODEBASE lead with **Connection → Advanced Generate**. No Options node on that path. CODEBASE's data-flow diagram matches that spine. Options merge and node unregister stay escalate.
 
 ### What's redundant now that Connection exists
 
@@ -280,7 +281,7 @@ Label: **hypothesis**. Ask Vir before any overhaul.
 7. **Auth UX - ANSWERED (Vir, 2026-09-28):** Keys stay off-graph in config/env; wrong key fails generation loudly with a clear auth flag/status. After key/settings updates, Refresh Node Definitions (and/or config reload) is the happy path, not a full Comfy restart. **Docs lock only; no implementation green light.**
 8. **llama.cpp - ANSWERED (Vir, 2026-09-28):** Connection/OAI `/v1` is enough. Dedicated llama.cpp / llama-server node is dead; **D-4 closed**. **Docs lock only.**
 9. **OpenAI / cloud knobs - ANSWERED + payload shipped (Vir, 2026-09-28):** Prefer `max_completion_tokens` for the Generate face when backend is OpenAI; keep `max_tokens` for legacy hosts and the Options `max_tokens` toggle; send `seed` when set; **no** strip-on-cloud; **no** native Anthropic.
-10. **Example / docs truth - ANSWERED (Vir, 2026-09-28):** Update README / examples / CODEBASE onto Connection → one Generate spine; no separate Options node on the intended path. **Docs lock only; content edits ask-first.**
+10. **Example / docs truth - ANSWERED + DOC-3 written (Vir, 2026-09-28):** README / examples / CODEBASE lead with Connection → one Generate (Advanced). No separate Options node on the intended path. Example: `connection_generate.json`. Node unregister and Options merge stay escalate.
 11. **`model` vs `loaded_model` - NOT LOCKED (Vir, 2026-09-28):** Research note [`2026-09-28-model-vs-loaded-per-backend.md`](2026-09-28-model-vs-loaded-per-backend.md). Accidental auto-default must not force extra model load/OOM. **Reject** naive always-sync. WORKLIST R-1. *(**not** greenlit — no sync implementation)*
 
 ---

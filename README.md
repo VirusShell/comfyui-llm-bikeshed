@@ -3,22 +3,21 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Tests](https://github.com/VirusShell/comfyui-llm-bikeshed/actions/workflows/test.yml/badge.svg)](https://github.com/VirusShell/comfyui-llm-bikeshed/actions/workflows/test.yml)
 
-ComfyUI custom nodes for local LLM text generation. Prefer **LLM Connection** for new graphs: one adaptive node with host mode (Auto or pinned backend), URL/model, and on-node VRAM knobs for Textgen / LM Studio. API keys live in config or environment variables only — never in workflow JSON.
+ComfyUI custom nodes for local LLM text generation. The intended new graph is **LLM Connection** → **LLM Generate (Advanced)**. Connection is one adaptive host (Auto or a pinned backend), a URL, a model, and one **Manage VRAM** toggle. Advanced Generate is the prompt plus an output `max_tokens` above `seed`. That cap does not need an Options node. API keys live in config or environment variables only — never in workflow JSON.
 
-**Legacy / old graphs:** **LLM Provider: OAI Compatible**, **LLM Provider: Textgen**, and the separate **Lifecycle** nodes remain registered so existing workflows keep working. Prefer **LLM Connection** instead of Provider + Lifecycle for new work.
+**Legacy / compatibility (still registered):** **LLM Generate (Basic)**, **LLM Options**, **LLM Provider: OAI Compatible**, **LLM Provider: Textgen**, and the **Lifecycle** nodes. Existing workflows keep working. New graphs should not start there.
 
-**Product direction:** See [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md) for scope notes (Textgen-first, lifecycle model under review; llama.cpp via Connection or OAI Compatible is first-class; dedicated llama-server node deferred).
+**Scope:** llama.cpp is Connection (or the legacy OAI Compatible node) speaking `/v1`. There is no dedicated llama-server node. Older scope notes live in [`docs/proposals/product-direction-and-scope.md`](docs/proposals/product-direction-and-scope.md).
 
 ## Features
 
-- **LLM Connection** (recommended) - Adaptive host mode (Auto detect or pin LM Studio / Textgen / llama.cpp / OpenAI / Generic OAI), shared URL + model face, embedded Textgen/LM Studio VRAM knobs, secret-free status chrome; models via `POST /llm-bikeshed/models/connection`
-- **2 Generation nodes** - Basic (compact, inline params) and Advanced (modular, connection-driven)
-- **3 Options nodes** - LM Studio, Textgen, and OpenAI core sampling parameters
-- **2 Utility nodes** - Preset Loader and Load Text File
-- **VRAM-aware** - **Textgen** / **LM Studio** faces on Connection (or legacy Provider + Lifecycle) load/unload or TTL around generation; chain-aware unload via `meta`
-- **Secure** - API keys from config file or environment variables, never in workflow JSON
-- **Minimal dependencies** - only `pyyaml` and `requests` (no provider SDKs)
-- **Legacy / old graphs** - **OAI Compatible** and **Textgen** provider nodes plus optional Lifecycle nodes stay registered (see [Legacy / old graphs](#legacy--old-graphs))
+- **LLM Connection** (start here) — host mode (Auto or pin LM Studio / Textgen / llama.cpp / OpenAI / Generic OAI), URL + model, one **Manage VRAM** toggle for Textgen and LM Studio, secret-free status. Models via `POST /llm-bikeshed/models/connection`. Picking a model does not load weights.
+- **LLM Generate (Advanced)** (intended Generate) — face `max_tokens` above `seed`. `0` omits the output cap. Optional `provider` / `options` / `meta`. No Options node on this path.
+- **2 Utility nodes** — Preset Loader and Load Text File
+- **VRAM** — Connection **Manage VRAM** (default ON) loads and unloads Textgen, or sets LM Studio TTL, around generation. Chain-aware unload uses `meta`. OpenAI, generic, and llama.cpp hide the toggle; chat still runs.
+- **Secure** — API keys from config or environment variables, never in workflow JSON
+- **Minimal dependencies** — only `pyyaml` and `requests` (no provider SDKs)
+- **Legacy** — Basic Generate, Options, Provider, and Lifecycle nodes stay registered (see [Legacy / compatibility](#legacy--compatibility))
 
 ## Requirements
 
@@ -52,7 +51,7 @@ Native **Ollama** (`/api/chat`) is not supported by this pack; use a dedicated O
 
 3. Restart ComfyUI. Nodes appear under the **LLM Bikeshed** category.
 
-Example workflows are in [`example_workflows/`](example_workflows/) - load them from ComfyUI's template browser or via **Load** to get started quickly. Start with [`connection_basic.json`](example_workflows/connection_basic.json).
+Example workflows are in [`example_workflows/`](example_workflows/). Load them from ComfyUI's template browser or via **Load**. Start with [`connection_generate.json`](example_workflows/connection_generate.json) (**LLM Connection** → **LLM Generate (Advanced)**).
 
 ## Configuration
 
@@ -137,34 +136,25 @@ Configure a backend in one node. Outputs `LLM_PROVIDER` (same type as the legacy
 
 **Refresh Models** calls `POST /llm-bikeshed/models/connection` with `{ "url", "host_mode" }` and updates the model widget plus read-only status lines (detected / effective backend, loaded model, auth hint, VRAM policy). The VRAM line follows the toggle (`manage on` / `manage off`) or says the toggle is hidden. No separate Lifecycle node is required for new graphs.
 
-**Migration:** Replace **Provider** (+ optional **Lifecycle**) with **LLM Connection**. Wire `provider` into Generate the same way.
+**Migration:** Replace **Provider** (+ optional **Lifecycle**) with **LLM Connection**, and **Basic** or an Options wall with **LLM Generate (Advanced)**. Wire Connection `provider` into Advanced `provider`.
 
-### Generation Nodes
+### LLM Generate (Advanced) (intended)
 
-Produce text from an LLM. Both output `text` (STRING) and `meta` (LLM_META).
+The Generate node for new graphs. Outputs `text` (STRING) and `meta` (LLM_META).
 
-| Node | Style | Inputs |
-|------|-------|--------|
-| **LLM Generate (Basic)** | Compact (still registered) | `provider`, `prompt`, `system_prompt`, inline `temperature`/`max_tokens`/`seed` |
-| **LLM Generate (Advanced)** | Intended spine | `prompt`, `system_prompt`, inline `max_tokens` above `seed`, optional `provider` / `options` / `meta` |
+| Input | Role |
+|-------|------|
+| `system_prompt` / `prompt` | Chat messages. Empty system text is omitted. |
+| `max_tokens` | Output cap only (not prompt + completion). Sits **above** `seed`. Default 1024. Min 0, max 128000. |
+| `seed` | Always sent, including `0`. |
+| `provider` | Optional socket. Connect **LLM Connection** here. |
+| `options` / `meta` | Optional. Not part of the intended path. `meta` carries provider + options from an upstream Generate for chaining. An explicit `provider` or `options` wins over `meta`. |
 
-- **Basic** works without an Options node - inline temperature, max_tokens, and seed are enough. Both Generate nodes stay registered.
-- **Advanced** is the intended new-graph Generate: connect Connection → `provider`. `max_tokens` is the average-user output cap (temperature stays on Basic or Options, not a new Advanced face widget). Optional `options` / `meta` remain for existing graphs.
-- **`max_tokens`:** output length only. `0` omits the face cap (host default; on Advanced an Options or meta limit is kept). `1` or more is sent. OpenAI sends that face value as `max_completion_tokens`; other hosts and an Options `max_tokens` toggle still use `max_tokens`.
-- **Meta chaining**: connect `meta` output to the next generation node's `meta` input. The model stays loaded across the chain and unloads only after the last node.
-
-### Options Nodes
-
-Configure inference parameters. All output `LLM_OPTIONS` type.
-
-| Node | Backend | Parameters | Pattern |
-|------|---------|-----------|---------|
-| **LLM Options: LM Studio** | LM Studio | temperature, top_p, max_tokens, seed, stop, top_k, repeat_penalty, presence_penalty, frequency_penalty | Boolean toggles (ON/OFF) |
-| **LLM Options: OpenAI** | OpenAI API | Core Chat Completions: temperature, top_p, max_tokens, max_completion_tokens, seed, stop, presence_penalty, frequency_penalty | Boolean toggles (ON/OFF) |
-| **LLM Options: Textgen** | text-generation-webui | temperature, top_p, max_tokens, seed, stop, top_k, min_p, repeat_penalty, presence_penalty, frequency_penalty, typical_p, tfs | Boolean toggles (ON/OFF) |
-
-- Options nodes are always optional - disconnect them and the model uses its own defaults.
-- Unsupported parameters are silently dropped (logged at info level).
+- **`max_tokens` `0`** omits this face cap (host default). On Advanced, `0` leaves an Options or `meta` token limit in place if one is already there. **`1` or more** replaces that limit and is sent.
+- **OpenAI** (`backend` `openai`): the face value is sent as `max_completion_tokens`. Other hosts get `max_tokens`. A legacy Options `max_tokens` toggle still sends `max_tokens`. If both fields are set, `max_completion_tokens` wins. Sampling params are not stripped for cloud. No native Anthropic.
+- Temperature is not on this face. Host default applies unless a legacy Basic or Options node sets it.
+- **Unload on interrupt** is not a face widget. Right-click the node → **Properties** → **Unload on interrupt** (`unload_on_interrupt`, default off). See [Cancel during generation](#cancel-during-generation).
+- **Meta chaining:** connect `meta` out to the next Generate `meta` in. The model stays loaded across the chain and unloads only after the last node, when Manage VRAM (or a legacy lifecycle) is managing it.
 
 ### Utility Nodes
 
@@ -175,16 +165,22 @@ Configure inference parameters. All output `LLM_OPTIONS` type.
 
 Connect either to a generation node's `system_prompt` or `prompt` input. See [`presets/README.txt`](presets/README.txt) for format; shipped example [`presets/llamacpp_oai_system.txt`](presets/llamacpp_oai_system.txt) (llama.cpp / OAI Compatible).
 
-### Legacy / old graphs
+### Legacy / compatibility
 
-These nodes stay registered for existing workflows. Prefer **LLM Connection** for new graphs.
+These nodes stay registered. They are not the intended new-graph path.
 
 | Node | Role | Notes |
 |------|------|-------|
-| **LLM Provider: OAI Compatible** | OpenAI-style HTTP backends (detected at `url`) | Optional `lifecycle` input; models via `POST /llm-bikeshed/models/oai-compat` |
-| **LLM Provider: Textgen** | Textgen-only URL + on-node `manage_model_memory` | Models via `POST /llm-bikeshed/models/textgen` (no fingerprinting) |
-| **LLM Lifecycle: LM Studio** | TTL + `context_length` into OAI Compatible `lifecycle` | Embedded on Connection's LM Studio face |
-| **LLM Lifecycle: Textgen** | `manage_model_memory` into OAI Compatible `lifecycle` | Prefer Connection or Textgen provider for new work |
+| **LLM Generate (Basic)** | Compact generate | Required `provider`, inline `temperature` / `max_tokens` / `seed`. Same `0` = omit cap, and the same Properties interrupt flag. Use Advanced for new graphs. |
+| **LLM Options: LM Studio** | Sampling wall | temperature, top_p, max_tokens, seed, stop, top_k, repeat_penalty, presence_penalty, frequency_penalty. Toggles. |
+| **LLM Options: OpenAI** | Sampling wall | Core Chat Completions: temperature, top_p, max_tokens, max_completion_tokens, seed, stop, presence_penalty, frequency_penalty. Toggles. |
+| **LLM Options: Textgen** | Sampling wall | temperature, top_p, max_tokens, seed, stop, top_k, min_p, repeat_penalty, presence_penalty, frequency_penalty, typical_p, tfs. Toggles. |
+| **LLM Provider: OAI Compatible** | OpenAI-style HTTP (detected at `url`) | Optional `lifecycle` input; models via `POST /llm-bikeshed/models/oai-compat` |
+| **LLM Provider: Textgen** | Textgen-only URL + its own memory toggle | Models via `POST /llm-bikeshed/models/textgen` (no fingerprinting) |
+| **LLM Lifecycle: LM Studio** | TTL + `context_length` into OAI Compatible | Same idea as Connection's LM Studio face while Manage VRAM is ON |
+| **LLM Lifecycle: Textgen** | `manage_model_memory` into OAI Compatible | Same idea as Connection **Manage VRAM** on a Textgen face |
+
+Options output `LLM_OPTIONS`. Only toggled-on parameters are included. Unsupported parameters are dropped (info log). You do not need an Options node to set `max_tokens`: that knob is on **LLM Generate (Advanced)**. Connect Options only on an old graph that still wants the extra sampling keys. A face `max_tokens` of `1` or more replaces an Options token limit; `0` keeps it.
 
 Without a lifecycle connection on **OAI Compatible**, and with **Manage VRAM** OFF on **Connection** (or **Manage model memory** OFF on the legacy **Textgen** provider), the adapter does not run Textgen load/unload. Connection Manage VRAM OFF on an LM Studio face also skips LM Studio load, TTL, and unload.
 
@@ -192,39 +188,42 @@ Shared legacy provider behavior: dynamic model dropdown + **Refresh Models** (fi
 
 ## Quick Start
 
-### Minimal Setup (LLM Connection)
+### New graph (LLM Connection → Generate Advanced)
 
 1. Add **LLM Connection**. Leave `host_mode` on **Auto (detect)** (or pin your backend).
 2. Set `url` to your server base (LM Studio default `http://localhost:1234`, Textgen `http://localhost:5000`). Do **not** append `/v1`.
-3. Click **Refresh Models**, pick a model (or type an id for llama.cpp / generic).
-4. For Textgen or LM Studio, leave **Manage VRAM** ON (default) so the pack loads when you queue. LM Studio also shows **TTL** and **context length** while that toggle is ON. OpenAI, generic, and llama.cpp hide the toggle; chat still runs. llama.cpp status says router `/models/load` + `/models/unload` are not verified, so the pack will not load or unload that host.
-5. Add **LLM Generate (Basic)**, connect Connection `provider` -> Generate `provider`.
-6. Type your prompt and system prompt, queue the workflow.
+3. Click **Refresh Models**, pick a model (or type an id for llama.cpp / generic). Changing the model does not load weights.
+4. For Textgen or LM Studio, leave **Manage VRAM** ON (default). LM Studio also shows **TTL** and **context length** while that toggle is ON. OpenAI, generic, and llama.cpp hide the toggle; chat still runs. llama.cpp status says router `/models/load` + `/models/unload` are not verified, so the pack will not load or unload that host.
+5. Add **LLM Generate (Advanced)**. Connect Connection `provider` → Advanced `provider`.
+6. Set `max_tokens` (default 1024; `0` omits the cap) and `seed` (sent even when `0`). Type the prompt and queue.
 
-See [`example_workflows/connection_basic.json`](example_workflows/connection_basic.json).
+Open [`example_workflows/connection_generate.json`](example_workflows/connection_generate.json). Prompt text can also come from **LLM Load Text File** or **LLM Preset Loader**.
 
 ### llama.cpp via LLM Connection
 
-Dedicated llama-server / process-manager nodes are **deferred**. Point Connection (or legacy OAI Compatible) at any llama.cpp server that speaks OpenAI-compatible HTTP.
+Point Connection at any llama.cpp server that speaks OpenAI-compatible HTTP. There is no dedicated llama-server node.
 
 1. Start the server so it exposes at least `/v1/chat/completions` (and ideally `/health` + `/v1/models`). Example: `llama-server --port 8080` (flags vary by build).
 2. Add **LLM Connection**; set `host_mode` to **llama.cpp** or leave Auto.
-3. Set `url` to the **base** URL **without** a duplicated `/v1` suffix - e.g. `http://127.0.0.1:8080`.
-4. Click **Refresh Models** (string/type-in model when catalog is empty). **Manage VRAM** stays hidden: this pack does not call llama.cpp router load/unload. Connect **LLM Generate (Basic)** and queue a short prompt.
-
-### Advanced Setup (intended Generate)
-
-1. Add **LLM Connection**
-2. Add **LLM Generate (Advanced)**
-3. Connect Connection -> `provider`. Set `max_tokens` (`0` uses the host default). `seed` is below it.
-4. Connect prompt text via **LLM Load Text File** or type directly
-5. **LLM Options** is optional and still registered. Connect `options` only when you need knobs beyond the face cap. A face `max_tokens` of `1` or more replaces an Options token limit; `0` keeps it.
+3. Set `url` to the **base** URL **without** a duplicated `/v1` suffix — e.g. `http://127.0.0.1:8080`.
+4. Click **Refresh Models** (type a model id when the catalog is empty). **Manage VRAM** stays hidden: this pack does not call llama.cpp router load/unload. Connect **LLM Generate (Advanced)** and queue a short prompt.
 
 ### Chaining Generations
 
-1. Wire first generation node's `meta` output to second generation node's `meta` input
-2. The model stays loaded across the chain (VRAM-aware deferral)
-3. Only the last node in the chain triggers model unload/short TTL
+1. Wire the first Generate node's `meta` output to the next Generate node's `meta` input
+2. The model stays loaded across the chain when **Manage VRAM** (or a legacy lifecycle) is managing it
+3. Only the last node in the chain triggers model unload or the short LM Studio TTL
+
+### Older examples (migration)
+
+These files stay in the repo so old graphs have a picture to copy from. They are not the new-graph path.
+
+| File | Graph |
+|------|--------|
+| [`connection_basic.json`](example_workflows/connection_basic.json) | Connection + **Basic** |
+| [`basic_generation.json`](example_workflows/basic_generation.json) | Legacy OAI Compatible + Basic |
+| [`textgen_basic.json`](example_workflows/textgen_basic.json) | Legacy Textgen provider + Basic |
+| [`advanced_with_options.json`](example_workflows/advanced_with_options.json) | Legacy OAI Compatible + Options + Advanced |
 
 ## Cancel during generation
 

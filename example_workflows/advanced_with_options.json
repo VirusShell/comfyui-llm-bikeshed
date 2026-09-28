@@ -55,7 +55,7 @@
         true,
         512,
         false,
-        -1,
+        0,
         false,
         "",
         false,
@@ -107,7 +107,9 @@
       },
       "widgets_values": [
         "You are a helpful writing assistant.",
-        "Describe a cozy coffee shop in one paragraph."
+        "Describe a cozy coffee shop in one paragraph.",
+        1024,
+        0
       ]
     }
   ],

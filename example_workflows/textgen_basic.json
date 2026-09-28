@@ -63,7 +63,7 @@
       "widgets_values": [
         0.7,
         512,
-        -1,
+        0,
         "",
         "Summarize the benefits of local LLM inference in three bullet points."
       ]
