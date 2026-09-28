@@ -6,13 +6,13 @@ Orientation map for developers and AI agents working on this ComfyUI custom node
 
 ## Project purpose
 
-**comfyui-llm-bikeshed** is a ComfyUI custom node pack for **LLM text generation** only — no image, video, music, or speech generation. It connects ComfyUI workflows to local and cloud text backends through a small set of provider, lifecycle, generation, and options nodes.
+**comfyui-llm-bikeshed** is a ComfyUI custom node pack for **LLM text generation** only — no image, video, music, or speech generation. The intended new graph is **LLM Connection** → **LLM Generate (Advanced)** (`LLMConnection`, `LLMGenerateAdvanced`). Provider, Lifecycle, Basic Generate, and Options nodes stay registered for existing workflows. They are not a second product path.
 
 Supported backends (via a single OpenAI-compatible adapter path): **LM Studio**, **Textgen** (oobabooga text-generation-webui), **OpenAI Chat Completions**, and generic OAI-compatible hosts (including llama.cpp servers that expose `/v1/chat/completions`). **Native Ollama** (`/api/chat`) was removed in v0.3.0; fingerprinting may still label a host as Ollama on the OAI Compatible provider UI, but this pack does not ship Ollama nodes or adapters.
 
 VRAM sharing with diffusion is a core requirement. On **LLM Connection**, one **Manage VRAM / Manage memory** toggle (`manage_model_memory`, default ON) gates it: Textgen uses explicit load/unload via internal HTTP when the toggle is ON; LM Studio uses TTL and optional `context_length` on load when the toggle is ON; OFF means the pack does not load, unload, or set TTL. OpenAI, generic hosts, and llama.cpp hide that toggle (llama.cpp router `/models/load` + `/models/unload` are not verified in detection or the adapter; chat still works). Legacy lifecycle nodes keep their own paths. API keys are resolved from `config.yaml` or environment variables at HTTP time — never stored in workflow JSON or node execution outputs.
 
-**Current release:** v1.0.3 (`pyproject.toml`, `version.py`). Core v1 is shipped; open design work (lifecycle UX, chat nodes, additional cloud APIs) lives in the tracker and proposals.
+**Current release:** v1.0.3 (`pyproject.toml`, `version.py`). That version line predates the unreleased Connection **Manage VRAM** toggle, Generate face `max_tokens`, and Properties interrupt unload — those are on `master` and are not a publish. Still not shipped: Q11 `model` / `loaded_model` sync, Options merge or delete, Q7 “refresh definitions instead of restart” auth UX, chat nodes, and extra cloud APIs. See [`WORKLIST.md`](WORKLIST.md).
 
 ---
 
@@ -49,7 +49,9 @@ ComfyUI discovers custom nodes by scanning `custom_nodes/` subdirectories. Each 
 | `LLMPresetLoader` | LLM Preset Loader | `nodes/utils.py` |
 | `LLMLoadTextFile` | LLM Load Text File | `nodes/utils.py` |
 
-**Custom socket types:** `LLM_PROVIDER`, `LLM_LIFECYCLE`, `LLM_OPTIONS`, `LLM_META` — plain Python dicts passed between nodes; no ComfyUI type registry beyond the string name.
+**Intended new-graph classes:** `LLMConnection` and `LLMGenerateAdvanced`. `LLMGenerate`, `LLMOptions*`, `LLMProvider*`, and `LLMLifecycle*` stay in the registry for compatibility. Do not unregister them from a docs pass.
+
+**Custom socket types:** `LLM_PROVIDER`, `LLM_LIFECYCLE`, `LLM_OPTIONS`, `LLM_META` — plain Python dicts passed between nodes; no ComfyUI type registry beyond the string name. New graphs use `LLM_PROVIDER` and, when chaining, `LLM_META`. `LLM_OPTIONS` and `LLM_LIFECYCLE` are legacy sockets.
 
 ---
 
@@ -97,7 +99,7 @@ comfyui-llm-bikeshed/
 │
 ├── tests/                      # pytest suite (14 modules + conftest)
 ├── docs/                       # Design, research, reference, proposals
-├── example_workflows/          # 4 shipped workflow JSON templates
+├── example_workflows/          # 5 workflow JSON templates (1 intended, 4 legacy)
 ├── presets/
 │   ├── README.txt              # Format + how LLM Preset Loader lists files
 │   └── llamacpp_oai_system.txt # Example system prompt (llama.cpp / OAI Compatible)
@@ -123,27 +125,22 @@ comfyui-llm-bikeshed/
 
 ## Core architecture
 
-### Data flow (typical workflow)
+### Data flow (intended new graph)
 
 ```mermaid
 flowchart LR
-  subgraph providers [Provider layer]
-    P[LLM Provider node]
-    L[LLM Lifecycle optional]
-  end
-  subgraph gen [Generation layer]
-    O[LLM Options optional]
-    G[LLM Generate Basic or Advanced]
-  end
-  L -->|LLM_LIFECYCLE| P
-  P -->|LLM_PROVIDER| G
-  O -->|LLM_OPTIONS| G
+  C[LLM Connection] -->|LLM_PROVIDER| G[LLM Generate Advanced]
+  G -->|text| T[STRING]
   G -->|LLM_META chain| G
 ```
 
-1. **Connection / Provider nodes** build an `LLM_PROVIDER` dict: `backend`, `adapter`, `url`, `model`, `timeout`, optional `lifecycle` (and Connection may set `load_before_generate`). Prefer **LLM Connection** for new graphs; legacy Provider nodes remain. Connection embeds lifecycle only when **Manage VRAM** is ON for Textgen or LM Studio.
+No Options node and no Lifecycle node on that path. Connection embeds lifecycle in the provider dict only when **Manage VRAM** is ON for Textgen or LM Studio.
+
+Legacy graphs that still load: Provider ± Lifecycle → Basic or Advanced, and Options → Advanced (`LLM_OPTIONS`). Those class IDs stay registered.
+
+1. **Connection / Provider nodes** build an `LLM_PROVIDER` dict: `backend`, `adapter`, `url`, `model`, `timeout`, optional `lifecycle` (and Connection may set `load_before_generate`). **LLM Connection** is the new-graph node; legacy Provider nodes remain. Connection embeds lifecycle only when **Manage VRAM** is ON for Textgen or LM Studio.
 2. **Lifecycle nodes** (legacy) output `LLM_LIFECYCLE` (LM Studio `ttl`/`context_length`, or Textgen `manage_model_memory`). They stay registered. Connection uses the same adapter hooks behind one toggle; LM Studio `ttl` / `context_length` show only on that face while Manage VRAM is ON.
-3. **Options nodes** output `LLM_OPTIONS` — only toggle-enabled parameters are included (`nodes/options_base.py`).
+3. **Options nodes** (legacy) output `LLM_OPTIONS` — only toggle-enabled parameters are included (`nodes/options_base.py`). The Advanced face `max_tokens` does not require this socket.
 4. **Generation nodes** call `get_adapter(provider["adapter"]).generate(...)`, return `(text, meta)`. **LLM Generate (Advanced)** is the intended spine: optional provider / options / meta, with face `max_tokens` above `seed`. Basic stays registered (temperature + max_tokens + seed). `max_tokens` `0` omits the face cap; `>= 1` sends it (`max_completion_tokens` when `backend` is `openai`, otherwise `max_tokens`). Seed is always written from the widget, including `0`. Advanced accepts upstream `meta` for chaining; `graph.introspection.has_downstream_gen_node` sets `skip_unload` when another generation node is downstream on the `meta` output. Interrupt unload is **not** a face widget: LiteGraph property `unload_on_interrupt` (default off) is read from `extra_pnginfo.workflow.nodes[].properties`. It unloads on Cancel only when the provider dict has a lifecycle (Manage VRAM ON or a legacy lifecycle). Prompts without that workflow blob stay off.
 5. **Caching / `IS_CHANGED` (deliberate):** Both `LLMGenerate` and `LLMGenerateAdvanced` implement `IS_CHANGED` as `return float("NaN")`. ComfyUI treats NaN fingerprints as never-equal, so generate nodes **always re-execute** on queue. That is intentional for LLM calls (non-deterministic / external HTTP); do not "fix" to a stable hash or seed fingerprint unless product explicitly wants cached skips. Standards note: `IS_CHANGED` is an equality fingerprint, not a boolean — `True` every time would incorrectly skip reruns.
 
@@ -193,7 +190,7 @@ Request body: JSON `{ "url": "<base URL>" }` (Connection also takes `host_mode`;
 
 ### Frontend (`js/`)
 
-ComfyUI extensions loaded via `WEB_DIRECTORY`. Two scripts share debounce / read-only status patterns (Vir Q6: no model-pick ensure-loaded):
+ComfyUI extensions loaded via `WEB_DIRECTORY`. `llm_connection.js` and `model_dropdown.js` share debounce / read-only status patterns (Vir Q6: no model-pick ensure-loaded). `generate_properties.js` only adds the Generate Properties flag.
 
 #### `js/llm_connection.js` (LLM Connection)
 
@@ -212,6 +209,10 @@ Hooks **`LLMProviderOAICompat`** / **`LLMProviderTextGenWebUI`**:
 - **Refresh Models** button repopulates the `model` COMBO widget via `/models/oai-compat` or `/models/textgen`.
 - Textgen provider shows read-only **loaded** model line when the server returns `loaded_model`.
 - Same read-only widget options and URL-refetch debounce constants as Connection (no ensure-loaded on model pick).
+
+#### `js/generate_properties.js` (both Generate nodes)
+
+Extension name `llm-bikeshed.generateProperties`. On `LLMGenerate` and `LLMGenerateAdvanced` node create, adds LiteGraph property `unload_on_interrupt` (label "Unload on interrupt", default false). Python reads it from `extra_pnginfo.workflow` at queue time. It is not a face widget.
 
 ### Configuration (`config/`)
 
@@ -378,10 +379,11 @@ Or uv: `[dependency-groups].dev` mirrors optional `[project.optional-dependencie
 
 | File | Description |
 |------|-------------|
-| [`example_workflows/connection_basic.json`](example_workflows/connection_basic.json) | **LLM Connection** + Basic generate (recommended) |
-| [`example_workflows/basic_generation.json`](example_workflows/basic_generation.json) | Legacy OAI Compatible provider + Basic generate |
-| [`example_workflows/advanced_with_options.json`](example_workflows/advanced_with_options.json) | Legacy provider + Options + Advanced generate |
-| [`example_workflows/textgen_basic.json`](example_workflows/textgen_basic.json) | Legacy Textgen provider with memory management |
+| [`example_workflows/connection_generate.json`](example_workflows/connection_generate.json) | **Intended:** Connection (Manage VRAM ON) → Advanced (`max_tokens` 1024 above `seed` 0; `unload_on_interrupt` off) |
+| [`example_workflows/connection_basic.json`](example_workflows/connection_basic.json) | Legacy: Connection + Basic generate |
+| [`example_workflows/basic_generation.json`](example_workflows/basic_generation.json) | Legacy: OAI Compatible provider + Basic |
+| [`example_workflows/advanced_with_options.json`](example_workflows/advanced_with_options.json) | Legacy: OAI Compatible + Options + Advanced (face `max_tokens` / `seed` included) |
+| [`example_workflows/textgen_basic.json`](example_workflows/textgen_basic.json) | Legacy: Textgen provider + Basic |
 
 [`presets/`](presets/) — users add `.txt` files; **LLM Preset Loader** lists and reads them (skips `README.txt`). See [`presets/README.txt`](presets/README.txt). Shipped example: [`presets/llamacpp_oai_system.txt`](presets/llamacpp_oai_system.txt) for llama.cpp / OAI Compatible system prompts.
 

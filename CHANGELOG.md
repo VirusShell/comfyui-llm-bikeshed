@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **DOC-3** — README, examples, and CODEBASE lead with **LLM Connection → LLM Generate (Advanced)**. No Options node on that path. Basic, Options, Provider, and Lifecycle stay registered and are documented as legacy. New example: `example_workflows/connection_generate.json` (Manage VRAM, face `max_tokens`, `seed`). `connection_basic.json` and the provider examples remain for migration. Advanced's example widgets include `max_tokens` and `seed`. Docs only; no version bump.
 - **Generate face (Q4 / max_tokens)** - **LLM Generate (Advanced)** is the intended spine. It keeps optional `provider` / `options` / `meta`, and adds face `max_tokens` above `seed` (default 1024). **LLM Generate (Basic)** stays registered. Temperature stays on Basic and on Options; it was not added to Advanced. Neither node was unregistered.
 - **`max_tokens` 0** - output cap only. Widget min is 0 on Generate and on Options token fields (was 1). `0` omits that face limit (host default). On Advanced, `0` leaves an Options or meta limit in place; `1` or more replaces it. No prompt-length cap.
 - **OpenAI knobs (Q9)** - the Generate face sends `max_completion_tokens` when the provider backend is `openai`, and `max_tokens` for other hosts. An Options `max_tokens` value still goes out as `max_tokens` (legacy). If both fields are set, `max_completion_tokens` wins. `seed` is sent when set, including `0`. Sampling params are not stripped for cloud. No native Anthropic.
