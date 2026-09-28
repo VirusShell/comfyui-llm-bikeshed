@@ -23,6 +23,8 @@ class LLMAdapter(Protocol):
         messages: list[dict],
         options: dict,
         skip_unload: bool = False,
+        *,
+        unload_on_interrupt: bool = False,
     ) -> str:
         """Send generation request. Returns extracted text."""
         ...

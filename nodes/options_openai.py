@@ -27,10 +27,15 @@ class LLMOptionsOpenAI:
             "max": 1.0, "step": 0.05,
         }),
         ("max_tokens", "INT", {
-            "default": 1024, "min": 1, "max": 128000,
+            "default": 1024, "min": 0, "max": 128000,
+            "tooltip": (
+                "Legacy output cap. 0 omits the field. "
+                "Prefer max_completion_tokens for new OpenAI paths."
+            ),
         }),
         ("max_completion_tokens", "INT", {
-            "default": 1024, "min": 1, "max": 128000,
+            "default": 1024, "min": 0, "max": 128000,
+            "tooltip": "Output cap for newer OpenAI models. 0 omits the field.",
         }),
         ("seed", "INT", {
             "default": 0, "min": 0, "max": 0xffffffffffffffff,

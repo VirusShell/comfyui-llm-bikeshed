@@ -250,3 +250,104 @@ class TestOAICompatTextgenCancel:
         assert isinstance(result.get("exc"), InterruptProcessingException)
         assert len(stop_urls) == 1
         assert stop_urls[0] == "http://localhost:5000/v1/internal/stop-generation"
+
+
+class TestUnloadOnInterruptPolicy:
+    """Q5: unload on cancel only when asked, and only if lifecycle is embedded."""
+
+    def _raise_interrupt(self, *_args, **_kwargs):
+        raise InterruptProcessingException()
+
+    def test_flag_on_unloads_when_lifecycle_present(
+        self, monkeypatch, text_gen_webui_provider
+    ):
+        monkeypatch.setattr("adapters.oai_compat._safe_post", self._raise_interrupt)
+        monkeypatch.setattr("adapters.oai_compat._safe_get", self._raise_interrupt)
+        unloads: list[str] = []
+        adapter = OAICompatAdapter()
+        monkeypatch.setattr(
+            adapter,
+            "_unload_model_text_gen_webui",
+            lambda _provider: unloads.append("unload"),
+        )
+        with pytest.raises(InterruptProcessingException):
+            adapter.generate(
+                text_gen_webui_provider,
+                [{"role": "user", "content": "hi"}],
+                {},
+                skip_unload=True,
+                unload_on_interrupt=True,
+            )
+        assert unloads == ["unload"]
+
+    def test_flag_off_does_not_unload(
+        self, monkeypatch, text_gen_webui_provider
+    ):
+        monkeypatch.setattr("adapters.oai_compat._safe_post", self._raise_interrupt)
+        monkeypatch.setattr("adapters.oai_compat._safe_get", self._raise_interrupt)
+        unloads: list[str] = []
+        adapter = OAICompatAdapter()
+        monkeypatch.setattr(
+            adapter,
+            "_unload_model_text_gen_webui",
+            lambda _provider: unloads.append("unload"),
+        )
+        with pytest.raises(InterruptProcessingException):
+            adapter.generate(
+                text_gen_webui_provider,
+                [{"role": "user", "content": "hi"}],
+                {},
+            )
+        assert unloads == []
+
+    def test_manage_vram_off_does_not_unload(self, monkeypatch):
+        """No lifecycle means Manage VRAM OFF; the property cannot force unload."""
+        monkeypatch.setattr("adapters.oai_compat._safe_post", self._raise_interrupt)
+        unloads: list[str] = []
+        adapter = OAICompatAdapter()
+        monkeypatch.setattr(
+            adapter,
+            "_unload_model_text_gen_webui",
+            lambda _provider: unloads.append("unload"),
+        )
+        provider = {
+            "backend": "text_gen_webui",
+            "adapter": "oai_compat",
+            "url": "http://localhost:5000",
+            "model": "my-model",
+            "timeout": 120,
+            "lifecycle": None,
+            "load_before_generate": False,
+        }
+        with pytest.raises(InterruptProcessingException):
+            adapter.generate(
+                provider,
+                [{"role": "user", "content": "hi"}],
+                {},
+                unload_on_interrupt=True,
+            )
+        assert unloads == []
+
+    def test_non_interrupt_error_does_not_unload(
+        self, monkeypatch, text_gen_webui_provider
+    ):
+        def boom(*_args, **_kwargs):
+            raise RuntimeError("HTTP 500 — no")
+
+        monkeypatch.setattr("adapters.oai_compat._safe_post", boom)
+        monkeypatch.setattr("adapters.oai_compat._safe_get", boom)
+        unloads: list[str] = []
+        adapter = OAICompatAdapter()
+        monkeypatch.setattr(
+            adapter,
+            "_unload_model_text_gen_webui",
+            lambda _provider: unloads.append("unload"),
+        )
+        with pytest.raises(RuntimeError, match="HTTP 500"):
+            adapter.generate(
+                text_gen_webui_provider,
+                [{"role": "user", "content": "hi"}],
+                {},
+                unload_on_interrupt=True,
+            )
+        assert unloads == []

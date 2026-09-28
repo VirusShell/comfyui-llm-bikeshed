@@ -116,13 +116,39 @@ def _iter_lm_studio_model_entries(body: dict) -> list[tuple[str, list[dict]]]:
     return entries
 
 
-def _dedupe_openai_token_limits(params: dict) -> None:
-    """OpenAI accepts max_tokens or max_completion_tokens; keep one if both set.
+_TOKEN_LIMIT_KEYS = ("max_tokens", "max_completion_tokens")
 
-    Prefer ``max_completion_tokens`` (newer API shape) and drop ``max_tokens``.
+
+def _omit_nonpositive_token_limits(params: dict) -> None:
+    """Drop output-token fields that are 0 or negative.
+
+    ``0`` means omit / host default. ``>= 1`` is sent. This is output length
+    only; the pack does not cap the prompt.
+    """
+    for key in _TOKEN_LIMIT_KEYS:
+        value = params.get(key)
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, (int, float)) and value < 1:
+            del params[key]
+
+
+def _dedupe_openai_token_limits(params: dict) -> None:
+    """If both OpenAI token fields are set, keep ``max_completion_tokens``.
+
+    A lone ``max_tokens`` stays. Legacy Options and hosts that need that
+    field still send it. New Generate-face OpenAI paths write
+    ``max_completion_tokens`` themselves. Do not strip other cloud params.
     """
     if "max_completion_tokens" in params and "max_tokens" in params:
         del params["max_tokens"]
+
+
+def _is_processing_interrupt(exc: BaseException) -> bool:
+    """True for ComfyUI cancel, including the out-of-process fallback."""
+    if type(exc).__name__ == "InterruptProcessingException":
+        return True
+    return isinstance(exc, RuntimeError) and str(exc) == "Processing interrupted"
 
 
 class OAICompatAdapter:
@@ -137,6 +163,8 @@ class OAICompatAdapter:
         messages: list[dict],
         options: dict,
         skip_unload: bool = False,
+        *,
+        unload_on_interrupt: bool = False,
     ) -> str:
         """Send a chat completion request and return the generated text."""
         url: str = provider["url"]
@@ -171,12 +199,59 @@ class OAICompatAdapter:
                     backend,
                 )
 
+        _omit_nonpositive_token_limits(filtered)
         if backend == "openai":
             _dedupe_openai_token_limits(filtered)
 
         lifecycle = provider.get("lifecycle")
         lc_type = lifecycle.get("type") if lifecycle else None
 
+        try:
+            text = self._chat_completion(
+                provider,
+                messages,
+                filtered,
+                backend=backend,
+                model=model,
+                url=url,
+                lifecycle=lifecycle,
+                lc_type=lc_type,
+                skip_unload=skip_unload,
+            )
+        except BaseException as exc:
+            if unload_on_interrupt and _is_processing_interrupt(exc):
+                # Cancel aborts the chain. Unload only when a lifecycle is
+                # embedded (Manage VRAM ON or a legacy lifecycle). OFF embeds
+                # nothing, so this cannot override that policy.
+                if lifecycle:
+                    logger.info(
+                        "Interrupt unload requested; lifecycle present "
+                        "for backend '%s'",
+                        backend,
+                    )
+                self._unload_managed_model(provider, model, backend)
+            raise
+
+        # Unload model if last in chain and lifecycle is active.
+        if not skip_unload:
+            self._unload_managed_model(provider, model, backend)
+
+        return text
+
+    def _chat_completion(
+        self,
+        provider: dict,
+        messages: list[dict],
+        filtered: dict,
+        *,
+        backend: str,
+        model: str,
+        url: str,
+        lifecycle: dict | None,
+        lc_type: str | None,
+        skip_unload: bool,
+    ) -> str:
+        """Load if needed, POST chat completions, return message text."""
         # Textgen does not JIT-load on chat. Load the selected model when the
         # provider allows it (Textgen provider manage_model_memory, or OAI
         # Compatible auto-load at Textgen URLs). Unload stays lifecycle-gated.
@@ -201,7 +276,8 @@ class OAICompatAdapter:
                 backend,
             )
 
-        # Build request payload.
+        # Build request payload. Sampling keys already filtered; seed stays
+        # when the caller set it (including 0). No cloud-only strip.
         payload: dict = {
             "model": model,
             "messages": messages,
@@ -239,19 +315,25 @@ class OAICompatAdapter:
 
         _raise_on_error(response, backend, endpoint)
 
-        # Extract generated text.
         data = response.json()
-        text = data["choices"][0]["message"]["content"]
+        return data["choices"][0]["message"]["content"]
 
-        # Unload model if last in chain and lifecycle is active.
-        if not skip_unload and lifecycle:
-            lc_type = lifecycle.get("type")
-            if lc_type == "text_gen_webui" and backend == "text_gen_webui":
-                self._unload_model_text_gen_webui(provider)
-            elif lc_type == "lm_studio" and backend == "lm_studio":
-                self._unload_model_lm_studio(provider, model)
+    def _unload_managed_model(
+        self, provider: dict, model: str, backend: str
+    ) -> None:
+        """Unload when the provider embedded a matching lifecycle.
 
-        return text
+        No lifecycle (Connection Manage VRAM OFF, or a host with no pack
+        unload path) is a no-op.
+        """
+        lifecycle = provider.get("lifecycle")
+        if not lifecycle:
+            return
+        lc_type = lifecycle.get("type")
+        if lc_type == "text_gen_webui" and backend == "text_gen_webui":
+            self._unload_model_text_gen_webui(provider)
+        elif lc_type == "lm_studio" and backend == "lm_studio":
+            self._unload_model_lm_studio(provider, model)
 
     def _auth_headers(self, provider: dict) -> dict[str, str]:
         """Build headers for routes gated by Textgen ``--api-key`` (e.g. chat).

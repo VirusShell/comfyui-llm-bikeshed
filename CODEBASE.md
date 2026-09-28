@@ -80,7 +80,7 @@ comfyui-llm-bikeshed/
 ├── nodes/                      # ComfyUI node class definitions
 │   ├── providers.py            # Connection + OAI Compatible + Textgen providers
 │   ├── lifecycle.py            # LM Studio TTL + Textgen memory widgets
-│   ├── generation.py           # Basic + Advanced generation
+│   ├── generation.py           # Basic + Advanced; Advanced is the intended spine
 │   ├── options_base.py         # Shared toggle-options builder
 │   ├── options_lm_studio.py
 │   ├── options_openai.py
@@ -92,7 +92,8 @@ comfyui-llm-bikeshed/
 │
 ├── js/
 │   ├── model_dropdown.js       # Dynamic model COMBO + backend label UI
-│   └── llm_connection.js       # LLM Connection face / status / catalog rules
+│   ├── llm_connection.js       # LLM Connection face / status / catalog rules
+│   └── generate_properties.js  # Generate Properties: unload_on_interrupt
 │
 ├── tests/                      # pytest suite (14 modules + conftest)
 ├── docs/                       # Design, research, reference, proposals
@@ -143,7 +144,7 @@ flowchart LR
 1. **Connection / Provider nodes** build an `LLM_PROVIDER` dict: `backend`, `adapter`, `url`, `model`, `timeout`, optional `lifecycle` (and Connection may set `load_before_generate`). Prefer **LLM Connection** for new graphs; legacy Provider nodes remain. Connection embeds lifecycle only when **Manage VRAM** is ON for Textgen or LM Studio.
 2. **Lifecycle nodes** (legacy) output `LLM_LIFECYCLE` (LM Studio `ttl`/`context_length`, or Textgen `manage_model_memory`). They stay registered. Connection uses the same adapter hooks behind one toggle; LM Studio `ttl` / `context_length` show only on that face while Manage VRAM is ON.
 3. **Options nodes** output `LLM_OPTIONS` — only toggle-enabled parameters are included (`nodes/options_base.py`).
-4. **Generation nodes** call `get_adapter(provider["adapter"]).generate(...)`, return `(text, meta)`. Advanced node accepts upstream `meta` for chaining; `graph.introspection.has_downstream_gen_node` sets `skip_unload` when another generation node is downstream on the `meta` output.
+4. **Generation nodes** call `get_adapter(provider["adapter"]).generate(...)`, return `(text, meta)`. **LLM Generate (Advanced)** is the intended spine: optional provider / options / meta, with face `max_tokens` above `seed`. Basic stays registered (temperature + max_tokens + seed). `max_tokens` `0` omits the face cap; `>= 1` sends it (`max_completion_tokens` when `backend` is `openai`, otherwise `max_tokens`). Seed is always written from the widget, including `0`. Advanced accepts upstream `meta` for chaining; `graph.introspection.has_downstream_gen_node` sets `skip_unload` when another generation node is downstream on the `meta` output. Interrupt unload is **not** a face widget: LiteGraph property `unload_on_interrupt` (default off) is read from `extra_pnginfo.workflow.nodes[].properties`. It unloads on Cancel only when the provider dict has a lifecycle (Manage VRAM ON or a legacy lifecycle). Prompts without that workflow blob stay off.
 5. **Caching / `IS_CHANGED` (deliberate):** Both `LLMGenerate` and `LLMGenerateAdvanced` implement `IS_CHANGED` as `return float("NaN")`. ComfyUI treats NaN fingerprints as never-equal, so generate nodes **always re-execute** on queue. That is intentional for LLM calls (non-deterministic / external HTTP); do not "fix" to a stable hash or seed fingerprint unless product explicitly wants cached skips. Standards note: `IS_CHANGED` is an equality fingerprint, not a boolean — `True` every time would incorrectly skip reruns.
 
 ### Adapters (`adapters/`)
@@ -152,7 +153,7 @@ flowchart LR
 |------|------|
 | [`adapters/__init__.py`](adapters/__init__.py) | Singleton registry; currently only `"oai_compat"` → `OAICompatAdapter` |
 | [`adapters/base.py`](adapters/base.py) | `LLMAdapter` protocol; JSON sanitization; `_safe_get` / `_safe_post` wrappers |
-| [`adapters/oai_compat.py`](adapters/oai_compat.py) | `POST {url}/v1/chat/completions`; per-backend parameter allowlists and name maps; LM Studio TTL; Textgen load/unload via `/v1/internal/model/*` |
+| [`adapters/oai_compat.py`](adapters/oai_compat.py) | `POST {url}/v1/chat/completions`; per-backend parameter allowlists and name maps; `0` token limits omitted; OpenAI dedupes to `max_completion_tokens` when both fields are set (lone `max_tokens` kept); seed forwarded when set; LM Studio TTL; Textgen load/unload via `/v1/internal/model/*`; optional unload on ComfyUI interrupt when a lifecycle is present |
 | [`adapters/interrupt.py`](adapters/interrupt.py) | Polls ComfyUI `processing_interrupted` during long HTTP calls |
 
 Credentials are **not** embedded in provider dicts. Adapters call [`config.auth.resolve_provider_auth`](config/auth.py) at request time.

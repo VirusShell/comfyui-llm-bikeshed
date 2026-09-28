@@ -27,7 +27,8 @@ class LLMOptionsTextGenWebUI:
             "max": 1.0, "step": 0.05,
         }),
         ("max_tokens", "INT", {
-            "default": 512, "min": 1, "max": 128000,
+            "default": 512, "min": 0, "max": 128000,
+            "tooltip": "Output cap. 0 omits the field (host default).",
         }),
         ("seed", "INT", {
             "default": 0, "min": 0, "max": 0xffffffffffffffff,
