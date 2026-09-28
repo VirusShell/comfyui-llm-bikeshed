@@ -1,6 +1,6 @@
 # Worklist - comfyui-llm-bikeshed
 
-**Updated:** 2026-09-28 (Vir authorized implementing settled Q1–Q10/max_tokens locks; first code stream **Q6 preload rip** via Build/PR; Q11/R-1 research note started; still escalate publish/registry/deletes/credentials; Options merge/delete and height remain deferred) - Ordered by what is reversible and documented. Older backlog docs (`docs/qol-backlog.md`, `docs/resolution_tracker.md`, proposals, CODEBASE open-design notes) remain **sources for candidates**, not the live queue. This file is the actionable queue.
+**Updated:** 2026-09-28 (Vir authorized implementing settled Q1–Q10/max_tokens locks; Q6 preload rip **landed**; Q11/R-1 research note started; still escalate publish/registry/deletes/credentials; Options merge/delete and height remain deferred) - Ordered by what is reversible and documented. Older backlog docs (`docs/qol-backlog.md`, `docs/resolution_tracker.md`, proposals, CODEBASE open-design notes) remain **sources for candidates**, not the live queue. This file is the actionable queue.
 
 Legend: `[ ]` todo / `[x]` done / `[~]` deferred (intentionally out of scope now)
 
@@ -10,7 +10,7 @@ Legend: `[ ]` todo / `[x]` done / `[~]` deferred (intentionally out of scope now
 
 Direction for Q1–Q10 + max_tokens is locked; code/docs work may proceed under that lock. **Still escalate to Vir before:** publish, registry unregister/hide, node deletes, credential changes.
 
-- [ ] **First code stream: Q6 preload rip** — remove model-pick preload (`ensure_load_on_select`, JS `ensure-loaded` / `scheduleModelLoad` on combo change in `js/llm_connection.js` + `js/model_dropdown.js`, Connection face widget). Load only on generate or when Manage VRAM needs it. Via Build/PR.
+- [x] **First code stream: Q6 preload rip** — remove model-pick preload (`ensure_load_on_select`, JS `ensure-loaded` / `scheduleModelLoad` on combo change in `js/llm_connection.js` + `js/model_dropdown.js`, Connection face widget). Load only on generate or when Manage VRAM needs it. Via Build/PR.
 - [ ] **A-25 / D-2** — unified Connection VRAM toggle and backend-specific command wiring (Q2; `docs/qol-backlog.md`, `docs/resolution_tracker.md`)
 - [ ] **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens)** — one Advanced-shaped Generate with average-user knobs (`max_tokens` above `seed`); interrupt/unload policy in Properties; OpenAI prefer `max_completion_tokens` (new) / keep `max_tokens` (legacy), send seed when set, no strip-on-cloud; `max_tokens` output-only, `0`=omit/host default, UI min 1, no artificial prompt caps. Do **not** unregister Basic/Advanced or delete Options yet (registry/deletes → escalate).
 - [ ] **DOC-3** — README / examples / CODEBASE onto Connection → one Generate spine (Q10; no Options on intended path)

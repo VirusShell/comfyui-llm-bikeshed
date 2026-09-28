@@ -130,9 +130,10 @@ Configure a backend in one node. Outputs `LLM_PROVIDER` (same type as the legacy
 | `model` | Catalog COMBO for Textgen / LM Studio / OpenAI; free-text for llama.cpp / generic |
 | `manage_model_memory` | Textgen face: load before generate / unload after chain when ON |
 | `ttl` / `context_length` | LM Studio face: keep-alive TTL and optional context on load |
-| `ensure_load_on_select` | Textgen/LM Studio: optional load when the model dropdown changes (default OFF; URL changes never load) |
 | `model_fallback` | Optional STRING input - overrides dropdown when connected |
 | `timeout` | Advanced; `0` = config for effective backend, then `oai_compat`, then 120 |
+
+**Model pick does not load weights** (Vir Q6): changing the model dropdown never calls load. Weights load when Generate runs (and the face VRAM policy asks for it) or when Manage VRAM needs an explicit load. `POST /llm-bikeshed/models/ensure-loaded` remains available for those paths; it is not wired to model selection.
 
 **Refresh Models** calls `POST /llm-bikeshed/models/connection` with `{ "url", "host_mode" }` and updates the model widget plus read-only status lines (detected / effective backend, loaded model, auth hint). No separate Lifecycle node is required for new graphs.
 

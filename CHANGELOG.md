@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Vir Q6 / no model-pick preload** - remove `ensure_load_on_select` from **LLM Connection** and stop select-triggered `POST /llm-bikeshed/models/ensure-loaded` in `js/llm_connection.js` and legacy `js/model_dropdown.js`. Changing the model COMBO no longer loads weights; load remains on generate / Manage VRAM. The `ensure-loaded` route stays for those paths.
+
 ### Changed
 - Docs: lead README / CODEBASE / examples on **LLM Connection**; demote OAI Compatible, Textgen provider, and Lifecycle nodes to **Legacy / old graphs**; document `POST /llm-bikeshed/models/connection`.
 

@@ -331,6 +331,13 @@ class TestLLMConnection:
     def test_validate_accepts_string_model(self) -> None:
         assert LLMConnection.VALIDATE_INPUTS(model="any-id") is True
 
+    def test_no_ensure_load_on_select_widget(self) -> None:
+        """Vir Q6: model pick must not expose / use ensure_load_on_select."""
+        optional = LLMConnection.INPUT_TYPES()["optional"]
+        assert "ensure_load_on_select" not in optional
+        required = LLMConnection.INPUT_TYPES()["required"]
+        assert "ensure_load_on_select" not in required
+
     def test_class_id_unchanged_old_providers(self) -> None:
         assert LLMProviderOAICompat.__name__ == "LLMProviderOAICompat"
         assert LLMProviderTextGenWebUI.__name__ == "LLMProviderTextGenWebUI"

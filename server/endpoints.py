@@ -191,7 +191,10 @@ if HAS_SERVER:
     async def _endpoint_models_ensure_loaded(
         request: web.Request,
     ) -> web.Response:
-        """Load the selected model on backends that require explicit load."""
+        """Explicit model load helper (generate / Manage VRAM paths).
+
+        Not invoked on model COMBO changes (Vir Q6: no model-pick preload).
+        """
         try:
             data = await request.json()
         except (json.JSONDecodeError, TypeError, ValueError, OSError):

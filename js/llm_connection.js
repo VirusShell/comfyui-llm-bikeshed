@@ -14,7 +14,6 @@ const DEFAULT_URL = "http://localhost:1234";
 
 const INITIAL_FETCH_DEBOUNCE_MS = 600;
 const URL_REFETCH_DEBOUNCE_MS = 500;
-const MODEL_LOAD_DEBOUNCE_MS = 400;
 
 const READ_ONLY_WIDGET_OPTIONS = {
   serialize: false,
@@ -24,13 +23,12 @@ const READ_ONLY_WIDGET_OPTIONS = {
 
 const PLACEHOLDER_VALUES = new Set(["(refresh to load)", "(no models found)"]);
 
-const FACE_WIDGETS_TEXTGEN = new Set(["manage_model_memory", "ensure_load_on_select"]);
-const FACE_WIDGETS_LM = new Set(["ttl", "context_length", "ensure_load_on_select"]);
+const FACE_WIDGETS_TEXTGEN = new Set(["manage_model_memory"]);
+const FACE_WIDGETS_LM = new Set(["ttl", "context_length"]);
 const FACE_WIDGETS_ALL = new Set([
   "manage_model_memory",
   "ttl",
   "context_length",
-  "ensure_load_on_select",
 ]);
 
 const BACKEND_LABELS = {
@@ -285,31 +283,6 @@ async function fetchConnection(url, hostMode) {
   }
 }
 
-async function ensureModelLoaded(url, model, backend) {
-  if (!url || !model || PLACEHOLDER_VALUES.has(model)) {
-    return { ok: false };
-  }
-  try {
-    const response = await app.api.fetchApi("/llm-bikeshed/models/ensure-loaded", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, model, backend }),
-    });
-    const data = await response.json();
-    return { ok: Boolean(data.ok) };
-  } catch {
-    return { ok: false };
-  }
-}
-
-function shouldEnsureLoadOnSelect(node, face) {
-  if (face !== "text_gen_webui" && face !== "lm_studio") {
-    return false;
-  }
-  const w = node.widgets?.find((x) => x.name === "ensure_load_on_select");
-  return w ? Boolean(w.value) : false;
-}
-
 app.registerExtension({
   name: "llm-bikeshed.llm-connection",
 
@@ -371,8 +344,6 @@ app.registerExtension({
     }
 
     let lastFace = null;
-    let lastEffective = null;
-    let modelLoadTimer = null;
 
     const applyStatus = (data) => {
       const detected = data?.detected;
@@ -403,7 +374,6 @@ app.registerExtension({
       }
 
       lastFace = face;
-      lastEffective = effective;
       applyFaceVisibility(node, face);
       applyModelWidgetMode(modelWidget, catalog);
       markNodeDirty(node);
@@ -431,7 +401,7 @@ app.registerExtension({
           initialSavedModel !== undefined ? initialSavedModel : modelWidget.value;
         updateModelCombo(modelWidget, data.models || [], saved);
       }
-      // URL change must never ensure-load (Vir lock).
+      // Vir Q6: never load weights on URL/model pick; generate/VRAM own load.
     };
 
     let initialFetchTimer = null;
@@ -457,7 +427,7 @@ app.registerExtension({
     };
 
     const scheduleUrlRefetch = () => {
-      // URL change never ensure-loads — only refetch list/status.
+      // URL change never loads weights - only refetch list/status.
       beginBusyStatus();
       clearTimeout(urlRefetchTimer);
       urlRefetchTimer = setTimeout(() => {
@@ -487,30 +457,17 @@ app.registerExtension({
       };
     }
 
-    const scheduleModelLoad = (url, model, backend) => {
-      if (!shouldEnsureLoadOnSelect(node, lastFace) || !isRealModelName(model)) {
-        return;
-      }
-      clearTimeout(modelLoadTimer);
-      modelLoadTimer = setTimeout(async () => {
-        const { ok } = await ensureModelLoaded(url, model, backend);
-        if (ok) {
-          runFetch(model);
-        }
-      }, MODEL_LOAD_DEBOUNCE_MS);
-    };
-
     const origModelCallback = modelWidget.callback;
     modelWidget.callback = function (value) {
       if (origModelCallback) {
         origModelCallback.call(this, value);
       }
+      // Vir Q6: model pick must NOT load weights; load only on generate / Manage VRAM.
       markNodeDirty(node);
       statusVram.value = vramPolicyLine(lastFace, node);
-      scheduleModelLoad(getWidgetUrl(urlWidget), value, lastEffective);
     };
 
-    // Refresh face VRAM line when manage/ttl/ensure toggles change.
+    // Refresh face VRAM line when manage/ttl toggles change.
     for (const name of FACE_WIDGETS_ALL) {
       const w = node.widgets?.find((x) => x.name === name);
       if (!w) {

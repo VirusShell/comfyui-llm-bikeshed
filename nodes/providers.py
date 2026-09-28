@@ -372,19 +372,6 @@ class LLMConnection:
                         ),
                     },
                 ),
-                "ensure_load_on_select": (
-                    "BOOLEAN",
-                    {
-                        "default": False,
-                        "label_on": "ON",
-                        "label_off": "OFF",
-                        "tooltip": (
-                            "Textgen/LM Studio: when ON, changing the model "
-                            "dropdown may load weights. URL changes never load. "
-                            "Default OFF."
-                        ),
-                    },
-                ),
             },
         }
 
@@ -413,7 +400,6 @@ class LLMConnection:
         manage_model_memory: bool = True,
         ttl: int = 30,
         context_length: int = 0,
-        ensure_load_on_select: bool = False,  # noqa: ARG002 — UI-only
     ) -> tuple[dict]:
         """Build secret-free LLM_PROVIDER from connection face widgets."""
         fallback = model_fallback.strip() if model_fallback else ""

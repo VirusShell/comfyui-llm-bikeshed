@@ -184,15 +184,15 @@ Registered only when `aiohttp`, `PromptServer`, and relative imports succeed:
 | `/llm-bikeshed/models/oai-compat` | POST | Model list + backend label for legacy OAI Compatible node |
 | `/llm-bikeshed/models/textgen` | POST | Textgen-only model list (no fingerprinting; legacy Textgen provider) |
 | `/llm-bikeshed/detect` | POST | Backend detection for UI (legacy OAI Compatible label) |
-| `/llm-bikeshed/models/ensure-loaded` | POST | Load-on-select helper (Textgen / LM Studio / llama.cpp when supported) |
+| `/llm-bikeshed/models/ensure-loaded` | POST | Explicit load helper for generate / Manage VRAM (Textgen / LM Studio / llama.cpp when supported); **not** called on model pick (Vir Q6) |
 
 Request body: JSON `{ "url": "<base URL>" }` (Connection also takes `host_mode`; ensure-loaded also takes `model` / `backend`).
 
-**Not ComfyUI API-mode compatible:** These custom `/llm-bikeshed/*` routes are **client↔server** helpers for the browser UI (model COMBO, backend label, load-on-select). Official Comfy guidance: nodes that *require* direct client↔server traffic are **not** compatible with API/headless queue mode. **Graph dataflow remains the source of truth for generation** (`LLM_PROVIDER` → generate nodes → `POST {url}/v1/chat/completions`). Headless/API runners can still execute generation if provider URL/model are set in the workflow JSON; they will not get dynamic Refresh Models / detect / ensure-loaded from the JS extension.
+**Not ComfyUI API-mode compatible:** These custom `/llm-bikeshed/*` routes are **client-server** helpers for the browser UI (model COMBO, backend label, status). `ensure-loaded` is an explicit-load helper for generate / Manage VRAM — not model-pick preload (Vir Q6). Official Comfy guidance: nodes that *require* direct client↔server traffic are **not** compatible with API/headless queue mode. **Graph dataflow remains the source of truth for generation** (`LLM_PROVIDER` → generate nodes → `POST {url}/v1/chat/completions`). Headless/API runners can still execute generation if provider URL/model are set in the workflow JSON; they will not get dynamic Refresh Models / detect / ensure-loaded from the JS extension.
 
 ### Frontend (`js/`)
 
-ComfyUI extensions loaded via `WEB_DIRECTORY`. Two scripts share debounce / read-only status / ensure-loaded patterns:
+ComfyUI extensions loaded via `WEB_DIRECTORY`. Two scripts share debounce / read-only status patterns (Vir Q6: no model-pick ensure-loaded):
 
 #### `js/llm_connection.js` (LLM Connection)
 
@@ -201,7 +201,7 @@ Extension name `llm-bikeshed.llm-connection`. Hooks **`LLMConnection`** only:
 - Calls **`POST /llm-bikeshed/models/connection`** with `{ url, host_mode }` (debounced initial fetch ~600ms; URL / host_mode refetch ~500ms).
 - **Refresh Models** button; read-only status chrome (serialize:false text widgets + DOM lock) for detected/effective backend, loaded model, auth hint — same Q1 pattern as `model_dropdown.js`.
 - **Model widget rules (Q2):** one Python name `model` (COMBO). Catalog backends (Textgen / LM Studio / OpenAI) keep COMBO; llama.cpp / generic switch the same widget to free-text and restore COMBO when mode flips back.
-- Face VRAM widgets shown/hidden by effective face (`manage_model_memory` for Textgen; `ttl` / `context_length` for LM Studio); optional **ensure_load_on_select** debounced (~400ms) to `POST /llm-bikeshed/models/ensure-loaded` (URL changes never load).
+- Face VRAM widgets shown/hidden by effective face (`manage_model_memory` for Textgen; `ttl` / `context_length` for LM Studio). **No model-pick preload** (Vir Q6): changing `model` never loads weights; load only on generate or when Manage VRAM needs it.
 
 #### `js/model_dropdown.js` (legacy providers)
 
@@ -210,7 +210,7 @@ Hooks **`LLMProviderOAICompat`** / **`LLMProviderTextGenWebUI`**:
 - Debounced initial fetch (~600ms) to avoid duplicate requests when backends are offline.
 - **Refresh Models** button repopulates the `model` COMBO widget via `/models/oai-compat` or `/models/textgen`.
 - Textgen provider shows read-only **loaded** model line when the server returns `loaded_model`.
-- Same read-only widget options and URL-refetch / ensure-loaded debounce constants as Connection.
+- Same read-only widget options and URL-refetch debounce constants as Connection (no ensure-loaded on model pick).
 
 ### Configuration (`config/`)
 

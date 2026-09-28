@@ -23,9 +23,6 @@ const INITIAL_FETCH_DEBOUNCE_MS = 600;
 /** Debounce URL edits before re-fetching models (callback + DOM listeners). */
 const URL_REFETCH_DEBOUNCE_MS = 500;
 
-/** Debounce model COMBO changes before calling ensure-loaded. */
-const MODEL_LOAD_DEBOUNCE_MS = 400;
-
 /**
  * Display-only text widgets — ComfyUI frontend ~1.39+ honors `disabled` and
  * `read_only` on STRING/text widgets (Vue node renderer). Older builds need
@@ -38,9 +35,6 @@ const READ_ONLY_WIDGET_OPTIONS = {
 };
 
 const PLACEHOLDER_VALUES = new Set(["(refresh to load)", "(no models found)"]);
-
-/** Backends where explicit load before chat is supported. */
-const LOAD_ON_SELECT_BACKENDS = new Set(["text_gen_webui", "lm_studio", "llamacpp"]);
 
 /**
  * Fetch model list from a backend endpoint.
@@ -73,27 +67,6 @@ async function fetchModels(endpoint, url) {
     };
   } catch {
     return { models: [], backend: null, loadedModel: undefined };
-  }
-}
-
-/**
- * Ask the pack backend to load the selected model (Textgen / LM Studio / llama.cpp).
- * @returns {Promise<{ ok: boolean, error?: string }>}
- */
-async function ensureModelLoaded(url, model, backend) {
-  if (!url || !model || PLACEHOLDER_VALUES.has(model)) {
-    return { ok: false, error: "invalid model" };
-  }
-  try {
-    const response = await app.api.fetchApi("/llm-bikeshed/models/ensure-loaded", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, model, backend }),
-    });
-    const data = await response.json();
-    return { ok: Boolean(data.ok), error: data.error };
-  } catch (e) {
-    return { ok: false, error: String(e) };
   }
 }
 
@@ -187,18 +160,6 @@ function getWidgetUrl(urlWidget, defaultUrl) {
     return defaultUrl;
   }
   return String(raw);
-}
-
-function shouldLoadOnSelect(node, config, backend) {
-  if (!LOAD_ON_SELECT_BACKENDS.has(backend)) {
-    return false;
-  }
-  const memName = config.manageMemoryWidget;
-  if (!memName) {
-    return backend === "text_gen_webui";
-  }
-  const memWidget = node.widgets?.find((w) => w.name === memName);
-  return memWidget ? Boolean(memWidget.value) : true;
 }
 
 /**
@@ -314,36 +275,9 @@ app.registerExtension({
       attachReadOnlyWidget(loadedModelWidget);
     }
 
-    let lastBackend = null;
-    let modelLoadTimer = null;
-
-    const refreshLoadedStatus = (url, backend) => {
-      fetchModels(endpoint, url).then(({ loadedModel }) => {
-        if (loadedModelWidget) {
-          loadedModelWidget.value = formatLoadedModelStatus(loadedModel);
-          attachReadOnlyWidget(loadedModelWidget);
-        }
-        markNodeDirty(node);
-      });
-    };
-
-    const scheduleModelLoad = (url, model, backend) => {
-      if (!shouldLoadOnSelect(node, config, backend) || !isRealModelName(model)) {
-        return;
-      }
-      clearTimeout(modelLoadTimer);
-      modelLoadTimer = setTimeout(async () => {
-        const { ok } = await ensureModelLoaded(url, model, backend);
-        if (ok) {
-          refreshLoadedStatus(url, backend);
-        }
-      }, MODEL_LOAD_DEBOUNCE_MS);
-    };
-
     /** @param {unknown} [initialSavedModel] if set, restore COMBO to this after fetch */
     const runFetch = (url, initialSavedModel) => {
       fetchModels(endpoint, url).then(({ models, backend, loadedModel }) => {
-        lastBackend = backend;
         const saved =
           initialSavedModel !== undefined ? initialSavedModel : modelWidget.value;
         updateModelWidget(modelWidget, models, saved);
@@ -401,9 +335,8 @@ app.registerExtension({
       if (origModelCallback) {
         origModelCallback.call(this, value);
       }
+      // Vir Q6: model pick must NOT load weights; load only on generate / Manage VRAM.
       markNodeDirty(node);
-      const url = getWidgetUrl(urlWidget, defaultUrl);
-      scheduleModelLoad(url, value, lastBackend);
     };
 
     node.addWidget("button", "Refresh Models", null, () => {
