@@ -37,7 +37,7 @@ Direction for Q1–Q10 + max_tokens is locked; code/docs work may proceed under 
 
 ## Done (recent)
 
-- [x] **DOC-3** — README, `example_workflows/connection_generate.json`, and CODEBASE lead with Connection → **LLM Generate (Advanced)** (Manage VRAM, face `max_tokens` above `seed`, Properties interrupt). No Options on that path. Legacy examples kept and labeled. Docs only (2026-09-28).
+- [x] **DOC-3** — README, `example_workflows/connection_generate.json`, and CODEBASE lead with Connection → **LLM Generate (Advanced)** (Manage VRAM, face `max_tokens` above `seed`, Properties interrupt). No Options on that path. Legacy examples kept and labeled. Included in 1.1.0 (2026-09-28).
 
 - [x] **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens)** - **LLM Generate (Advanced)** is the intended spine: optional provider / options / meta, face `max_tokens` above `seed` (default 1024, min 0). Basic stays registered with the same min-0 cap (temperature already on Basic; not added to Advanced). `0` omits the face cap (Options/meta limits kept); `>= 1` sends. OpenAI face values go out as `max_completion_tokens`. Legacy hosts and an Options `max_tokens` toggle still send `max_tokens`. Seed is sent when set, including 0. No cloud strip. No native Anthropic. Right-click Properties `unload_on_interrupt` (default off) unloads on Cancel only when a lifecycle is embedded (Manage VRAM ON or legacy lifecycle). API prompts without the workflow blob keep that default. Options nodes stay; their token widgets also allow 0 (2026-09-28).
 
