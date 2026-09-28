@@ -2,6 +2,7 @@
 
 **Date:** 2026-09-27  
 **Status:** **NOT greenlit.** Docs-only orientation for Vir. Describes how surfaces compose **today**. Hypotheses are labeled; this is **not** a ship plan and **not** an implementation list. Options height polish stays deferred. Vir Q1 is answered: legacy providers remain only for compatibility/testing and existing workflows until the Connection path is confirmed; then unregister/hide them. This does **not** greenlight unrelated overhaul code.
+**Vir Q2 (Lifecycle / VRAM) is answered (2026-09-28):** For new graphs, Connection owns VRAM through one user-facing **Manage VRAM / Manage memory** toggle. The backend may be detected or pinned; the pack sends the backend-appropriate load/unload/TTL commands. Textgen and LM Studio keep their existing API paths under that single-toggle metaphor. llama.cpp VRAM management is setup-gated: only when the host exposes router `/models/load` and `/models/unload`; otherwise chat still works and the toggle is hidden/inert with status. This docs lock does **not** greenlight implementing the unified toggle or any unrelated overhaul code.
 **Scope:** Connection, legacy providers, lifecycle, generate, options, utils, socket types - composition, overlap, debt.  
 **Non-goals:** No V3 spike, no registry work, no implementing Options split/polish, no product overhaul in this note.
 
@@ -27,9 +28,9 @@ Twelve registered nodes form **five product layers** that share **four** dict so
 | Generate | Basic, Advanced |
 | Utils | Preset Loader, Load Text File |
 
-**Intended new-graph spine:** **Connection → Generate Basic**. Modular work adds **Options → Advanced** (Options are **orthogonal to Connection** — they attach only to Advanced; Basic inlines temp/max_tokens/seed). Optional **meta chaining** across gen nodes. Legacy Provider + Lifecycle still emit the same `LLM_PROVIDER` shape and remain temporarily registered for compatibility/testing and existing workflows while the Connection path is confirmed; then unregister/hide them rather than maintain a second product.
+**Intended new-graph spine:** **Connection → Generate Basic**. Connection owns new-graph VRAM management through one backend-adaptive **Manage VRAM / Manage memory** toggle; there are no extra lifecycle knobs that do not apply. Textgen and LM Studio retain their existing API paths behind that metaphor. llama.cpp only gets VRAM management when its host exposes router `/models/load` and `/models/unload`; otherwise chat remains available and the toggle is hidden/inert with status. Modular work adds **Options → Advanced** (Options are **orthogonal to Connection** - they attach only to Advanced; Basic inlines temp/max_tokens/seed). Optional **meta chaining** across gen nodes. Legacy Provider + Lifecycle still emit the same `LLM_PROVIDER` shape and remain temporarily registered for compatibility/testing and existing workflows while the Connection path is confirmed; then unregister/hide them rather than maintain a second product.
 
-Overlap that needs a Vir call: **three ways to build a provider**, and **three places VRAM knobs live** (see §3). Options stay/go is a separate spine question (separate nodes vs widgets-on-gen), not height polish.
+The old VRAM split is resolved directionally for new graphs: one Connection toggle, with backend-specific API behavior behind it; the separate Lifecycle path remains legacy/compatibility only. The remaining product call is **three ways to build a provider**. Options stay/go is a separate spine question (separate nodes vs widgets-on-gen), not height polish.
 
 ---
 
@@ -39,7 +40,7 @@ Plain-language "what is this node *for*" - not a full widget catalog.
 
 ### LLM Connection (`LLMConnection`) - **recommended entry**
 
-One adaptive node: host mode (Auto or pin LM Studio / Textgen / llama.cpp / OpenAI / Generic), URL + model, on-node VRAM face knobs for Textgen (`manage_model_memory`) and LM Studio (`ttl` / `context_length`), optional `ensure_load_on_select` (UI-only; JS → `POST /llm-bikeshed/models/ensure-loaded`). Outputs **`LLM_PROVIDER`**. No API-key widgets. Status chrome + Refresh Models via `POST /llm-bikeshed/models/connection`. Prefer this over Provider + Lifecycle for new graphs (`README`, `CODEBASE`, `2be26be`).
+One adaptive node: host mode (Auto or pin LM Studio / Textgen / llama.cpp / OpenAI / Generic), URL + model, and one user-facing **Manage VRAM / Manage memory** toggle for new graphs. The backend may be detected or pinned; the pack sends the appropriate load/unload/TTL commands. Textgen and LM Studio keep their existing API paths behind the toggle. llama.cpp VRAM management is setup-gated: only use/show it when the host exposes router `/models/load` and `/models/unload`; otherwise chat still works and the toggle is hidden/inert with status. No extra backend-specific lifecycle knobs are added to this surface. Optional `ensure_load_on_select` remains UI-only (`POST /llm-bikeshed/models/ensure-loaded`). Outputs **`LLM_PROVIDER`**. No API-key widgets. Status chrome + Refresh Models via `POST /llm-bikeshed/models/connection`. Prefer this over Provider + Lifecycle for new graphs (`README`, `CODEBASE`, `2be26be`).
 
 ### Legacy: LLM Provider OAI Compatible (`LLMProviderOAICompat`)
 
@@ -53,7 +54,7 @@ Textgen-only URL/defaults; no fingerprinting; models via `/llm-bikeshed/models/t
 
 ### Lifecycle: LM Studio / Textgen (`LLMLifecycle*`)
 
-Output **`LLM_LIFECYCLE`** only. Wire into **OAI Compatible's** `lifecycle` input (not into Connection - Connection embeds the face). LM Studio: `ttl` + `context_length`. Textgen: `manage_model_memory` BOOLEAN (needed so ComfyUI renders the node - A-24). Product direction: lifecycle **UX** still under full rethink (D-2); code is operational, not "final mental model."
+Output **`LLM_LIFECYCLE`** only. These nodes remain the legacy/compatibility path: wire into **OAI Compatible's** `lifecycle` input, not into Connection. They are not being revived for new graphs; Connection owns the single VRAM toggle there. Existing LM Studio (`ttl` / `context_length`) and Textgen (`manage_model_memory`) API behavior remains available behind the Connection metaphor. The implementation follow-up is still ask-first; this docs decision is not a code green light.
 
 ### Generate Basic (`LLMGenerate`)
 
@@ -148,18 +149,21 @@ All providers still produce the same **`LLM_PROVIDER`** shape and call the singl
 
 Three ways to say "talk to Textgen": Connection Textgen face, Textgen Provider, or OAI Compatible URL pointed at Textgen (+ optional Lifecycle). Lifecycle sockets only attach to OAI Compatible; Textgen Provider already embeds the same toggle. Tracker: A-25 Unresolved → D-2 rethink. Connection docs lead demoted legacy in README/CODEBASE but did not remove nodes.
 
-### Three places VRAM knobs live (explicit conflict)
+### VRAM control direction (Q2 answered)
 
-*(Provenance: comfydesk 2026-09-27 systems map.)*
+Vir settled 2026-09-28: for new graphs, **Connection owns VRAM** through one user-facing **Manage VRAM / Manage memory** toggle. The backend is detected or pinned, and the pack sends the appropriate backend-specific commands: Textgen and LM Studio keep their existing API paths under the same toggle metaphor. There are no separate Lifecycle controls for new work and no extra knobs that do not apply.
 
-| Place | Where the knobs sit | Who consumes |
-|-------|---------------------|--------------|
-| **1. Connection faces** | On-node Textgen `manage_model_memory`; LM Studio `ttl` / `context_length` | Embedded into `LLM_PROVIDER` (recommended path) |
-| **2. Lifecycle → OAI** | Separate Lifecycle nodes → `LLM_LIFECYCLE` → OAI Compatible `lifecycle` input | Legacy modular VRAM path |
-| **3. Textgen-on-provider** | Textgen Provider's on-node `manage_model_memory` | Same lifecycle dict shape, no separate Lifecycle node |
+llama.cpp is setup-gated, not universal: expose/use VRAM management only when the host exposes router `/models/load` and `/models/unload`. If those routes are absent, chat still works; the toggle is hidden/inert and status should make the limitation clear.
 
-Same product intent (load/unload / TTL) expressed three ways. Not height polish — composition debt that feeds A-25 / D-2. *Hypothesis:* Connection-only world collapses 2 and 3 for new graphs; legacy keeps 2–3 for load-compat.
+This resolves the product direction, but **does not greenlight implementation** of the unified toggle or an unrelated overhaul. Code changes remain ask-first.
 
+The current surfaces below are therefore a compatibility snapshot, not three competing new-graph controls:
+
+| Current surface | Existing behavior | New-graph direction |
+|-----------------|-------------------|---------------------|
+| **1. Connection** | Existing backend-specific lifecycle behavior | Canonical single VRAM toggle |
+| **2. Lifecycle → OAI** | Separate Lifecycle nodes → `LLM_LIFECYCLE` → OAI Compatible `lifecycle` input | Legacy/compatibility only; no revival for new work |
+| **3. Textgen-on-provider** | Textgen Provider's on-node `manage_model_memory` | Legacy/compatibility only; Connection owns new-graph control |
 ### Code-voice lag (OAI vs Connection)
 
 *(Provenance: comfydesk 2026-09-27 systems map.)*
@@ -230,7 +234,7 @@ Label: **hypothesis**. Ask Vir before any overhaul.
 | **LLM Connection** | **Keep** as primary connectivity | Already documented lead (`2be26be`). |
 | **OAI Compatible provider** | **Compatibility/test path until Connection is confirmed** | Keep existing workflows working; then unregister/hide rather than maintain a second product. |
 | **Textgen provider** | **Compatibility/test path until Connection is confirmed** | Keep existing workflows working; then unregister/hide rather than maintain a second product. |
-| **Lifecycle nodes** | **Demote** for new graphs; fate tied to D-2 | Only needed for legacy OAI Compatible wiring. |
+| **Lifecycle nodes** | **Demote** for new graphs; retain for legacy/compatibility | No revival for new work; Connection owns the single VRAM toggle. |
 | **Generate Basic + Advanced** | **Keep** split for now (A-13 decided) | *Hypothesis:* someday one node with optional breakouts - not proposed here. A-13 is evidence the split was intentional, not debt. |
 | **Options nodes** | **Open - might go away, merge, or stay** | A-1/A-13 decided separate Options + Basic/Advanced — **not** accidental debt; height ≠ existence *(comfydesk 2026-09-27)*. Alternatives (*hypotheses*): fold common knobs into Advanced; single Options with backend allowlist; keep toggles but split/collapse UI. **Do not implement Options polish until this is answered** (worklist). |
 | **Preset / Load Text** | **Keep** | Independent STRING utilities. |
@@ -241,7 +245,7 @@ Label: **hypothesis**. Ask Vir before any overhaul.
 ## 5. Open questions for Vir (product choices - not height polish)
 
 1. **Canonical connectivity — ANSWERED (Vir, 2026-09-28):** Connection is the new path. Keep legacy providers only for compatibility/testing and to avoid breaking existing workflows; as soon as Connection is confirmed to work, unregister/hide them. They are not a second maintained product.
-2. **Lifecycle mental model (D-2):** Stay "face knobs on Connection," revive separate Lifecycle nodes, or a different VRAM metaphor entirely?
+2. **Lifecycle mental model — ANSWERED (Vir, 2026-09-28):** Keep backend-specific VRAM controls as face knobs on Connection. When the selected host/backend does not support load/unload, disable the **Manage model memory** toggle and/or surface a clear unsupported/error status; never leave a dead switch. Legacy Lifecycle nodes remain only for compatibility while the Connection path is confirmed (Q1).
 3. **Options future:** Keep per-backend Options nodes, merge into Advanced/Connection, or replace with a thinner sampling surface? (Height polish blocked on this.)
 4. **Basic vs Advanced:** Keep two generate nodes, or converge once Options direction is clear?
 5. **Interrupt + VRAM policy:** On Cancel, should Textgen/LM Studio **unload**, leave loaded, or defer - and is LM Studio "Cancel doesn't stop GPU" acceptable as documented limit?
@@ -286,4 +290,4 @@ Adapter underneath: always `oai_compat` → `POST {url}/v1/chat/completions` (+ 
 
 ## Related worklist
 
-Live queue: [`WORKLIST.md`](../../WORKLIST.md) - systems map item points here (folded comfydesk deltas 2026-09-27; `model`/`loaded_model` smell 2026-09-28); Options height remains deferred until Vir answers section 5 item 3 (and related spine questions 9-11).
+Live queue: [`WORKLIST.md`](../../WORKLIST.md) - systems map item points here (folded comfydesk deltas 2026-09-27; `model`/`loaded_model` smell 2026-09-28; Vir Q2 lifecycle/VRAM lock 2026-09-28); Options height remains deferred until Vir answers section 5 item 3 (and related spine questions 9-11).

@@ -1,6 +1,6 @@
 # Worklist - comfyui-llm-bikeshed
 
-**Updated:** 2026-09-28 (Vir Q1 settled: legacy providers remain only until Connection is confirmed, then unregister/hide; Options polish still deferred) - Ordered by what is reversible and documented. Older backlog docs (`docs/qol-backlog.md`, `docs/resolution_tracker.md`, proposals, CODEBASE open-design notes) remain **sources for candidates**, not the live queue. This file is the actionable queue.
+**Updated:** 2026-09-28 (Vir Q2 locked: capability-gate Connection VRAM management; Vir Q1 settled: legacy providers remain only until Connection is confirmed, then unregister/hide; Options polish still deferred) - Ordered by what is reversible and documented. Older backlog docs (`docs/qol-backlog.md`, `docs/resolution_tracker.md`, proposals, CODEBASE open-design notes) remain **sources for candidates**, not the live queue. This file is the actionable queue.
 
 Legend: `[ ]` todo / `[x]` done / `[~]` deferred (intentionally out of scope now)
 
@@ -8,7 +8,7 @@ Legend: `[ ]` todo / `[x]` done / `[~]` deferred (intentionally out of scope now
 
 ## Ask-first (do not start without Vir)
 
-- [ ] **A-25 / D-2** provider vs lifecycle consolidation / lifecycle UX rethink (`docs/qol-backlog.md`, `docs/resolution_tracker.md`)
+- [ ] **A-25 / D-2 implementation follow-up** - unified Connection VRAM toggle and backend-specific command wiring; product direction is settled, but code remains ask-first (`docs/qol-backlog.md`, `docs/resolution_tracker.md`)
 - [ ] **DOC-1** off-repo ComfyUI reference corpus disposition: vendor / drop / hybrid
 - [ ] **DOC-2** locate or rewrite missing `comfyui-node-standards.md`
 
@@ -25,7 +25,9 @@ Legend: `[ ]` todo / `[x]` done / `[~]` deferred (intentionally out of scope now
 
 - [x] **Vir Q1 - legacy provider disposition** - settled 2026-09-28: retain legacy providers only for compatibility/testing and existing workflows until the Connection path is confirmed; then unregister/hide them. No second maintained product. **Docs only; no unrelated overhaul code.**
 
-- [x] **Systems map / composition** - documented in [`docs/research/2026-09-27-pack-systems-map.md`](docs/research/2026-09-27-pack-systems-map.md) (sockets, overlap, dual paths, debt, keep/demote/kill *hypotheses*, open questions for Vir). Folded richer deltas from comfydesk `notes/2026-09-27-bikeshed-systems-map.md` (VRAM knob conflict, code-voice lag, Options A-1/A-13 evidence, examples gaps, extra Vir Qs). 2026-09-28: also owns `model` vs `loaded_model` selector/status smell (Vir dig; not greenlit alone; overhaul must kill it or schedule local follow). **Docs only; no code.** Ask Vir before any overhaul. Sources: CODEBASE node map + data-flow, Connection lead (`2be26be`), tracker / qol candidates, comfydesk 2026-09-27 systems map, 2026-09-28 dig.
+- [x] **Vir Q2 - lifecycle / VRAM capability gate** - locked 2026-09-28: keep backend-specific VRAM controls as Connection face knobs; when the selected host/backend does not support load/unload, disable **Manage model memory** and/or show a clear unsupported/error status. Never leave a dead switch. See [`docs/research/2026-09-27-pack-systems-map.md`](docs/research/2026-09-27-pack-systems-map.md) §5 item 2. **Docs only; no code.**
+
+- [x] **Systems map / composition** - documented in [`docs/research/2026-09-27-pack-systems-map.md`](docs/research/2026-09-27-pack-systems-map.md) (sockets, overlap, dual paths, debt, keep/demote/kill *hypotheses*, open questions for Vir; Q2 Lifecycle / VRAM now answered). Folded richer deltas from comfydesk `notes/2026-09-27-bikeshed-systems-map.md` (VRAM knob conflict, code-voice lag, Options A-1/A-13 evidence, examples gaps, extra Vir Qs). 2026-09-28: also owns `model` vs `loaded_model` selector/status smell (Vir dig; not greenlit alone; overhaul must kill it or schedule local follow). **Docs only; no code.** Ask Vir before any overhaul. Sources: CODEBASE node map + data-flow, Connection lead (`2be26be`), tracker / qol candidates, comfydesk 2026-09-27 systems map, 2026-09-28 dig.
 - [x] **Docs lead on LLM Connection** - README / CHANGELOG / CODEBASE + `example_workflows/connection_basic.json` (`2be26be`, 2026-09-25). Remaining comfydesk UI/UX items (Options height, max_tokens, V3 spike) held pending systems direction / Vir.
 
 
