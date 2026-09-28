@@ -12,7 +12,7 @@ Supported backends (via a single OpenAI-compatible adapter path): **LM Studio**,
 
 VRAM sharing with diffusion is a core requirement. On **LLM Connection**, one **Manage VRAM / Manage memory** toggle (`manage_model_memory`, default ON) gates it: Textgen uses explicit load/unload via internal HTTP when the toggle is ON; LM Studio uses TTL and optional `context_length` on load when the toggle is ON; OFF means the pack does not load, unload, or set TTL. OpenAI, generic hosts, and llama.cpp hide that toggle (llama.cpp router `/models/load` + `/models/unload` are not verified in detection or the adapter; chat still works). Legacy lifecycle nodes keep their own paths. API keys are resolved from `config.yaml` or environment variables at HTTP time — never stored in workflow JSON or node execution outputs.
 
-**Current release:** v1.0.3 (`pyproject.toml`, `version.py`). That version line predates the unreleased Connection **Manage VRAM** toggle, Generate face `max_tokens`, and Properties interrupt unload — those are on `master` and are not a publish. Still not shipped: Q11 `model` / `loaded_model` sync, Options merge or delete, Q7 “refresh definitions instead of restart” auth UX, chat nodes, and extra cloud APIs. See [`WORKLIST.md`](WORKLIST.md).
+**Current release:** v1.1.0 (`pyproject.toml`, `version.py`). This release includes the Connection **Manage VRAM** toggle, Generate face `max_tokens`, Properties interrupt unload, and the Connection → Advanced Generate docs spine. Still not shipped: Q11 `model` / `loaded_model` sync, Options merge or delete, Q7 “refresh definitions instead of restart” auth UX, chat nodes, and extra cloud APIs. See [`WORKLIST.md`](WORKLIST.md).
 
 ---
 
