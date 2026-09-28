@@ -4,10 +4,12 @@
 **Status:** **NOT greenlit.** Docs-only orientation for Vir. Describes how surfaces compose **today**. Hypotheses are labeled; this is **not** a ship plan and **not** an implementation list. Options height polish stays deferred. Vir Q1 is answered: legacy providers remain only for compatibility/testing and existing workflows until the Connection path is confirmed; then unregister/hide them. This does **not** greenlight unrelated overhaul code.
 **Vir Q2 (Lifecycle / VRAM) is answered (2026-09-28):** For new graphs, Connection owns VRAM through one user-facing **Manage VRAM / Manage memory** toggle. The backend may be detected or pinned; the pack sends the backend-appropriate load/unload/TTL commands. Textgen and LM Studio keep their existing API paths under that single-toggle metaphor. llama.cpp VRAM management is setup-gated: only when the host exposes router `/models/load` and `/models/unload`; otherwise chat still works and the toggle is hidden/inert with status. This docs lock does **not** greenlight implementing the unified toggle or any unrelated overhaul code.
 **Vir Q3-Q7 (Options, generate shape, interrupt policy, preload, and Auth UX) are answered (2026-09-28):** the docs direction is thin/no separate Options, one Generate node shaped like current Advanced, interrupt/unload policy in node Properties rather than main widgets, no model-pick preload, and off-graph auth with reload via Refresh Node Definitions/config reload rather than a full restart. These docs decisions do not greenlight implementation.
+**Vir Q8-Q10 + max_tokens (2026-09-28):** Connection/OAI `/v1` is enough for llama.cpp — dedicated node is dead (D-4 closed). OpenAI/cloud knobs: keep current host guidance + legacy; prefer `max_completion_tokens` for new OpenAI paths, keep `max_tokens` for legacy; send `seed` when set; **no** strip-on-cloud; **no** native Anthropic. Docs/examples/CODEBASE should move onto the Connection → one Generate spine (no Options on the intended path). `max_tokens` is **output-only**; generous values allowed; `0` = omit / host default (send when ≥1); UI min is 1 (gap vs omit-via-0); no artificial prompt caps; user owns OOM/timeout. **Docs locks only; no implementation green light.**
+**Vir Q11 (`model` vs `loaded_model`) is NOT locked (2026-09-28):** parked as research. Accidental auto-default must not force an extra model load/OOM. Need per-backend reality (Textgen, LM Studio, llama.cpp router vs classic, OpenAI cloud) for loaded vs selectable list vs when load fires; then a common rule. Explicitly reject naive “always sync combo to loaded on status” without that pass. See WORKLIST research item.
 **Scope:** Connection, legacy providers, lifecycle, generate, options, utils, socket types - composition, overlap, debt.  
-**Non-goals:** No V3 spike, no registry work, no implementing Options merge/delete, Basic/Advanced collapse, interrupt-policy properties, preload behavior, or other product overhaul in this note.
+**Non-goals:** No V3 spike, no registry work, no implementing Options merge/delete, Basic/Advanced collapse, interrupt-policy properties, preload behavior, dedicated llama.cpp node, strip-on-cloud, native Anthropic, naive model/loaded sync, or other product overhaul in this note.
 
-**Pack tip (this fold):** `0250577` base + 2026-09-28 `model` vs `loaded_model` sync smell fold. Prior fold tip was `0250577` (comfydesk systems deltas). Comfydesk note was written against pack tip `7ad0758`.
+**Pack tip (this fold):** prior tip `f91eec4` (Vir Q3—Q7) + 2026-09-28 Vir Q8—Q10 / max_tokens locks + Q11 research park. Comfydesk note was written against pack tip `7ad0758`.
 
 **External provenance:** comfydesk systems map — `D:\ai\bot-grok\comfydesk\notes\2026-09-27-bikeshed-systems-map.md` (cite below as **“comfydesk 2026-09-27 systems map”**). Pack structure kept; their deltas folded in.
 
@@ -31,7 +33,7 @@ Twelve registered nodes form **five product layers** that share **four** dict so
 
 **Intended new-graph spine:** **Connection  ->  one Generate node (current Advanced shape).** Expose at most the average-user knobs (likely temperature and `max_tokens`), with `max_tokens` above `seed`; leave the rest to host defaults. No separate Options node is part of this intended spine. Connection owns new-graph VRAM management through one backend-adaptive **Manage VRAM / Manage memory** toggle; Textgen and LM Studio retain their existing API paths behind it. llama.cpp only gets VRAM management when its host exposes router `/models/load` and `/models/unload`; otherwise chat remains available and the toggle is hidden/inert with status. Interrupt/unload policy is an additional node Properties option, not a main-face widget, and must respect Manage VRAM. No model-pick preload: load only on generate or when Manage VRAM needs it. Legacy Provider + Lifecycle still emit the same `LLM_PROVIDER` shape and remain temporarily registered for compatibility/testing and existing workflows while the Connection path is confirmed; then unregister/hide them rather than maintain a second product.
 
-The old VRAM split is resolved directionally for new graphs: one Connection toggle, with backend-specific API behavior behind it; the separate Lifecycle path remains legacy/compatibility only. Vir Q3-Q7 are also settled as docs direction: no separate Options node in the new-graph spine, one Advanced-shaped Generate node with only average-user knobs, interrupt/unload policy in node Properties, and no ensure_load_on_select/model-pick preload. Implementation remains ask-first.
+The old VRAM split is resolved directionally for new graphs: one Connection toggle, with backend-specific API behavior behind it; the separate Lifecycle path remains legacy/compatibility only. Vir Q3-Q7 are also settled as docs direction: no separate Options node in the new-graph spine, one Advanced-shaped Generate node with only average-user knobs, interrupt/unload policy in node Properties, and no ensure_load_on_select/model-pick preload. Vir Q8—Q10: Connection/OAI `/v1` covers llama.cpp (D-4 closed — no dedicated node); OpenAI stays on Connection host_mode with `max_completion_tokens` preferred for new OpenAI paths / `max_tokens` legacy, send seed when set, no strip-on-cloud, no native Anthropic; README/examples/CODEBASE should document Connection → one Generate (no Options on intended path). `max_tokens` semantics: output-only, generous OK, `0` omits (host default), UI min 1, no artificial prompt caps, user owns OOM/timeout. Q11 (`model`/`loaded_model`) stays open as research — do not naive-sync combo to loaded. Implementation remains ask-first.
 
 ---
 
@@ -124,9 +126,9 @@ E) Meta chaining
 | `textgen_basic.json` | Textgen provider + Generate Basic | **D** |
 | `advanced_with_options.json` | OAI Compatible + Options LM Studio + Generate Advanced | **B**-shaped with **legacy** provider |
 
-**Not in examples today:** Lifecycle nodes; **Connection + Options + Advanced** (recommended B); meta-chain graphs; OpenAI Options; Textgen Options.
+**Not in examples today:** Lifecycle nodes; Connection + Options + Advanced (legacy/compat only — **not** the intended spine); meta-chain graphs; OpenAI Options; Textgen Options.
 
-CODEBASE mermaid still draws Provider + optional Lifecycle as the provider layer, with prose that Connection embeds faces — diagram lags Connection-first wording slightly *(comfydesk 2026-09-27 systems map)*.
+**Vir Q10 (2026-09-28):** update README / examples / CODEBASE onto the **Connection → one Generate** spine; do **not** put a separate Options node on the intended path. Current CODEBASE mermaid still draws Provider + optional Lifecycle as the provider layer — diagram lags Connection-first wording *(comfydesk 2026-09-27 systems map)*. **Docs lock only; example/diagram edits remain ask-first.**
 
 ### What's redundant now that Connection exists
 
@@ -206,11 +208,41 @@ Two different things that look like "the model":
 
 **Path nuance:** Connection llama.cpp (`catalog=False`) returns `loaded_model` None - the correct `loaded:` line after an external swap is typically the **OAI Compatible** path, not Connection's llama.cpp face.
 
-**Ownership (honesty, not a ship plan):** there is **no greenlit overhaul** yet. Vir: feels like slop unless an overhaul makes the split irrelevant. So either (a) a future Connection/provider overhaul **owns killing** this dual surface, or (b) we later schedule a **small local-host follow** (auto-follow / use-loaded / warn / omit-when-single) - not leave it unlabeled forever. *Do not implement either from this note.*
+**Ownership (honesty, not a ship plan):** there is **no greenlit overhaul** yet. Vir: feels like slop unless an overhaul makes the split irrelevant. Q11 is **not locked** — parked as research (see below): per-backend loaded vs selectable vs load-fire reality first; reject naive always-sync-combo-to-loaded. Candidate futures remain (a) overhaul kills the dual surface, or (b) a small local-host follow after research — not leave it unlabeled forever. *Do not implement either from this note.*
 
 ### Model-pick preload policy (Q6 answered)
 
 **Vir Q6 (2026-09-28):** no `ensure_load_on_select` and no preload on model pick. Loading happens only when a generate run requires it or when the Manage VRAM policy needs it; changing the model selection must not load weights. This is docs-only and does not greenlight frontend/route changes.
+
+### llama.cpp surface (Q8 answered)
+
+**Vir Q8 (2026-09-28):** Connection and OAI Compatible `/v1` are enough for llama.cpp. The dedicated llama.cpp / llama-server node is **dead** — D-4 closed (was tabled; now rejected). Router `/models/load` + `/models/unload` remain the VRAM setup gate from Q2; chat without those routes still works. **Docs lock only; no node deletion/registration work greenlit here beyond the product decision.**
+
+### OpenAI / cloud knobs (Q9 answered)
+
+**Vir Q9 (2026-09-28):** stay with current host guidance plus legacy paths. Prefer `max_completion_tokens` for new OpenAI-facing paths; keep `max_tokens` for legacy. Send `seed` when the user has set it. **Do not** strip parameters on cloud. **No** native Anthropic adapter/surface. Connection `host_mode` remains the cloud placement; average-user knobs stay on the single Generate node (Q3). **Docs lock only; no adapter payload rewrite greenlit here.**
+
+### `max_tokens` semantics (Vir 2026-09-28)
+
+- **Output-only** — caps completion length, not prompt+completion together.
+- **Generous values allowed** — no pack-imposed artificial prompt/context caps; the user owns OOM and timeout risk.
+- **`0` = omit / host default** — when the widget is 0, do not send a max-tokens field (let the host decide). Send the field when ≥1.
+- **UI min is 1** — there is a gap vs the omit-via-0 path (widget floor 1 does not express “omit”); document that honestly; do not invent a fake “use host default” UI without an explicit task.
+- Applies to the intended Generate face and any legacy Options paths that still expose the knob.
+- **Docs lock only; widget/adapter changes remain ask-first.**
+
+### `model` vs `loaded_model` (Q11 — NOT locked; research)
+
+Smell section above remains. **Vir 2026-09-28:** do **not** lock a product fix yet. Park as research: an accidental auto-default (e.g. always syncing the combo to whatever status reports as loaded) **must not** force an extra model load / OOM. Before any common rule, gather per-backend reality for:
+
+| Backend | Need |
+|---------|------|
+| Textgen | loaded vs selectable list; when load fires |
+| LM Studio | loaded vs selectable list; when load fires |
+| llama.cpp router vs classic | loaded vs selectable list; when load fires |
+| OpenAI cloud | loaded vs selectable list; when load fires |
+
+Then propose a common rule. **Explicitly reject** naive “always sync combo to loaded on status” without that pass. WORKLIST carries the research item. *Do not implement sync/auto-follow from this note.*
 
 ### Cancel / VRAM gaps (documented)
 
@@ -238,6 +270,7 @@ Label: **hypothesis**. Ask Vir before any overhaul.
 | **Lifecycle nodes** | **Demote** for new graphs; retain for legacy/compatibility | No revival for new work; Connection owns the single VRAM toggle. |
 | **Generate Basic + Advanced** | **Converge to one Generate node (docs direction)** | Vir Q4: shape it like current Advanced; put `max_tokens` above `seed`; expose at most average-user knobs. Existing nodes remain until an explicit implementation task. **No collapse is greenlit here.** |
 | **Options nodes** | **Probably remove from the intended new-graph spine** | Vir Q3: at most expose average-user knobs (likely temperature and `max_tokens`) on Generate; leave the rest to host defaults. Existing Options nodes remain a compatibility snapshot. **No merge/delete is greenlit here.** |
+| **Dedicated llama.cpp node** | **Kill (D-4 closed)** | Vir Q8: Connection/OAI `/v1` enough; no dedicated llama-server node. |
 | **Preset / Load Text** | **Keep** | Independent STRING utilities. |
 | **Socket types** | **Keep** `PROVIDER` / `OPTIONS` / `META`; **`LIFECYCLE` may shrink** if Connection-only world wins | *Hypothesis:* lifecycle becomes fields-only inside PROVIDER (already true on Connection). |
 
@@ -252,10 +285,10 @@ Label: **hypothesis**. Ask Vir before any overhaul.
 5. **Interrupt + VRAM policy - ANSWERED (Vir, 2026-09-28):** Respect the Manage VRAM / Manage memory toggle. Put interrupt/unload policy in an additional Comfy node Properties option (right-click), not on the main node face. **Docs lock only; no implementation green light.**
 6. **Model-pick preload - ANSWERED (Vir, 2026-09-28):** No `ensure_load_on_select` and no preload on model pick. Load only when a generate run requires it or Manage VRAM needs it. **Docs lock only; no implementation green light.**
 7. **Auth UX - ANSWERED (Vir, 2026-09-28):** Keys stay off-graph in config/env; wrong key fails generation loudly with a clear auth flag/status. After key/settings updates, Refresh Node Definitions (and/or config reload) is the happy path, not a full Comfy restart. **Docs lock only; no implementation green light.**
-8. **llama.cpp:** Connection/OAI `/v1` forever enough, or revisit dedicated node later (D-4 still tabled)?
-9. **OpenAI / cloud knobs:** Stay first-class on Connection host_mode, with only average-user controls exposed on the single Generate node; leave the rest to host defaults. *(Q3 settled; cloud placement beyond this remains open.)*
-10. **Example / docs truth:** Bring examples and CODEBASE diagrams onto the Connection -> one Generate node spine; do not add a separate Options node to the intended path.
-11. **`model` vs `loaded_model`:** Overhaul kills the dual surface, or schedule a small local-host fix (auto-follow / use-loaded / warn / omit-when-single)? Unlabeled forever is not OK - Vir 2026-09-28. *(2026-09-28 dig; **not** greenlit alone)*
+8. **llama.cpp - ANSWERED (Vir, 2026-09-28):** Connection/OAI `/v1` is enough. Dedicated llama.cpp / llama-server node is dead; **D-4 closed**. **Docs lock only.**
+9. **OpenAI / cloud knobs - ANSWERED (Vir, 2026-09-28):** Current host guidance + legacy. Prefer `max_completion_tokens` for new OpenAI paths; keep `max_tokens` legacy; send `seed` when set; **no** strip-on-cloud; **no** native Anthropic. Stays first-class on Connection `host_mode` with average-user knobs on the single Generate node. **Docs lock only.**
+10. **Example / docs truth - ANSWERED (Vir, 2026-09-28):** Update README / examples / CODEBASE onto Connection → one Generate spine; no separate Options node on the intended path. **Docs lock only; content edits ask-first.**
+11. **`model` vs `loaded_model` - NOT LOCKED (Vir, 2026-09-28):** Park as research. Accidental auto-default must not force extra model load/OOM. Gather per-backend reality (Textgen, LM Studio, llama.cpp router vs classic, OpenAI cloud) for loaded vs selectable list vs when load fires; then a common rule. **Reject** naive “always sync combo to loaded on status” without that pass. WORKLIST research item. *(2026-09-28 dig; **not** greenlit)*
 
 ---
 
@@ -263,9 +296,11 @@ Label: **hypothesis**. Ask Vir before any overhaul.
 
 - No ComfyUI **V3** node API spike  
 - No Comfy Registry / publish changes  
-- No implementing Options merge/delete, Basic/Advanced collapse, interrupt-policy properties, preload behavior, auth/reload UX, or provider deletion
+- No implementing Options merge/delete, Basic/Advanced collapse, interrupt-policy properties, preload behavior, auth/reload UX, provider deletion, dedicated llama.cpp node, strip-on-cloud, or native Anthropic
 - No resolving D-2 / A-25 in code - only framing for Vir  
 - No promoting Options height polish from stay/go evidence  
+- No naive `model`/`loaded_model` sync; Q11 stays research until per-backend pass  
+- No version bump or unrelated code from this fold  
 
 ---
 
@@ -291,4 +326,4 @@ Adapter underneath: always `oai_compat` → `POST {url}/v1/chat/completions` (+ 
 
 ## Related worklist
 
-Live queue: [`WORKLIST.md`](../../WORKLIST.md) - systems map item points here (folded comfydesk deltas 2026-09-27; `model`/`loaded_model` smell 2026-09-28; Vir Q2 Lifecycle/VRAM and Q3-Q7 Options/generate/interrupt/preload/Auth UX locks 2026-09-28); Options height and merge/delete work remain deferred/not greenlit.
+Live queue: [`WORKLIST.md`](../../WORKLIST.md) - systems map item points here (folded comfydesk deltas 2026-09-27; `model`/`loaded_model` smell 2026-09-28; Vir Q2—Q10 docs locks + max_tokens semantics 2026-09-28; Q11 parked as research); Options height and merge/delete work remain deferred/not greenlit; D-4 closed.
