@@ -167,3 +167,13 @@ class TestTextGenWebUIToggle:
             "temperature": 0.7, "top_p": 0.9,
             "max_tokens": 512, "seed": 42,
         }
+
+
+def test_output_token_widgets_allow_zero() -> None:
+    """0 is a real widget value (omit / host default) on legacy Options too."""
+    from nodes.options_openai import LLMOptionsOpenAI
+
+    for cls in (LLMOptionsLMStudio, LLMOptionsTextGenWebUI, LLMOptionsOpenAI):
+        for name, _dtype, opts in cls.PARAMS:
+            if name in {"max_tokens", "max_completion_tokens"}:
+                assert opts["min"] == 0, name

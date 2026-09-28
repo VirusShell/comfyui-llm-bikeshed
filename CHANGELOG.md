@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Generate face (Q4 / max_tokens)** - **LLM Generate (Advanced)** is the intended spine. It keeps optional `provider` / `options` / `meta`, and adds face `max_tokens` above `seed` (default 1024). **LLM Generate (Basic)** stays registered. Temperature stays on Basic and on Options; it was not added to Advanced. Neither node was unregistered.
+- **`max_tokens` 0** - output cap only. Widget min is 0 on Generate and on Options token fields (was 1). `0` omits that face limit (host default). On Advanced, `0` leaves an Options or meta limit in place; `1` or more replaces it. No prompt-length cap.
+- **OpenAI knobs (Q9)** - the Generate face sends `max_completion_tokens` when the provider backend is `openai`, and `max_tokens` for other hosts. An Options `max_tokens` value still goes out as `max_tokens` (legacy). If both fields are set, `max_completion_tokens` wins. `seed` is sent when set, including `0`. Sampling params are not stripped for cloud. No native Anthropic.
+- **Interrupt unload (Q5)** - right-click **Properties** → `unload_on_interrupt` (label "Unload on interrupt", default off) on both Generate nodes. Not a face widget. On Cancel, the pack unloads only when a lifecycle is embedded (Connection **Manage VRAM** ON, or a legacy lifecycle). Manage VRAM OFF does not unload. Queues that omit the workflow properties blob keep the default off. `js/generate_properties.js` registers the LiteGraph property.
 - **A-25 / D-2 / Manage VRAM** - **LLM Connection** uses one `manage_model_memory` toggle (default ON, UI label Manage VRAM). Textgen ON/OFF is the existing load-before / unload-after path. LM Studio ON keeps TTL and `context_length`; OFF embeds no lifecycle. The toggle is hidden for OpenAI, generic, and llama.cpp (router `/models/load` + `/models/unload` are not verified; chat still works; status says so). `POST /llm-bikeshed/models/connection` returns `manage_vram`. Model pick still does not load (Vir Q6). Legacy Provider and Lifecycle nodes stay registered.
 
 ### Fixed

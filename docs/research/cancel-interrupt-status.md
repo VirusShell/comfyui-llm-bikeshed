@@ -80,7 +80,7 @@ This is **not** the project-wide provenance audit. For decision-time gates and t
 
 | Gap | Priority | Notes |
 |-----|----------|-------|
-| **No cleanup on interrupt** | Medium | `OAICompatAdapter.generate()` only runs unload (`_unload_model_*`) after a successful completion. Interrupt raises before that block — model can remain loaded on Textgen / LM Studio TTL path unchanged. LM Studio / Textgen unload paths use **bare `requests.post`** (not interruptible) — intentional for post-success cleanup only. |
+| **Unload on interrupt is opt-in** | Medium | Default stays success-path unload only. Generate Properties `unload_on_interrupt` (default off) calls the same lifecycle unload on Cancel when a lifecycle is embedded (Manage VRAM ON or legacy lifecycle). Manage VRAM OFF does not unload. LM Studio / Textgen unload paths still use **bare `requests.post`**. |
 | **`stream: false` in API body** | Medium (design constraint) | Chat payload always sets `"stream": False`. Transport uses streaming reads for cancel, but many hosts treat non-streaming completions as “run to completion server-side”; client disconnect may **not** stop inference. |
 | **Model list endpoints not interruptible** | Low (acceptable) | `model_list.py` and server dropdown paths use bare `requests.get` / `requests.post` — short calls; not routed through `interruptible_request()`. |
 | **User-facing README / node help** | Low (README done) | README § Cancel during generation documents Comfy unblocks vs host limits (`7c9bbc6`). Generation node inline help still minimal. |

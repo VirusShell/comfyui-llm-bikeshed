@@ -1,6 +1,6 @@
 # Worklist - comfyui-llm-bikeshed
 
-**Updated:** 2026-09-28 (Vir authorized implementing settled Q1–Q10/max_tokens locks; Q6 preload rip **landed**; **A-25 / D-2** Connection Manage VRAM toggle **landed** (llama.cpp router path not wired); Q11/R-1 research note started; still escalate publish/registry/deletes/credentials; Options merge/delete and height remain deferred) - Ordered by what is reversible and documented. Older backlog docs (`docs/qol-backlog.md`, `docs/resolution_tracker.md`, proposals, CODEBASE open-design notes) remain **sources for candidates**, not the live queue. This file is the actionable queue.
+**Updated:** 2026-09-28 (Vir authorized implementing settled Q1–Q10/max_tokens locks; Q6 preload rip **landed**; **A-25 / D-2** Connection Manage VRAM toggle **landed** (llama.cpp router path not wired); **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens) landed** — Advanced stays the intended spine, both Generate nodes stay registered, interrupt unload is a node property; Q11/R-1 research note started; still escalate publish/registry/deletes/credentials; Options merge/delete and height remain deferred; DOC-3 spine rewrite still open) - Ordered by what is reversible and documented. Older backlog docs (`docs/qol-backlog.md`, `docs/resolution_tracker.md`, proposals, CODEBASE open-design notes) remain **sources for candidates**, not the live queue. This file is the actionable queue.
 
 Legend: `[ ]` todo / `[x]` done / `[~]` deferred (intentionally out of scope now)
 
@@ -12,7 +12,7 @@ Direction for Q1–Q10 + max_tokens is locked; code/docs work may proceed under 
 
 - [x] **First code stream: Q6 preload rip** — remove model-pick preload (`ensure_load_on_select`, JS `ensure-loaded` / `scheduleModelLoad` on combo change in `js/llm_connection.js` + `js/model_dropdown.js`, Connection face widget). Load only on generate or when Manage VRAM needs it. Via Build/PR.
 - [x] **A-25 / D-2** — unified Connection VRAM toggle (`manage_model_memory`) for Textgen and LM Studio. llama.cpp stays hidden: router `/models/load` + `/models/unload` are not verified in detection/adapters. Legacy Provider and Lifecycle nodes stay registered.
-- [ ] **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens)** — one Advanced-shaped Generate with average-user knobs (`max_tokens` above `seed`); interrupt/unload policy in Properties; OpenAI prefer `max_completion_tokens` (new) / keep `max_tokens` (legacy), send seed when set, no strip-on-cloud; `max_tokens` output-only, `0`=omit/host default, UI min 1, no artificial prompt caps. Do **not** unregister Basic/Advanced or delete Options yet (registry/deletes → escalate).
+- [x] **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens)** — Advanced-shaped intended spine (`max_tokens` above `seed`, min 0); interrupt/unload is LiteGraph property `unload_on_interrupt` (default off, respects Manage VRAM); OpenAI face uses `max_completion_tokens`, legacy hosts and Options `max_tokens` stay `max_tokens`; seed sent when set; no strip-on-cloud. Basic and Advanced stay registered. Options not deleted. Temperature was not added to Advanced.
 - [ ] **DOC-3** — README / examples / CODEBASE onto Connection → one Generate spine (Q10; no Options on intended path)
 
 ## Ask-first / escalate (do not start without Vir)
@@ -36,6 +36,8 @@ Direction for Q1–Q10 + max_tokens is locked; code/docs work may proceed under 
 - [~] Cooperative interrupt for long llama.cpp reasoning without unloading the model (qol Future / research)
 
 ## Done (recent)
+
+- [x] **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens)** - **LLM Generate (Advanced)** is the intended spine: optional provider / options / meta, face `max_tokens` above `seed` (default 1024, min 0). Basic stays registered with the same min-0 cap (temperature already on Basic; not added to Advanced). `0` omits the face cap (Options/meta limits kept); `>= 1` sends. OpenAI face values go out as `max_completion_tokens`. Legacy hosts and an Options `max_tokens` toggle still send `max_tokens`. Seed is sent when set, including 0. No cloud strip. No native Anthropic. Right-click Properties `unload_on_interrupt` (default off) unloads on Cancel only when a lifecycle is embedded (Manage VRAM ON or legacy lifecycle). API prompts without the workflow blob keep that default. Options nodes stay; their token widgets also allow 0 (2026-09-28).
 
 - [x] **A-25 / D-2 implementation - unified Connection Manage VRAM** - one `manage_model_memory` toggle (default ON). Textgen ON/OFF is load-before / unload-after vs no pack load/unload. LM Studio ON keeps TTL + `context_length`; OFF embeds no lifecycle. llama.cpp toggle hidden with status (no verified router load/unload). Model pick still does not call ensure-loaded (Q6). Legacy nodes not removed (2026-09-28).
 

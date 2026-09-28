@@ -145,11 +145,12 @@ Produce text from an LLM. Both output `text` (STRING) and `meta` (LLM_META).
 
 | Node | Style | Inputs |
 |------|-------|--------|
-| **LLM Generate (Basic)** | Compact | `provider`, `prompt`, `system_prompt`, inline `temperature`/`max_tokens`/`seed` |
-| **LLM Generate (Advanced)** | Modular | `provider`, `prompt`, `system_prompt`, `options` (LLM_OPTIONS), `meta` (LLM_META) |
+| **LLM Generate (Basic)** | Compact (still registered) | `provider`, `prompt`, `system_prompt`, inline `temperature`/`max_tokens`/`seed` |
+| **LLM Generate (Advanced)** | Intended spine | `prompt`, `system_prompt`, inline `max_tokens` above `seed`, optional `provider` / `options` / `meta` |
 
-- **Basic** works without an Options node - inline params are sufficient.
-- **Advanced** accepts everything via connections. No inline inference params.
+- **Basic** works without an Options node - inline temperature, max_tokens, and seed are enough. Both Generate nodes stay registered.
+- **Advanced** is the intended new-graph Generate: connect Connection → `provider`. `max_tokens` is the average-user output cap (temperature stays on Basic or Options, not a new Advanced face widget). Optional `options` / `meta` remain for existing graphs.
+- **`max_tokens`:** output length only. `0` omits the face cap (host default; on Advanced an Options or meta limit is kept). `1` or more is sent. OpenAI sends that face value as `max_completion_tokens`; other hosts and an Options `max_tokens` toggle still use `max_tokens`.
 - **Meta chaining**: connect `meta` output to the next generation node's `meta` input. The model stays loaded across the chain and unloads only after the last node.
 
 ### Options Nodes
@@ -211,13 +212,13 @@ Dedicated llama-server / process-manager nodes are **deferred**. Point Connectio
 3. Set `url` to the **base** URL **without** a duplicated `/v1` suffix - e.g. `http://127.0.0.1:8080`.
 4. Click **Refresh Models** (string/type-in model when catalog is empty). **Manage VRAM** stays hidden: this pack does not call llama.cpp router load/unload. Connect **LLM Generate (Basic)** and queue a short prompt.
 
-### Advanced Setup (Modular Generation)
+### Advanced Setup (intended Generate)
 
 1. Add **LLM Connection**
-2. Add **LLM Options** matching your backend
-3. Add **LLM Generate (Advanced)**
-4. Connect: Connection -> `provider`, Options -> `options`
-5. Connect prompt text via **LLM Load Text File** or type directly
+2. Add **LLM Generate (Advanced)**
+3. Connect Connection -> `provider`. Set `max_tokens` (`0` uses the host default). `seed` is below it.
+4. Connect prompt text via **LLM Load Text File** or type directly
+5. **LLM Options** is optional and still registered. Connect `options` only when you need knobs beyond the face cap. A face `max_tokens` of `1` or more replaces an Options token limit; `0` keeps it.
 
 ### Chaining Generations
 
@@ -231,7 +232,7 @@ Pressing **Cancel** in ComfyUI stops the generation node and lets the queue cont
 
 - **Textgen:** the pack also calls Textgen's stop-generation endpoint when configured with an API key. This usually stops generation on the host, but behavior with non-streaming chat is not fully verified.
 - **LM Studio / OpenAI / other OAI hosts:** Cancel unblocks ComfyUI, but the backend may keep running until it finishes on its own. There is no stop API wired for LM Studio in this pack.
-- **VRAM cleanup on Cancel:** not implemented yet. If you cancel mid-run, the model may stay loaded (Textgen) or follow the normal TTL (LM Studio) - same as if generation had completed without an explicit unload.
+- **VRAM cleanup on Cancel:** off unless you turn it on. Right-click a Generate node → **Properties** → **Unload on interrupt** (`unload_on_interrupt`). When that is on, Cancel unloads only if **Manage VRAM** (or a legacy lifecycle) is managing the model. Manage VRAM OFF never unloads. The default is off, including API queues that do not send the workflow properties blob.
 
 ## Architecture
 

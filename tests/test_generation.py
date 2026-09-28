@@ -50,12 +50,17 @@ class TestLLMGenerateInlineOptions:
         temperature: float = 0.7,
         max_tokens: int = 1024,
         seed: int = 0,
+        backend: str | None = None,
+        extra_pnginfo: object = None,
+        unique_id: object = None,
     ) -> dict:
         """Helper: call generate() with a mock adapter and return the options dict."""
         node = LLMGenerate()
         mock_adapter = MagicMock()
         mock_adapter.generate.return_value = "response text"
         provider = {"adapter": "oai_compat", "url": "http://localhost:1234"}
+        if backend is not None:
+            provider["backend"] = backend
 
         with patch("nodes.generation.get_adapter", return_value=mock_adapter), \
              patch("nodes.generation.has_downstream_gen_node", return_value=False):
@@ -66,10 +71,13 @@ class TestLLMGenerateInlineOptions:
                 temperature=temperature,
                 max_tokens=max_tokens,
                 seed=seed,
+                extra_pnginfo=extra_pnginfo,
+                unique_id=unique_id,
             )
 
         # Third positional arg to adapter.generate is the options dict
         call_args = mock_adapter.generate.call_args
+        self.last_call = call_args
         return call_args[0][2]
 
     def test_seed_zero_included(self) -> None:
@@ -92,6 +100,23 @@ class TestLLMGenerateInlineOptions:
     def test_max_tokens_included(self) -> None:
         opts = self._run_generate(max_tokens=512)
         assert opts["max_tokens"] == 512
+
+    def test_max_tokens_zero_omits_face_limit(self) -> None:
+        """0 means omit / host default, not a request for zero tokens."""
+        opts = self._run_generate(max_tokens=0)
+        assert "max_tokens" not in opts
+        assert "max_completion_tokens" not in opts
+        assert opts["seed"] == 0
+
+    def test_openai_face_sends_max_completion_tokens(self) -> None:
+        opts = self._run_generate(max_tokens=64, backend="openai")
+        assert opts["max_completion_tokens"] == 64
+        assert "max_tokens" not in opts
+
+    def test_legacy_host_keeps_max_tokens(self) -> None:
+        opts = self._run_generate(max_tokens=64, backend="llamacpp")
+        assert opts["max_tokens"] == 64
+        assert "max_completion_tokens" not in opts
 
     def test_all_defaults_includes_seed(self) -> None:
         """Comfy-style seed default 0 is always sent with temperature/max_tokens."""
@@ -309,3 +334,123 @@ class TestMetaSecretStripping:
 
         assert "api_key" not in meta["provider"]
         assert "admin_key" not in meta["provider"]
+
+
+class TestGenerateFaceShape:
+    """Q4: Advanced-shaped spine, max_tokens above seed, min 0. Both stay registered."""
+
+    def test_basic_max_tokens_above_seed_min_zero(self) -> None:
+        required = LLMGenerate.INPUT_TYPES()["required"]
+        keys = list(required)
+        assert keys.index("max_tokens") < keys.index("seed")
+        assert required["max_tokens"][1]["min"] == 0
+        assert required["max_tokens"][1]["default"] == 1024
+
+    def test_advanced_keeps_optional_sockets_and_token_knob(self) -> None:
+        required = LLMGenerateAdvanced.INPUT_TYPES()["required"]
+        optional = LLMGenerateAdvanced.INPUT_TYPES()["optional"]
+        keys = list(required)
+        assert keys.index("max_tokens") < keys.index("seed")
+        assert required["max_tokens"][1]["min"] == 0
+        assert "temperature" not in required
+        assert set(optional) == {"provider", "options", "meta"}
+
+
+class TestAdvancedFaceMaxTokens:
+    """Face >= 1 wins. Face 0 leaves Options / meta token limits in place."""
+
+    def _provider(self, backend: str = "lm_studio") -> dict:
+        return {
+            "adapter": "oai_compat",
+            "url": "http://host:1234",
+            "backend": backend,
+        }
+
+    def _opts(self, **kwargs: object) -> dict:
+        node = LLMGenerateAdvanced()
+        mock_adapter = MagicMock()
+        mock_adapter.generate.return_value = "text"
+        provider = kwargs.pop("provider", self._provider())
+        with patch("nodes.generation.get_adapter", return_value=mock_adapter), \
+             patch("nodes.generation.has_downstream_gen_node", return_value=False):
+            node.generate(system_prompt="", prompt="Hello", provider=provider, **kwargs)
+        self.call = mock_adapter.generate.call_args
+        return self.call[0][2]
+
+    def test_zero_keeps_options_max_tokens(self) -> None:
+        opts = self._opts(max_tokens=0, options={"max_tokens": 50, "temperature": 0.2})
+        assert opts["max_tokens"] == 50
+        assert opts["temperature"] == 0.2
+
+    def test_positive_overrides_options_on_legacy_host(self) -> None:
+        opts = self._opts(max_tokens=80, options={"max_tokens": 50})
+        assert opts["max_tokens"] == 80
+
+    def test_positive_openai_uses_completion_tokens(self) -> None:
+        opts = self._opts(
+            max_tokens=80,
+            options={"max_tokens": 50, "temperature": 0.4},
+            provider=self._provider("openai"),
+        )
+        assert opts["max_completion_tokens"] == 80
+        assert "max_tokens" not in opts
+        assert opts["temperature"] == 0.4
+        assert opts["seed"] == 0
+
+
+class TestUnloadOnInterruptProperty:
+    """Q5: property is not a face widget; missing workflow blob stays off."""
+
+    def test_property_not_a_required_widget(self) -> None:
+        for cls in (LLMGenerate, LLMGenerateAdvanced):
+            types = cls.INPUT_TYPES()
+            assert "unload_on_interrupt" not in types["required"]
+            assert "unload_on_interrupt" not in types.get("optional", {})
+
+    def test_basic_passes_flag_from_workflow_properties(self) -> None:
+        node = LLMGenerate()
+        mock_adapter = MagicMock()
+        mock_adapter.generate.return_value = "text"
+        extra = {
+            "workflow": {
+                "nodes": [
+                    {
+                        "id": 7,
+                        "properties": {"unload_on_interrupt": True},
+                    }
+                ]
+            }
+        }
+        with patch("nodes.generation.get_adapter", return_value=mock_adapter), \
+             patch("nodes.generation.has_downstream_gen_node", return_value=False):
+            node.generate(
+                provider={"adapter": "oai_compat", "url": "http://localhost"},
+                prompt="Hello",
+                system_prompt="",
+                temperature=0.7,
+                max_tokens=16,
+                seed=1,
+                unique_id=7,
+                extra_pnginfo=extra,
+            )
+        assert mock_adapter.generate.call_args.kwargs["unload_on_interrupt"] is True
+
+    def test_missing_workflow_defaults_off(self) -> None:
+        node = LLMGenerateAdvanced()
+        mock_adapter = MagicMock()
+        mock_adapter.generate.return_value = "text"
+        provider = {
+            "adapter": "oai_compat",
+            "url": "http://localhost",
+            "backend": "lm_studio",
+        }
+        with patch("nodes.generation.get_adapter", return_value=mock_adapter), \
+             patch("nodes.generation.has_downstream_gen_node", return_value=False):
+            node.generate(
+                system_prompt="",
+                prompt="Hello",
+                max_tokens=0,
+                seed=0,
+                provider=provider,
+            )
+        assert mock_adapter.generate.call_args.kwargs["unload_on_interrupt"] is False
