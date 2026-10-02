@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Docs: hover popup research ([`docs/research/hover-popup-ux.md`](docs/research/hover-popup-ux.md)). Findings and ask-first options only. No node or JS edits, no version bump.
 - Docs: R-1 / Q11 research on selected `model` vs loaded model per backend ([`docs/research/r1-q11-model-vs-loaded.md`](docs/research/r1-q11-model-vs-loaded.md)). Findings only. No select→default sync, no version bump.
 - Docs honesty scrub (no version bump): [`WORKLIST.md`](WORKLIST.md) is the live queue. The resolution tracker, concept doc, and product-direction note are marked historical or candidate sources. Older notes that still described model-pick preload, always-on lifecycle embed, an open unload-on-cancel choice, in-progress relative imports, or publish-action `@main` now say what shipped (Q6, A-25, Q5, relative imports, action SHA pin).
 

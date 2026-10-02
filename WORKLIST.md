@@ -1,6 +1,6 @@
 # Worklist - comfyui-llm-bikeshed
 
-**Updated:** 2026-09-30 (**R-1 / Q11 findings landed** — docs only, no version bump). Vir authorized implementing settled Q1–Q10/max_tokens locks; Q6 preload rip **landed**; **A-25 / D-2** Connection Manage VRAM toggle **landed** (llama.cpp router path not wired); **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens) landed** — Advanced stays the intended spine, both Generate nodes stay registered, interrupt unload is a node property; **DOC-3** README / examples / CODEBASE now lead with Connection → Advanced Generate; Q11 stays **select-always** and loaded→default sync stays **ask-first**; still escalate publish/registry/node deletes/credentials; Options merge/delete and height remain deferred. Ordered by what is reversible and documented. Remaining older notes (`docs/resolution_tracker.md`, product-direction) are **historical / candidate sources**, not the live queue. QoL items that used to live in a separate backlog file are on Deferred below. This file is the actionable queue. DOC-1 and DOC-2 stay ask-first.
+**Updated:** 2026-10-02 (**hover popup research** — docs only, ask-first, no version bump). 2026-09-30 R-1 / Q11 findings stay landed. Vir authorized implementing settled Q1–Q10/max_tokens locks; Q6 preload rip **landed**; **A-25 / D-2** Connection Manage VRAM toggle **landed** (llama.cpp router path not wired); **Generate / Properties / knobs (Q4–Q5, Q9, max_tokens) landed** — Advanced stays the intended spine, both Generate nodes stay registered, interrupt unload is a node property; **DOC-3** README / examples / CODEBASE now lead with Connection → Advanced Generate; Q11 stays **select-always** and loaded→default sync stays **ask-first**; still escalate publish/registry/node deletes/credentials; Options merge/delete and height remain deferred. Ordered by what is reversible and documented. Remaining older notes (`docs/resolution_tracker.md`, product-direction) are **historical / candidate sources**, not the live queue. QoL items that used to live in a separate backlog file are on Deferred below. This file is the actionable queue. DOC-1 and DOC-2 stay ask-first.
 
 Legend: `[ ]` todo / `[x]` done / `[~]` deferred (intentionally out of scope now)
 
@@ -23,10 +23,12 @@ Direction for Q1–Q10 + max_tokens is locked; code/docs work may proceed under 
 - [ ] **Options merge/delete** — Q3 direction is thin/no Options on new-graph spine; merge/delete and height stay escalate/deferred (**deletes**)
 - [ ] Publish / credential surface changes
 - [ ] **Q11 implementation** — loaded→default on local hosts is a future design. Select-always stays (the graph `model` is what generate sends). Do **not** implement sync, select-preload, or Q11 UI until Vir greenlights an overhaul. Findings: [`docs/research/r1-q11-model-vs-loaded.md`](docs/research/r1-q11-model-vs-loaded.md).
+- [ ] **Hover popup copy** — optional trim or removal of spine tooltips / Connection `DESCRIPTION`. Comfy’s own Enable Tooltips / Tooltip Delay needs no pack change. Do **not** edit those strings until Vir picks an option. Note: [`docs/research/hover-popup-ux.md`](docs/research/hover-popup-ux.md).
 
 ## Research (not implementation)
 
 - [x] **R-1 / Q11** — `model` vs `loaded_model` findings **landed** (2026-09-30): [`docs/research/r1-q11-model-vs-loaded.md`](docs/research/r1-q11-model-vs-loaded.md). Per-backend select vs load, including hosts with **no** loaded-model concept (OpenAI cloud / generic OAI). The 2026-09-28 note is superseded. **Do not implement** select→default sync. Implementation stays in Ask-first above.
+- [x] **Hover popups** — research **landed** (2026-10-02): [`docs/research/hover-popup-ux.md`](docs/research/hover-popup-ux.md). The pack does not draw a popup; long `tooltip` / `DESCRIPTION` text rides Comfy hover. **Do not implement** a trim or a disable. Copy changes stay in Ask-first above.
 
 ## Deferred (only after systems direction)
 
