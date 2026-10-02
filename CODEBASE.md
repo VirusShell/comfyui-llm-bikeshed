@@ -320,7 +320,8 @@ Not authoritative product. Read for background. Do not implement from these file
 | `fresh-context-audit-prompt.md` | Audit-oriented fresh-context prompt |
 | `cancel-interrupt-status.md` | Cancel/interrupt shipped vs gaps (Q5 unload policy stamped) |
 | `2026-09-27-pack-systems-map.md` | Composition map. Overhaul still not greenlit; tip stamped at v1.1.0 |
-| `2026-09-28-model-vs-loaded-per-backend.md` | Q11 research. Select-preload and always-embed sentences are pre-ship |
+| `r1-q11-model-vs-loaded.md` | Q11 / R-1 findings (2026-09-30). Select vs loaded per backend. Do not implement sync from this row |
+| `2026-09-28-model-vs-loaded-per-backend.md` | Superseded pointer to the R-1 note |
 | `cancel-empirical-qa-handoff.md` | Human-run cancel QA protocol |
 | `audit-handoff.md` | Audit handoff notes |
 | `external-comfyui-reference-corpus.md` | Off-repo ComfyUI doc mirror pointer (DOC-1) |
